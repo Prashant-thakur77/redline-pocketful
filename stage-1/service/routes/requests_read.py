@@ -1,6 +1,6 @@
-"""GET /requests — R-1-163..167, read-only (create/pay/decline/cancel are
-N1-6's scope; this wired early because the storm invariant, gate 4, reads
-it for every user after every operation).
+"""GET /requests — R-1-163..167. `serialize_request` is shared with
+create/pay/decline/cancel (routes/requests.py) so every endpoint that
+returns a request object uses the exact same shape.
 """
 from __future__ import annotations
 
@@ -11,6 +11,24 @@ from ..validation import parse_limit, parse_offset
 
 _VALID_DIRECTIONS = {"incoming", "outgoing"}
 _VALID_STATUSES = {"pending", "paid", "declined", "cancelled"}
+
+
+def serialize_request(r: dict) -> dict:
+    requester = STORE.users_by_id.get(r["requester_id"])
+    payer = STORE.users_by_id.get(r["payer_id"])
+    return {
+        "request_id": r["id"],
+        "requester_id": r["requester_id"],
+        "requester_handle": requester["handle"] if requester else None,
+        "payer_id": r["payer_id"],
+        "payer_handle": payer["handle"] if payer else None,
+        "amount": r["amount"],
+        "currency": STORE.currency,
+        "note": r["note"],
+        "status": r["status"],
+        "payment_id": r["payment_id"],
+        "created_at": r["created_at"],
+    }
 
 
 class RequestsListEndpoint(Endpoint):
@@ -51,23 +69,7 @@ class RequestsListEndpoint(Endpoint):
         page = visible[offset:offset + limit]
         has_more = offset + limit < len(visible)
 
-        out = []
-        for r in page:
-            requester = STORE.users_by_id.get(r["requester_id"])
-            payer = STORE.users_by_id.get(r["payer_id"])
-            out.append({
-                "request_id": r["id"],
-                "requester_id": r["requester_id"],
-                "requester_handle": requester["handle"] if requester else None,
-                "payer_id": r["payer_id"],
-                "payer_handle": payer["handle"] if payer else None,
-                "amount": r["amount"],
-                "currency": STORE.currency,
-                "note": r["note"],
-                "status": r["status"],
-                "payment_id": r["payment_id"],
-                "created_at": r["created_at"],
-            })
+        out = [serialize_request(r) for r in page]
         return 200, {"requests": out, "has_more": has_more}
 
 

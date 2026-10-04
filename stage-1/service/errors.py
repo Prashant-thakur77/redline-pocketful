@@ -59,8 +59,16 @@ def self_payment(message: str = "cannot pay yourself") -> ApiError:
     return ApiError(422, "self_payment", message)
 
 
+def self_request(message: str = "cannot request money from yourself") -> ApiError:
+    return ApiError(422, "self_request", message)
+
+
 def insufficient_funds(message: str = "insufficient funds") -> ApiError:
     return ApiError(409, "insufficient_funds", message)
+
+
+def request_not_pending(message: str = "request is not pending") -> ApiError:
+    return ApiError(409, "request_not_pending", message)
 
 
 def internal_error(message: str = "unexpected server error") -> ApiError:
