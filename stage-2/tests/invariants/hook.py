@@ -535,13 +535,19 @@ def snapshot(base_url: str) -> dict:
     balances = {}
     identities = {}
     wallets = {}
+    sample_me_body = None
     for handle in sorted(tokens):
         token = tokens[handle]
         r = _get(base_url, "/me", headers=_auth(token))
         assert r.status_code == 200, f"pre-upgrade token for {handle} stopped authenticating: {r.status_code} {r.text}"
         body = r.json()
+        sample_me_body = body
         balances[handle] = body["balance"]
         identities[handle] = (body["user_id"], body["handle"])
+        # .get(..., default) is deliberate ONLY for tolerating the OLD side
+        # (stage 1 never had these fields); the new-side liveness guard below
+        # is what stops this same default from also masking a NEW-side
+        # regression where stage 2 stopped returning them.
         wallets[handle] = (body["balance"], body.get("held", 0), body.get("available", body["balance"]))
 
     requests_state = []
@@ -583,9 +589,18 @@ def snapshot(base_url: str) -> dict:
         token = next(iter(tokens.values()))
         liveness = _get(base_url, "/authorizations", headers=_auth(token))
         assert liveness.status_code == 200, (
-            f"the upgraded (new) side must answer GET /authorizations with 200 even when the "
-            f"old side predates holds — got {liveness.status_code} {liveness.text}, which would "
-            f"be a silent regression if not checked here")
+            "new-side service must still expose holds even when the old side had none: "
+            f"GET /authorizations returned {liveness.status_code} {liveness.text}, which would "
+            "be a silent regression if not checked here")
+        # The same silent-default hazard applies to GET /me: wallets{} above
+        # tolerates a MISSING held/available via .get(..., default), which is
+        # correct for the old (stage-1) side but would also mask a new-side
+        # regression where stage 2 stopped returning them. R-2-010 makes both
+        # mandatory on this stage, so check PRESENCE, not just a safe value.
+        assert sample_me_body is not None and "held" in sample_me_body and "available" in sample_me_body, (
+            "new-side service must still expose holds even when the old side had none: "
+            f"GET /me is missing 'held' and/or 'available' ({sample_me_body}), which would "
+            "be a silent regression if not checked here")
 
     auth_state = []
     for auth_id, viewer_handle in sorted(set(_UPGRADE["known_authorizations"])):
