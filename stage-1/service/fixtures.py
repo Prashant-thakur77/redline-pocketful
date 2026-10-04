@@ -115,22 +115,13 @@ def validate_fixture(body: dict) -> dict:
         if status not in VALID_REQUEST_STATUSES:
             raise validation_failed("request status is invalid")
 
-        payment_id = None
-        if status == "paid":
-            # R-1-042's request fields have no way to name the payment that
-            # settled a seeded request, so a seeded "paid" request implies
-            # one: synthesize it the same way an API-driven pay would have
-            # produced it (payer -> requester, same amount/note).
-            payment_id = f"seed-settle-{rid}"
-            if payment_id in payments or len(payment_id) > MAX_ID_LEN:
-                raise validation_failed("could not derive a settlement payment id for a seeded paid request")
-            payments[payment_id] = {
-                "id": payment_id, "from_user_id": payer_id, "to_user_id": requester_id,
-                "amount": amount, "note": note, "visibility": "private", "settlement_id": None,
-            }
+        # R-1-051: the fixture has no way to name the payment that settled a
+        # seeded request, so a seeded "paid" request's payment_id stays
+        # null — it is non-null only once a real POST /requests/{id}/pay
+        # settles it.
         requests[rid] = {
             "id": rid, "requester_id": requester_id, "payer_id": payer_id,
-            "amount": amount, "note": note, "status": status, "payment_id": payment_id,
+            "amount": amount, "note": note, "status": status, "payment_id": None,
         }
 
     operator_ids: set[str] = set()
