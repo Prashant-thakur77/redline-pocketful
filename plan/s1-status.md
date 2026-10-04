@@ -78,6 +78,25 @@ on, in a third shape: **deferred batch-checking across a state-wiping boundary.*
 stage 1 closes, because a closed stage is frozen and copied forward — a latent order-dependence
 bug in a committed test would propagate into stages 2, 3 and 4.
 
+## N1-10.3 intermittency proven, and why stage 1 did not close on a green run
+
+The over-long-header defect is **provably** intermittent, not a matter of judgement, and the two
+runs that prove it are two commits apart with **no service-code change between them** —
+`0c975f4` → `d6fe8b8` is `plan/` only:
+
+| commit | seat | gate 2 | the framing test |
+|---|---|---|---|
+| `0c975f45bb54` | adversary | 313 passed, **1 failed** | **FAILED** — `JSONDecodeError` at char 0, empty body on the `400` |
+| `d6fe8b88a68b` | verifier | **314 passed, 0 failed** | passed |
+
+Identical service code, opposite outcomes. So the green run is a sample of a race, not evidence
+the defect is absent, and `d6fe8b8` would have closed stage 1 over a live R-1-060/R-1-079 breach.
+I told @verifier before its result landed to issue **no GO** at that commit whatever gate 2 said,
+so the decision was made against the evidence rather than after seeing a convenient number.
+
+Everything else at `d6fe8b8` passed and stands: g1, g2 (314), g3 (claimed stage 1,
+`suites {"1": "pass", "2": "fail"}`), g4 (1300 ops, invariant held), g5, g8.
+
 ## Suite flakiness observed, not yet acted on (planner, 2026-10-04)
 
 Two independent reports of tests passing and failing without a code change between runs:
