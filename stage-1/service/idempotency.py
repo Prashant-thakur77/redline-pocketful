@@ -7,11 +7,14 @@ caller the stored response (a true replay, or a conflict), or marks the
 caller as the one request that must actually run the operation.
 
 "Same body" (R-1-106) is decided by comparing the **parsed** JSON value
-with `==`, not the raw bytes: Python already treats `1000 == 1000.0 ==
-1e3` and ignores dict key order, which is exactly R-1-106's rule, while
-list equality stays order-sensitive, also exactly as required. Unknown
-fields are never stripped before this comparison, so they are part of
-the body like any other field.
+with `json_equal` below, not the raw bytes and not bare `==`: Python's
+`==` already gets numbers right (`1000 == 1000.0 == 1e3`) and ignores
+dict key order while keeping list order significant, which is exactly
+R-1-106's rule — but it also makes `True == 1`, which would silently
+treat a boolean and a number as the same JSON value. `json_equal` keeps
+the former and rejects the latter. Unknown fields are never stripped
+before this comparison, so they are part of the body like any other
+field.
 
 The claim and the eventual commit/release are deliberately NOT the same
 lock as the store's funds lock (`Store.write_lock()`) — claiming must be
@@ -31,6 +34,23 @@ import threading
 from .errors import idempotency_key_reuse
 
 _WAIT_TIMEOUT = 15.0  # generous relative to R-1-015's 5s/10s request budgets
+
+
+def json_equal(a, b) -> bool:
+    """R-1-106: the same JSON value after parsing. Numbers compare by
+    exact numeric value across int/float (`1000 == 1000.0 == 1e3`); a
+    bool is only equal to a bool of the same value, never to a number
+    even though Python's bare `==` would say `True == 1`; dict key order
+    is irrelevant; list order is significant."""
+    if isinstance(a, bool) or isinstance(b, bool):
+        return isinstance(a, bool) and isinstance(b, bool) and a == b
+    if isinstance(a, (int, float)) and isinstance(b, (int, float)):
+        return a == b
+    if isinstance(a, dict) and isinstance(b, dict):
+        return a.keys() == b.keys() and all(json_equal(a[k], b[k]) for k in a)
+    if isinstance(a, list) and isinstance(b, list):
+        return len(a) == len(b) and all(json_equal(x, y) for x, y in zip(a, b))
+    return type(a) is type(b) and a == b
 
 
 class _Entry:
@@ -63,7 +83,7 @@ class IdempotencyStore:
                     self._entries[composite] = _Entry(body)
                     return "claimed", composite
                 if entry.state == "complete":
-                    if entry.request_body != body:
+                    if not json_equal(entry.request_body, body):
                         raise idempotency_key_reuse()
                     return "replay", (200, entry.response_body)
                 event = entry.event

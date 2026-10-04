@@ -3,7 +3,7 @@ module here and call its `register()`; this item only wires /health."""
 from __future__ import annotations
 
 from ..server import ROUTER
-from . import auth, health, me, requests_read, test_control
+from . import activity, auth, health, me, payments, requests_read, test_control
 
 
 def register_all() -> None:
@@ -12,3 +12,5 @@ def register_all() -> None:
     auth.register(ROUTER)
     me.register(ROUTER)
     requests_read.register(ROUTER)
+    payments.register(ROUTER)
+    activity.register(ROUTER)

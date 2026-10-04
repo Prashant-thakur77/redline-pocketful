@@ -55,6 +55,14 @@ def validation_failed(message: str = "validation failed") -> ApiError:
     return ApiError(422, "validation_failed", message)
 
 
+def self_payment(message: str = "cannot pay yourself") -> ApiError:
+    return ApiError(422, "self_payment", message)
+
+
+def insufficient_funds(message: str = "insufficient funds") -> ApiError:
+    return ApiError(409, "insufficient_funds", message)
+
+
 def internal_error(message: str = "unexpected server error") -> ApiError:
     """R-1-080a: a genuine uncaught exception is a server defect, not the
     caller's fault — it must answer loudly, not hide behind a 4xx."""

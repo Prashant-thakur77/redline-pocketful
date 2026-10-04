@@ -16,12 +16,13 @@ _INT_RE = re.compile(r"^-?\d+$")
 _MAX_IDEMPOTENCY_KEY_LEN = 255
 
 
-def parse_amount(value) -> int:
+def parse_amount(value, *, min_value: int | None = None, max_value: int | None = None) -> int:
     """R-1-031..033: integer count of minor units.
 
     1000, 1000.0 and 1e3 are all accepted (integral numeric value); a bool or
     string is rejected as 422, never 400 (R-1-069); a non-integral number is
-    422.
+    422. An optional range (e.g. R-1-134's 1..1_000_000_000 for payments) is
+    checked here too, same code either way.
     """
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise validation_failed("amount must be a number")
@@ -29,24 +30,37 @@ def parse_amount(value) -> int:
         if not value.is_integer():
             raise validation_failed("amount must be an integral number of minor units")
         value = int(value)
+    if min_value is not None and value < min_value:
+        raise validation_failed(f"amount must be at least {min_value}")
+    if max_value is not None and value > max_value:
+        raise validation_failed(f"amount must be at most {max_value}")
     return value
 
 
-def validate_note(value, *, required: bool = False, max_length: int = 500):
-    """note must be a string (R-1-069); null or any non-string is 422."""
-    if value is None and not required:
+def validate_note(body: dict, key: str = "note", *, max_length: int = 500) -> str:
+    """R-1-069/070/136: note must be a string, verbatim, at most max_length
+    Unicode code points. An **absent** key defaults to "" (never an error);
+    a **present** key that is non-string — including explicit `null` — is
+    422, which is why this takes the containing dict rather than a bare
+    value: `body.get(key)` cannot tell "absent" apart from "present: null".
+    """
+    if key not in body:
         return ""
+    value = body[key]
     if not isinstance(value, str):
-        raise validation_failed("note must be a string")
+        raise validation_failed(f"{key} must be a string")
     if len(value) > max_length:
-        raise validation_failed(f"note must be at most {max_length} characters")
+        raise validation_failed(f"{key} must be at most {max_length} characters")
     return value
 
 
-def validate_visibility(value, *, default: str = "public"):
-    """Anything other than "public"/"private" is 422, including wrong type (R-1-069)."""
-    if value is None:
+def validate_visibility(body: dict, key: str = "visibility", *, default: str = "public") -> str:
+    """R-1-069/070: anything other than "public"/"private" is 422, including
+    wrong type and an explicit `null` — but an absent key defaults
+    (R-1-070), same absent-vs-null distinction as `validate_note`."""
+    if key not in body:
         return default
+    value = body[key]
     if value not in ("public", "private"):
         raise validation_failed('visibility must be "public" or "private"')
     return value

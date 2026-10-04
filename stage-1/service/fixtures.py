@@ -91,11 +91,12 @@ def validate_fixture(body: dict) -> dict:
         if from_user_id not in users or to_user_id not in users:
             raise validation_failed("payment references an unknown user")
         amount = parse_amount(raw.get("amount"))
-        note = validate_note(raw.get("note"))
-        visibility = validate_visibility(raw.get("visibility"))
+        note = validate_note(raw)
+        visibility = validate_visibility(raw)
         payments[pid] = {
             "id": pid, "from_user_id": from_user_id, "to_user_id": to_user_id,
-            "amount": amount, "note": note, "visibility": visibility, "settlement_id": None,
+            "amount": amount, "note": note, "visibility": visibility,
+            "request_id": None, "settlement_id": None,
         }
 
     requests: dict[str, dict] = {}
@@ -110,7 +111,7 @@ def validate_fixture(body: dict) -> dict:
         if requester_id not in users or payer_id not in users:
             raise validation_failed("request references an unknown user")
         amount = parse_amount(raw.get("amount"))
-        note = validate_note(raw.get("note"))
+        note = validate_note(raw)
         status = raw.get("status", "pending")
         if status not in VALID_REQUEST_STATUSES:
             raise validation_failed("request status is invalid")
