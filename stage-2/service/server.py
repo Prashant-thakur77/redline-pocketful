@@ -22,6 +22,7 @@ import traceback
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qsl, urlsplit
 
+from . import ui
 from .errors import ApiError, internal_error, malformed_request, method_not_allowed, not_found
 from .json_utils import dumps
 from .pipeline import Endpoint, RequestCtx
@@ -171,6 +172,17 @@ class Handler(BaseHTTPRequestHandler):
 
             headers = {k.lower(): v for k, v in self.headers.items()}
 
+            # R-2-091: the browser shell is tried first and, on a hit,
+            # short-circuits entirely — only an explicit `Accept: text/html`
+            # on one of the six UI routes ever reaches here, so every JSON
+            # path (including /requests and /authorizations themselves,
+            # for any other Accept) falls through to ROUTER.match untouched.
+            ui_result = ui.try_handle(method, path, headers, raw_body, query)
+            if ui_result is not None:
+                status, header_pairs, ui_body = ui_result
+                self._write_raw(status, header_pairs, ui_body, suppress_body=suppress_body)
+                return
+
             endpoint, path_params, allowed = ROUTER.match(method, path)
             if endpoint is None:
                 if allowed:
@@ -207,6 +219,22 @@ class Handler(BaseHTTPRequestHandler):
 
     def _write_error(self, exc: ApiError, suppress_body: bool = False) -> None:
         self._write_json(exc.status, exc.body(), suppress_body=suppress_body)
+
+    def _write_raw(self, status: int, header_pairs: list[tuple[str, str]], body: bytes,
+                    suppress_body: bool = False) -> None:
+        """For the browser shell's own responses (HTML pages, redirects,
+        static assets) — same single-write discipline as `_write_json`
+        (see `_end_headers_with_body`), just with caller-supplied headers
+        instead of a fixed JSON content type."""
+        self.send_response(status)
+        has_length = False
+        for name, value in header_pairs:
+            self.send_header(name, value)
+            if name.lower() == "content-length":
+                has_length = True
+        if not has_length:
+            self.send_header("Content-Length", str(len(body)))
+        self._end_headers_with_body(None if suppress_body else body)
 
     def do_GET(self):
         self._dispatch("GET")
