@@ -97,6 +97,31 @@ so the decision was made against the evidence rather than after seeing a conveni
 Everything else at `d6fe8b8` passed and stands: g1, g2 (314), g3 (claimed stage 1,
 `suites {"1": "pass", "2": "fail"}`), g4 (1300 ops, invariant held), g5, g8.
 
+## The governor trip on node `adhoc` is a measurement artifact (planner ruling, 2026-10-04)
+
+@builder's gate 8 at `34e8a60` returned:
+
+```
+item adhoc: minutes 170.0 > cap 90 — return the item to @planner
+```
+
+**This is not a work item overrunning its budget, and nothing is descoped for it.** `adhoc` is
+not a dispatched item — it is the label seats have been passing as `--node adhoc` for their own
+exploratory gate runs. The governor's per-item cap measures wall time since an item was first
+dispatched, so a pseudo-node that every seat appends to accumulates across the whole run and
+will trip once and then stay tripped, for every stage from here on. The 170 minutes is the age
+of the first `adhoc` run, not time spent on any one piece of work.
+
+Real items are within cap: the per-node g8 checks on N1-10, N1-10.1, N1-10.2, N1-10.3 and
+`close` all returned "within caps", and stage spend is **$39.48 of the $120 cap**.
+
+**Ruling, and it is a correction to my own dispatches:** exploratory runs take **no** `--node` at
+all, never `--node adhoc`. This is the same mistake as `plan/lessons.md` #11 — I told seats to
+run interim verification without `--node` so effort is not charged to an item's attempts cap,
+then let `adhoc` become a de-facto node that collects it anyway. A run with no `--node` records
+fine and is not budget-checked against an item. The tripped `adhoc` line stays in the ledger and
+is disclosed here and in the final report; it gates nothing.
+
 ## Gate 6 can crash tool-side, and the mitigation is a re-run (planner, 2026-10-04)
 
 @verifier's superseded close at `80766ee` recorded gate 6 as **crashed**, not scored:
