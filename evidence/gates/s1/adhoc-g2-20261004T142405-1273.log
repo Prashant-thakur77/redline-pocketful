@@ -1,0 +1,52 @@
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /home/prashant/projects/band-work/result/stage-1/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s1/adhoc-g2-20261004T142405-1273.junit.xml  (exit 1)
+.....................................................F.................. [ 25%]
+........................................................................ [ 51%]
+........................................................................ [ 76%]
+.................................................................        [100%]
+=================================== FAILURES ===================================
+____________ test_import_accepts_a_negative_wallet_balance_r_1_002 _____________
+
+    def test_import_accepts_a_negative_wallet_balance_r_1_002():
+        """R-1-002: 'No wallet balance is ever negative, not even
+        transiently... no observable read... leaves a balance below zero.'
+        This is an unconditional invariant with no stated exception for
+        import.
+    
+        `POST /_test/reset` explicitly rejects a negative seeded balance
+        (R-1-045, validated in fixtures.py). `POST /_test/import`'s
+        `validate_import_document` has no equivalent check —
+        `wallets = {uid: int(balance) for uid, balance in
+        state["wallets"].items()}` accepts any integer, including negative
+        ones, and `Store.apply_import` assigns it directly. Since
+        `POST /_test/import` is unauthenticated (R-1-201) and nothing
+        requires its body to have come from this service's own
+        `GET /_test/export` (R-1-202 only describes the *expected* use, it
+        does not say anything else must be *rejected*), a caller can hand
+        craft a document with an arbitrary negative wallet and have it
+        accepted, then observe that negative balance directly via GET /me.
+        """
+        uid, handle = unique("u"), unique_handle("negimp")
+        email = f"{handle}@example.com"
+        reset_ok(make_fixture([user(uid, handle, balance=500, email=email)]))
+        export = _export()
+    
+        doc = copy.deepcopy(export)
+        doc["state"]["wallets"][uid] = -999_999
+    
+        r = _import(doc)
+>       assert r.status_code == 204, (
+            f"expected the import to be rejected for a negative wallet balance, but it was "
+            f"accepted: {r.status_code} {r.text}"
+        )
+E       AssertionError: expected the import to be rejected for a negative wallet balance, but it was accepted: 422 {"error": {"code": "validation_failed", "message": "wallet balance for udb8de6db466 must not be negative"}}
+E       assert 422 == 204
+E        +  where 422 = <Response [422 Unprocessable Entity]>.status_code
+
+stage-1/tests/adversarial/test_n1_9_adversarial.py:58: AssertionError
+=========================== short test summary info ============================
+FAILED stage-1/tests/adversarial/test_n1_9_adversarial.py::test_import_accepts_a_negative_wallet_balance_r_1_002
+1 failed, 280 passed in 28.18s
+
+
+
+RESULT: FAIL — 280 passed, 1 failed, 0 errors, 0 skipped

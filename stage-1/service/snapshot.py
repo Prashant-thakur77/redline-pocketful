@@ -62,6 +62,13 @@ def validate_import_document(body: dict) -> dict:
     try:
         users = {u["id"]: dict(u) for u in state["users"]}
         wallets = {uid: int(balance) for uid, balance in state["wallets"].items()}
+        # R-1-002: no wallet balance is ever negative, not even transiently
+        # — import is unauthenticated and need not have come from this
+        # service's own export, so this is a real input to validate, the
+        # same way validate_fixture rejects a negative seeded balance.
+        for uid, balance in wallets.items():
+            if balance < 0:
+                raise validation_failed(f"wallet balance for {uid} must not be negative")
         payments = {p["id"]: dict(p) for p in state["payments"]}
         requests = {r["id"]: dict(r) for r in state["requests"]}
         settlement_operator_ids = set(state["settlement_operator_ids"])
