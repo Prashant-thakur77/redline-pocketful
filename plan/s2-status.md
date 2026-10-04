@@ -690,3 +690,32 @@ where the second never starts — delivers strictly less.
 
 If the stage cap trips mid-way, the landing order is `/requests` first (the route the API shares,
 with existing tests behind it), then `/authorizations`, then `/split`.
+
+## The stage-2 close command, written out now so it costs nothing later
+
+When @builder's combined N2-6′ pass has a GO from @verifier, the close run is:
+
+```
+cd /home/prashant/projects/band-work/result
+.venv/bin/python -m factory.gates.run stage-2 --node close --gates all \
+  --scope 4cce19d..HEAD \
+  --track pocketful --kickoff /home/prashant/projects/dark-factory-wearedevs
+```
+
+`4cce19d` is stage 1's close commit, so the scope check covers every edit made during stage 2.
+`--gates all` adds gate 3 (the public checks, isolated) and gate 6 (mutation) which no per-item
+run has exercised this stage — both are slow, so the close run should be the only thing on the
+box. On GO: `python -m factory.record stage_closed --stage 2 --result closed`, then @builder runs
+`python -m factory.stage_copy stage-2 stage-3` and stage 3 starts from
+`plan/s3-requirements.md` and `plan/s3-dag.md`, both already written and committed at `1ac920e`.
+
+Two things I expect the close run to surface for the first time, neither of which should be
+treated as a surprise:
+
+- **Gate 6, mutation.** Never run this stage. It needs the unmutated code green first, so it
+  cannot pass while gate 2 is red — another reason N2-6′'s screens are load-bearing for the
+  close rather than optional polish.
+- **Gate 3, public checks.** Never run this stage either. If it fails, the failure is
+  information about a requirement we read differently from the harness, not a defect in the
+  build; the right response is to read the failing check against the requirement and rule, not
+  to patch toward the check.
