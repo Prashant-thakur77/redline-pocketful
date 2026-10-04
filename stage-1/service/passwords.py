@@ -27,3 +27,11 @@ def verify_password(password: str, stored_hash: str) -> bool:
     expected = bytes.fromhex(hash_hex)
     derived = hashlib.pbkdf2_hmac(algo, password.encode("utf-8"), salt, int(iterations))
     return hmac.compare_digest(derived, expected)
+
+
+# R-1-086: an unknown email must cost the same as a wrong password against a
+# real account, or wall-clock timing lets a caller enumerate registered
+# emails even though both return the identical 401 body. Computed once at
+# import time so every "no such user" login still pays a real PBKDF2 cost
+# against this fixed hash instead of short-circuiting.
+DUMMY_PASSWORD_HASH = hash_password("not-a-real-account-constant-time-filler")

@@ -6,7 +6,7 @@ import secrets
 
 from ..errors import email_taken, handle_taken, malformed_request, unauthenticated, validation_failed
 from ..handles import derive_handle
-from ..passwords import hash_password, verify_password
+from ..passwords import DUMMY_PASSWORD_HASH, hash_password, verify_password
 from ..pipeline import Endpoint, RequestCtx
 from ..store import STORE
 
@@ -30,7 +30,12 @@ class LoginEndpoint(Endpoint):
 
     def apply(self, ctx: RequestCtx, resource, fields: dict):
         user = STORE.users_by_email.get(fields["email"])
-        if user is None or not verify_password(fields["password"], user["password_hash"]):
+        # Always pay the same PBKDF2 cost whether or not the email exists —
+        # short-circuiting on `user is None` would let wall-clock timing
+        # distinguish the two cases even though both return the same 401.
+        hash_to_check = user["password_hash"] if user is not None else DUMMY_PASSWORD_HASH
+        password_ok = verify_password(fields["password"], hash_to_check)
+        if user is None or not password_ok:
             # R-1-086: unknown email and wrong password are indistinguishable.
             raise unauthenticated()
         token = secrets.token_urlsafe(32)
