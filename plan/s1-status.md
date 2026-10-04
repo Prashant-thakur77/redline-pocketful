@@ -25,9 +25,56 @@
 | N1-10 | built | ae12b99 | Hardening. @builder's decision on the one open question: `_WAIT_TIMEOUT = 15.0` → `_MAX_TOTAL_WAIT = 4.0` with a deadline and an honest timeout response, so a waiter blocked on a slow winner can no longer breach R-1-015's 5 s request budget. |
 | N1-T.6 | READY | a981cc6 | `test_4xx_never_leaks_invisible_resource` asserted a non-party and an unknown id share a status; R-1-078a reversed that. Now `test_non_party_403_vs_unknown_404_on_pay_decline_cancel`, with a docstring recording why the first form was wrong — the file is copied into stages 2–4. @redline also consolidated four private copies of the two-user fixture helper into `conftest.py`, and self-reported a near-miss: its first pass deleted an unrelated `two_users` **pytest fixture** that @adversary's folder injects by name, caught with `grep -rn` before committing. |
 
+| N1-T.7 | READY | 0ae6a73 | Killed three gate-6 survivors from the close run at `9dc6a85` (`errors.py:10` empty error message, `activity.py:24` feed ordering, `fixtures.py:23` fixture string validation). 286 tests. Score moved 50% → 62% on @redline's own re-run at `0ae6a73`, still below the 80% bar. |
+| N1-T.8 | dispatched | — | Kill the four remaining real gate-6 survivors: one-sided settlement entry validation (two lines), malformed body on `cancel`, and the idempotency waiter deadline. New requirements R-1-061a, R-1-225a. |
+
 States: planned → dispatched → built → attacked → GO | NEEDS_WORK | blocked.
 
-Stage: open.
+Stage: open — one gate short of close.
+
+## Stage 1 close: first full gate run (@verifier, 2026-10-04)
+
+At `5a60153`, `--gates all --track pocketful --kickoff …`:
+
+| gate | result |
+|---|---|
+| 1 clean build | **PASS** — built and healthy offline |
+| 2 spec tests | **PASS** — 286 passed, 0 failed, 0 errors, 0 skipped |
+| 3 public checks | **PASS** — claimed stage 1; `{"1": "pass", "2": "fail"}`, i.e. stage 1 passes its own suite and correctly does **not** pass stage 2's (no overshoot) |
+| 4 invariant storm | **PASS** — 1300 ops, invariant held, `{201: 726, 409: 357, 200: 217}` |
+| 5 no regression | **PASS** — no earlier stage folder |
+| 6 mutation bite | **FAIL** — 25% (1/4 valid, 6 stillborn of 12 sampled) |
+| 7 UI quality | n/a — no browser product before stage 2 |
+| 8 budget | **PASS** — within caps; stage spend $38.33 of $120 |
+| scope | **FAIL** — the one sanctioned test deletion (`714f5e470c`), ruled on above; @verifier's call |
+
+Gate 6 is therefore the only outstanding content gate. Its sample is 12 mutants and
+small-sample noisy: three runs within fifteen minutes scored 50% (0 stillborn),
+62% (2 stillborn) and 25% (6 stillborn). The route to a durable pass is to kill
+every survivor that is a genuine coverage gap, so that any sample passes.
+
+### Gate 6 survivors, classified (planner, 2026-10-04)
+
+Real coverage gaps, dispatched as N1-T.8:
+
+1. `routes/settlements.py:29` and `:41`, `or` → `and` — the per-entry required-field
+   check and the per-entry handle-syntax check. Only one test each exists for R-1-224
+   and R-1-225, both with the fault on both sides at once, so a one-sided fault proves
+   nothing. → **R-1-225a**.
+2. `routes/requests.py:151`, `has_body` `true` → `false` on cancel — nothing distinguishes
+   `POST /requests/{id}/cancel` with an unparseable body from one without. No
+   malformed-body test exists on `decline` or `cancel` at all. → **R-1-061a**.
+3. `idempotency.py:86`, `+` → `-` on the waiter deadline — makes the deadline already
+   expired, so a loser in a same-key race never waits for the winner's response. The
+   R-1-108 tests accept any non-`201` status; nothing asserts the losers return `200`
+   with a body identical to the winner's.
+
+Not killable, disclosed rather than chased:
+
+4. `server.py:127`, `>` → `>=` on `length > 0` guarding the body read. At `length == 0`
+   both branches yield `b""`, so the mutant is behaviourally equivalent to the original
+   and no black-box test can distinguish it. @redline is instructed not to chase it.
+   It consumes one of the twelve sampled slots whenever it is drawn.
 
 ## Sanctioned test deletion (planner, 2026-10-04)
 
