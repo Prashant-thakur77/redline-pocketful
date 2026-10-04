@@ -188,19 +188,28 @@ def test_balance_stays_within_safe_integer_range():
 
 
 def test_activity_feed_shape_and_order():
-    """R-1-190"""
+    """R-1-190: pinned against the actual creation sequence (payment_id
+    order), not against `created_at` strings — R-1-195 leaves same-second
+    ties unspecified, so when every payment in a tight loop lands in the
+    same second, `created == sorted(created, reverse=True)` is trivially
+    true regardless of which direction the service actually sorts in (gate
+    6 found exactly this: a flipped `reverse=True` -> `reverse=False` went
+    undetected because this assertion couldn't tell the two apart)."""
     fixture, token_a, token_b = _two_user_fixture(balance_a=1000)
     b_handle = fixture["users"][1]["handle"]
-    for i in range(3):
+    created_ids = []
+    for i in range(4):
         r = api_post("/payments", json={"to_handle": b_handle, "amount": 10},
                      headers={**auth(token_a), **idem(unique(f"k{i}"))})
         assert r.status_code == 201, r.text
+        created_ids.append(r.json()["payment_id"])
     feed = api_get("/activity", headers=auth(token_a))
     assert feed.status_code == 200
     body = feed.json()
     assert "payments" in body and "has_more" in body
-    created = [p["created_at"] for p in body["payments"]]
-    assert created == sorted(created, reverse=True)
+    returned_ids = [p["payment_id"] for p in body["payments"]]
+    assert returned_ids == list(reversed(created_ids)), \
+        f"activity must be newest-first by actual creation order: {returned_ids} vs expected {list(reversed(created_ids))}"
 
 
 def test_activity_visibility_rule():

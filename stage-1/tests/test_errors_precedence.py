@@ -397,3 +397,35 @@ def test_malformed_inputs_never_5xx():
     for attempt in attempts:
         r = attempt()
         assert r.status_code < 500, f"client-caused input must never be reported as 500: {r.status_code} {r.text}"
+
+
+def test_every_error_message_is_non_empty_across_many_codes():
+    """R-1-060: gate 6 found a surviving mutant in the error constructor
+    (`message or fallback` flipped to `message and fallback`), which turns
+    an empty explicit message into an empty body field instead of falling
+    back to a derived one. assert_error() already checks this on every one
+    of its callers throughout the suite, but this test sweeps a wide,
+    distinct set of status/code pairs in one place specifically to pin the
+    non-empty-message contract broadly, rather than relying on it being an
+    incidental side effect of whichever call site happens to exercise the
+    vulnerable default."""
+    fixture, token_a, _ = _two_user_fixture()
+    b_handle = fixture["users"][1]["handle"]
+
+    checks = [
+        (api_get("/me", headers={}), 401),
+        (api_post("/settlements", json={"transfers": []}, headers={**auth(token_a), **idem(unique("k"))}), 403),
+        (api_post("/requests/does-not-exist/pay", json={}, headers={**auth(token_a), **idem(unique("k"))}), 404),
+        (api_post("/payments", json={"to_handle": b_handle, "amount": 0}, headers={**auth(token_a), **idem(unique("k"))}), 422),
+        (api_post("/payments", json={"to_handle": b_handle, "amount": 10}, headers=auth(token_a)), 400),
+    ]
+    first = api_post("/payments", json={"to_handle": b_handle, "amount": 10}, headers={**auth(token_a), **idem("dup-key")})
+    assert first.status_code == 201, first.text
+    second = api_post("/payments", json={"to_handle": b_handle, "amount": 99}, headers={**auth(token_a), **idem("dup-key")})
+    checks.append((second, 409))
+
+    for resp, expected_status in checks:
+        assert resp.status_code == expected_status, f"{resp.status_code} {resp.text}"
+        body = resp.json()
+        message = body["error"]["message"]
+        assert isinstance(message, str) and message, f"empty error message at {expected_status}: {resp.text}"

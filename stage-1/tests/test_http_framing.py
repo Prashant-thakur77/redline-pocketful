@@ -7,6 +7,7 @@ HEAD on an unrouted (404) path.
 """
 from __future__ import annotations
 
+import json
 import socket
 import urllib.parse
 
@@ -43,23 +44,43 @@ def _status_code(raw: bytes) -> int:
     return int(parts[1])
 
 
+def _error_body(raw: bytes) -> dict:
+    """Parse the JSON error envelope out of a raw socket response. These
+    framing-error paths are the ones most likely to rely on a generic
+    fallback message, so — unlike every assert_error()-based test elsewhere
+    in this suite — they are worth checking the body of, not just the
+    status line."""
+    assert b"\r\n\r\n" in raw, f"no header/body separator found: {raw[:200]!r}"
+    _, _, body = raw.partition(b"\r\n\r\n")
+    return json.loads(body.decode("utf-8"))
+
+
 def test_over_long_request_line_400():
-    """R-1-079: an over-long request line is a client-caused framing error,
-    never a dropped connection and never a framework's own error page."""
+    """R-1-079, R-1-060: an over-long request line is a client-caused
+    framing error, never a dropped connection and never a framework's own
+    error page — and the envelope's message must be a non-empty string like
+    every other error response."""
     long_path = "/" + ("a" * 100_000)
     request = f"GET {long_path} HTTP/1.1\r\nHost: test\r\nConnection: close\r\n\r\n".encode()
     raw = _send_raw(request)
     assert _status_code(raw) == 400
     assert b"<html" not in raw.lower(), "no HTML error page may ever be emitted"
+    body = _error_body(raw)
+    assert body["error"]["code"] == "malformed_request"
+    assert isinstance(body["error"]["message"], str) and body["error"]["message"]
 
 
 def test_over_long_header_block_400():
-    """R-1-079: an over-long header block is a client-caused framing error."""
+    """R-1-079, R-1-060: an over-long header block is a client-caused
+    framing error, with the same non-empty-message requirement."""
     padding = "".join(f"X-Pad-{i}: {'a' * 1000}\r\n" for i in range(200))
     request = f"GET /health HTTP/1.1\r\nHost: test\r\n{padding}Connection: close\r\n\r\n".encode()
     raw = _send_raw(request)
     assert _status_code(raw) == 400
     assert b"<html" not in raw.lower()
+    body = _error_body(raw)
+    assert body["error"]["code"] == "malformed_request"
+    assert isinstance(body["error"]["message"], str) and body["error"]["message"]
 
 
 def test_options_allow_header_lists_actual_methods():
@@ -79,11 +100,14 @@ def test_options_allow_header_lists_actual_methods():
 
 
 def test_head_on_unrouted_path_404_no_body():
-    """R-1-079: HEAD on a path with no route at all answers with the same
-    status GET would give (404) and no body."""
+    """R-1-079, R-1-060: HEAD on a path with no route at all answers with
+    the same status GET would give (404) and no body; GET's own body (which
+    HEAD, by definition, has none of to check) must carry a non-empty
+    message like every other error response."""
     unrouted = "/totally-unrouted-resource-xyz"
     get_resp = httpx.get(url(unrouted))
     head_resp = httpx.request("HEAD", url(unrouted))
     assert get_resp.status_code == 404
+    assert isinstance(get_resp.json()["error"]["message"], str) and get_resp.json()["error"]["message"]
     assert head_resp.status_code == 404
     assert head_resp.content == b""

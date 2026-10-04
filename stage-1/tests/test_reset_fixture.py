@@ -95,6 +95,29 @@ def test_handle_bad_syntax_rejected_on_reset():
     assert_error(r, 422, "validation_failed")
 
 
+def test_handle_empty_string_rejected_on_reset():
+    """R-1-034, R-1-047: an empty-string handle is a missing required field
+    in substance, not just a regex mismatch — gate 6 found a surviving
+    mutant in the generic required-string-field check (`not isinstance(...)
+    or not value` flipped to `and`, which would accept both an empty string
+    and a non-string value for a required field)."""
+    a_id = unique("u")
+    fixture = make_fixture([user(a_id, "", balance=10)])
+    r = reset(fixture)
+    assert_error(r, 422, "validation_failed")
+
+
+def test_user_id_non_string_rejected_on_reset():
+    """R-1-047: a non-string `id` must be rejected the same way a missing
+    one would be. Unlike `handle`, `id` has no separate regex check
+    downstream, so this is the test that actually exercises the generic
+    required-string-field guard rather than incidentally passing it."""
+    fixture = make_fixture([{"id": 12345, "email": "a@example.com", "password": "password123",
+                              "display_name": "A", "handle": unique_handle("a"), "balance": 10}])
+    r = reset(fixture)
+    assert_error(r, 422, "validation_failed")
+
+
 def test_handles_identify_users_no_directory_endpoint():
     """R-1-035"""
     r = api_get("/users")

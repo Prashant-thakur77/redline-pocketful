@@ -295,14 +295,23 @@ def test_get_requests_visible_only_to_participants():
 
 
 def test_get_requests_newest_first():
-    """R-1-163"""
+    """R-1-163: pinned against the actual creation sequence (request_id
+    order), not against `created_at` strings, for the same reason as the
+    activity-feed ordering test — several requests created in a tight loop
+    can share the same second, which makes a `created_at`-string comparison
+    unable to distinguish a correct order from a reversed one."""
     fixture, token_a, _ = _two_user_fixture()
     b_handle = fixture["users"][1]["handle"]
-    for i in range(3):
-        api_post("/requests", json={"payer_handle": b_handle, "amount": 1}, headers={**auth(token_a), **idem(unique(f"k{i}"))})
+    created_ids = []
+    for i in range(4):
+        r = api_post("/requests", json={"payer_handle": b_handle, "amount": 1},
+                     headers={**auth(token_a), **idem(unique(f"k{i}"))})
+        assert r.status_code == 201, r.text
+        created_ids.append(r.json()["request_id"])
     items = api_get("/requests", headers=auth(token_a)).json()["requests"]
-    created = [x["created_at"] for x in items]
-    assert created == sorted(created, reverse=True)
+    returned_ids = [x["request_id"] for x in items]
+    assert returned_ids == list(reversed(created_ids)), \
+        f"requests must be newest-first by actual creation order: {returned_ids} vs expected {list(reversed(created_ids))}"
 
 
 def test_get_requests_direction_filter():
