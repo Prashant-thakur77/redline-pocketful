@@ -14,19 +14,13 @@ client-side `fetch()` gives) — the form markup here only has to be
 """
 from __future__ import annotations
 
-from ..pipeline import RequestCtx
 from ..routes.activity import ActivityEndpoint
 from ..routes.me import MeEndpoint
+from .calls import call_authed as _call_authed
 from .layout import esc, format_amount
 
 _ME_ENDPOINT = MeEndpoint()
 _ACTIVITY_ENDPOINT = ActivityEndpoint()
-
-
-def _call_authed(endpoint, method: str, path: str, token: str, query: dict | None = None):
-    ctx = RequestCtx(method=method, path=path, raw_body=b"", headers={"authorization": f"Bearer {token}"},
-                      query=query or {}, path_params={})
-    return endpoint.handle(ctx)
 
 
 def _wallet_html(me: dict) -> str:

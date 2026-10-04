@@ -11,9 +11,8 @@ from ..errors import ApiError
 from ..json_utils import dumps
 from ..pipeline import RequestCtx
 from ..routes.auth import LoginEndpoint, SignupEndpoint
-from ..store import STORE
 from . import assets
-from . import home
+from . import authorizations_screen, home, requests_screen, split_screen
 from .layout import esc, render_shell
 
 _HTML_HEADERS = [("Content-Type", "text/html; charset=utf-8")]
@@ -122,57 +121,23 @@ def render_public_page(path: str, user: dict | None):
 # authed-only pages: /, /split, /requests, /authorizations
 # ---------------------------------------------------------------------------
 
-def _split_body() -> str:
-    return """<section class="placeholder-card" data-state="empty">
-  <h1>Split a bill</h1>
-  <p class="muted">Splitting a bill between several people is coming soon.</p>
-</section>"""
-
-
-def _requests_body(user: dict) -> str:
-    uid = user["id"]
-    has_any = any(r["requester_id"] == uid or r["payer_id"] == uid for r in STORE.requests.values())
-    if not has_any:
-        return """<section class="placeholder-card" data-state="empty">
-  <h1>Requests</h1>
-  <p data-testid="empty-requests" class="empty-state">No requests yet.</p>
-</section>"""
-    return """<section class="placeholder-card">
-  <h1>Requests</h1>
-  <p class="muted">Your incoming and outgoing requests are coming soon.</p>
-</section>"""
-
-
-def _authorizations_body(user: dict) -> str:
-    uid = user["id"]
-    has_any = any(a["from_user_id"] == uid or a["to_user_id"] == uid for a in STORE.authorizations.values())
-    if not has_any:
-        return """<section class="placeholder-card" data-state="empty">
-  <h1>Authorizations</h1>
-  <p data-testid="empty-authorizations" class="empty-state">No authorizations yet.</p>
-</section>"""
-    return """<section class="placeholder-card">
-  <h1>Authorizations</h1>
-  <p class="muted">Your holds are coming soon.</p>
-</section>"""
-
-
 _AUTHED_PAGE_BODY = {
-    "/split": lambda user, token: (_split_body(), "Split"),
-    "/requests": lambda user, token: (_requests_body(user), "Requests"),
-    "/authorizations": lambda user, token: (_authorizations_body(user), "Authorizations"),
+    "/": lambda user, token: (home.render_home_body(token), "Home"),
+    "/split": lambda user, token: (split_screen.render_split_body(), "Split"),
+    "/requests": lambda user, token: (requests_screen.render_requests_body(user, token), "Requests"),
+    "/authorizations": lambda user, token: (authorizations_screen.render_authorizations_body(user, token),
+                                             "Authorizations"),
 }
 
 
 def render_authed_page(path: str, user: dict | None, token: str | None = None):
     if user is None:
         return _redirect("/login")
-    if path == "/":
-        body, title = home.render_home_body(token), "Home"
-        session = home.session_payload(user, token)
-    else:
-        body, title = _AUTHED_PAGE_BODY[path](user, token)
-        session = None
+    body, title = _AUTHED_PAGE_BODY[path](user, token)
+    # Every authed page gets the session blob, not just "/" — /requests,
+    # /split and /authorizations all drive their own write actions
+    # through the same client-side fetch layer (R-2-185/186).
+    session = home.session_payload(user, token)
     html_bytes = render_shell(title=title, user=user, active_path=path, body=body, session=session)
     return 200, _HTML_HEADERS, html_bytes
 

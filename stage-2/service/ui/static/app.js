@@ -317,4 +317,246 @@
   }
 
   FORMS.forEach(bindForm);
+
+  // ---- /requests: incoming/outgoing lists, pay/decline/cancel (R-2-133,
+  // R-2-134, R-2-156) — same endpoint-object-via-fetch discipline as the
+  // write forms above, just reached through a delegated click handler
+  // since these buttons are rebuilt on every refresh. ----
+
+  function renderRequestItem(r) {
+    var isRequester = r.requester_id === SESSION.user_id;
+    var actions = "";
+    if (r.status === "pending") {
+      if (r.payer_id === SESSION.user_id) {
+        actions += '<button type="button" data-testid="request-pay-' + escHtml(r.request_id) +
+          '" data-action="pay" data-id="' + escHtml(r.request_id) + '" class="btn btn-primary">Pay</button>';
+        actions += '<button type="button" data-testid="request-decline-' + escHtml(r.request_id) +
+          '" data-action="decline" data-id="' + escHtml(r.request_id) + '" class="btn btn-ghost">Decline</button>';
+      }
+      if (isRequester) {
+        actions += '<button type="button" data-testid="request-cancel-' + escHtml(r.request_id) +
+          '" data-action="cancel" data-id="' + escHtml(r.request_id) + '" class="btn btn-ghost">Cancel</button>';
+      }
+    }
+    var counterpart = isRequester ? r.payer_handle : r.requester_handle;
+    return '<article data-testid="request-item-' + escHtml(r.request_id) + '" data-status="' +
+      escHtml(r.status) + '" class="list-item">' +
+      '<p class="list-item-parties">' + escHtml(counterpart || "?") + "</p>" +
+      '<p data-testid="request-amount-' + escHtml(r.request_id) + '" class="list-item-amount">' +
+      escHtml(Pocketful.formatAmount(r.amount, r.currency, SESSION.minor_units)) + "</p>" +
+      '<p class="list-item-note">' + escHtml(r.note) + "</p>" +
+      '<div class="list-item-actions">' + actions + "</div></article>";
+  }
+
+  function refreshRequestsList() {
+    var incomingEl = document.querySelector('[data-testid="incoming-list"]');
+    var outgoingEl = document.querySelector('[data-testid="outgoing-list"]');
+    if (!incomingEl && !outgoingEl) {
+      return; // not on /requests
+    }
+    Promise.all([
+      fetch("/requests?direction=incoming&limit=200", {headers: authHeaders()}).then(function (r) { return r.json(); }),
+      fetch("/requests?direction=outgoing&limit=200", {headers: authHeaders()}).then(function (r) { return r.json(); })
+    ]).then(function (results) {
+      if (incomingEl) {
+        incomingEl.innerHTML = results[0].requests.map(renderRequestItem).join("");
+      }
+      if (outgoingEl) {
+        outgoingEl.innerHTML = results[1].requests.map(renderRequestItem).join("");
+      }
+    });
+  }
+
+  // ---- /authorizations: capture/void (R-2-137, R-2-138) ----
+
+  function renderAuthorizationItem(a) {
+    var isPayer = a.from_user_id === SESSION.user_id;
+    var actions = "";
+    if (a.status === "open") {
+      if (a.to_user_id === SESSION.user_id) {
+        var remaining = Pocketful.formatAmount(a.remaining_amount, a.currency, SESSION.minor_units).split(" ")[0];
+        actions = '<label class="field capture-field"><span class="field-label">Capture amount</span>' +
+          '<input type="text" data-testid="authorization-capture-amount-' + escHtml(a.authorization_id) +
+          '" value="' + escHtml(remaining) + '"></label>' +
+          '<button type="button" data-testid="authorization-capture-' + escHtml(a.authorization_id) +
+          '" data-action="capture" data-id="' + escHtml(a.authorization_id) + '" class="btn btn-primary">Capture</button>';
+      } else if (isPayer) {
+        actions = '<button type="button" data-testid="authorization-void-' + escHtml(a.authorization_id) +
+          '" data-action="void" data-id="' + escHtml(a.authorization_id) + '" class="btn btn-ghost">Void</button>';
+      }
+    }
+    var counterpart = isPayer ? a.to_handle : a.from_handle;
+    var capturedHtml = "";
+    if (a.captured_amount > 0) {
+      capturedHtml = '<p data-testid="authorization-captured-' + escHtml(a.authorization_id) +
+        '" class="list-item-captured">' +
+        escHtml(Pocketful.formatAmount(a.captured_amount, a.currency, SESSION.minor_units)) + "</p>";
+    }
+    return '<article data-testid="authorization-item-' + escHtml(a.authorization_id) + '" data-status="' +
+      escHtml(a.status) + '" class="list-item">' +
+      '<p class="list-item-parties">' + escHtml(counterpart || "?") + "</p>" +
+      '<p data-testid="authorization-amount-' + escHtml(a.authorization_id) + '" class="list-item-amount">' +
+      escHtml(Pocketful.formatAmount(a.amount, a.currency, SESSION.minor_units)) + "</p>" +
+      capturedHtml +
+      '<p data-testid="authorization-expires-' + escHtml(a.authorization_id) + '" class="list-item-expires">' +
+      escHtml(a.expires_at) + "</p>" +
+      '<p class="list-item-note">' + escHtml(a.note) + "</p>" +
+      '<div class="list-item-actions">' + actions + "</div></article>";
+  }
+
+  function refreshAuthorizationsList() {
+    var listEl = document.querySelector('[data-testid="authorization-list"]');
+    if (!listEl) {
+      return; // not on /authorizations
+    }
+    fetch("/authorizations?limit=200", {headers: authHeaders()})
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        listEl.innerHTML = data.authorizations.map(renderAuthorizationItem).join("");
+      });
+  }
+
+  // ---- the delegated action handler: pay/decline/cancel/capture/void ----
+
+  document.addEventListener("click", function (e) {
+    var btn = e.target.closest("[data-action]");
+    if (!btn) {
+      return;
+    }
+    var action = btn.getAttribute("data-action");
+    var id = btn.getAttribute("data-id");
+    var isRequestAction = action === "pay" || action === "decline" || action === "cancel";
+    var isAuthAction = action === "capture" || action === "void";
+    if (!isRequestAction && !isAuthAction) {
+      return;
+    }
+    var slotPrefix = isRequestAction ? "request" : "authorization";
+    var path = isRequestAction ? "/requests/" + id + "/" + action : "/authorizations/" + id + "/" + action;
+    var body = {};
+    var headers = authHeaders({"Content-Type": "application/json"});
+    if (action === "pay") {
+      headers["Idempotency-Key"] = randomKey();
+    }
+    if (action === "capture") {
+      headers["Idempotency-Key"] = randomKey();
+      var amountEl = document.querySelector('[data-testid="authorization-capture-amount-' + id + '"]');
+      if (amountEl) {
+        var parsed = Pocketful.parseAmountToMinorUnits(amountEl.value, SESSION.minor_units);
+        if (parsed !== null) {
+          body.amount = parsed;
+        }
+      }
+    }
+    fetch(path, {method: "POST", headers: headers, body: JSON.stringify(body)})
+      .then(function (resp) {
+        return resp.json().then(function (data) { return {status: resp.status, body: data}; });
+      })
+      .then(function (result) {
+        clearSlot(slotPrefix);
+        if (!(result.status >= 200 && result.status < 300)) {
+          var message = (result.body && result.body.error && result.body.error.message) || "Something went wrong.";
+          showSlot(slotPrefix, "error", message);
+        }
+        // R-2-156: the list always refreshes after an action, success or
+        // not — a stale button (e.g. a request someone else just
+        // cancelled) must disappear, not just sit there answering 409.
+        refreshRequestsList();
+        refreshAuthorizationsList();
+        refreshWallet();
+        refreshActivity();
+      })
+      .catch(function () {
+        showSlot(slotPrefix, "error", "Something went wrong. Please try again.");
+      });
+  });
+
+  // ---- /split: client-side preview using the exact §9 share rule,
+  // before anything is posted (R-2-136) ----
+
+  function computeShares(amount, n) {
+    var base = Math.floor(amount / n);
+    var rem = amount % n;
+    var shares = [];
+    for (var i = 0; i < n; i++) {
+      shares.push(i < rem ? base + 1 : base);
+    }
+    return shares;
+  }
+
+  function bindSplitForm() {
+    var form = document.querySelector('[data-testid="split-form"]');
+    if (!form) {
+      return;
+    }
+    var amountEl = document.querySelector('[data-testid="split-amount"]');
+    var handlesEl = document.querySelector('[data-testid="split-handles"]');
+    var noteEl = document.querySelector('[data-testid="split-note"]');
+    var previewEl = document.querySelector('[data-testid="split-preview"]');
+    var key = randomKey();
+
+    function parsedHandles() {
+      return handlesEl.value.split(",").map(function (h) { return h.trim(); }).filter(function (h) { return h; });
+    }
+
+    function updatePreview() {
+      var handles = parsedHandles();
+      var amountMinor = Pocketful.parseAmountToMinorUnits(amountEl.value, SESSION.minor_units);
+      if (amountMinor === null || handles.length === 0) {
+        previewEl.innerHTML = "";
+        return;
+      }
+      var shares = computeShares(amountMinor, handles.length);
+      previewEl.innerHTML = handles.map(function (h, i) {
+        return '<p data-testid="split-share-' + escHtml(h) + '" class="split-share">' +
+          escHtml(Pocketful.formatAmount(shares[i], SESSION.currency, SESSION.minor_units)) + "</p>";
+      }).join("");
+    }
+
+    [amountEl, handlesEl].forEach(function (el) {
+      el.addEventListener("input", function () {
+        key = randomKey();
+        updatePreview();
+      });
+    });
+    if (noteEl) {
+      noteEl.addEventListener("input", function () { key = randomKey(); });
+    }
+
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      clearSlot("split");
+      var handles = parsedHandles();
+      var amountMinor = Pocketful.parseAmountToMinorUnits(amountEl.value, SESSION.minor_units);
+      if (amountMinor === null || handles.length === 0) {
+        form.dataset.state = "error";
+        showSlot("split", "error", "Enter a valid amount and at least one participant.");
+        return;
+      }
+      form.dataset.state = "loading";
+      fetch("/splits", {
+        method: "POST",
+        headers: authHeaders({"Idempotency-Key": key, "Content-Type": "application/json"}),
+        body: JSON.stringify({amount: amountMinor, note: noteEl ? noteEl.value : "", participant_handles: handles})
+      }).then(function (resp) {
+        return resp.json().then(function (data) { return {status: resp.status, body: data}; });
+      }).then(function (result) {
+        if (result.status >= 200 && result.status < 300) {
+          form.dataset.state = "idle";
+          clearSlot("split");
+          refreshWallet();
+          refreshActivity();
+          refreshRequestsList();
+        } else {
+          form.dataset.state = "error";
+          var message = (result.body && result.body.error && result.body.error.message) || "Something went wrong.";
+          showSlot("split", "error", message);
+        }
+      }).catch(function () {
+        form.dataset.state = "error";
+        showSlot("split", "error", "Something went wrong. Please try again.");
+      });
+    });
+  }
+
+  bindSplitForm();
 })();

@@ -308,6 +308,71 @@ a:focus {
   min-height: 1.2em;
 }
 
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+}
+
+.list-item {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.list-item-parties {
+  font-weight: 600;
+  margin: 0;
+}
+
+.list-item-amount,
+.list-item-captured,
+.list-item-expires,
+.list-item-note {
+  margin: 0;
+}
+
+.list-item-captured {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.list-item-expires,
+.list-item-note {
+  color: var(--color-muted);
+  font-size: 0.9rem;
+}
+
+.list-item-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+}
+
+.capture-field {
+  max-width: 160px;
+}
+
+.split-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.split-share {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: var(--space-2) var(--space-3);
+  margin: 0;
+}
+
 @media (max-width: 480px) {
   .app-header {
     padding: var(--space-3) var(--space-4);
