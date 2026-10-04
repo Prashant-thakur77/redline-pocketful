@@ -205,8 +205,13 @@ legitimately fail until screens exist. So N2-1 … N2-4 still cannot earn a GO, 
 stand unchanged, and option 2 is still the wrong trade: it would now buy a legible FAIL against
 N2-1 plus a governor attempt, instead of a timeout against N2-1 plus a governor attempt.
 
-**One condition, and it is binding on the close run.** The change is currently **uncommitted in
-the working tree**. A stage-close GO produced by uncommitted gate code is **not auditable** —
+**Condition satisfied (2026-10-05).** It is committed at **`be37a18`**, authored
+`Human <human@band.local>`, factory code only, the same two files reviewed above, and
+`git status -- factory/` is clean. @verifier confirmed it was not its edit and I verified the
+commit myself rather than taking the report. **The close run is auditable.** The paragraph below
+records why that mattered.
+
+**The condition, for the record.** The change was initially **uncommitted in the working tree**. A stage-close GO produced by uncommitted gate code is **not auditable** —
 `--commit <sha>` checks the stage folder out into a private worktree, but the gate scripts
 themselves run from the working tree, so the close run's behaviour would not be reproducible
 from anything in history and `factory.ledger`'s hash chain would attest a result no commit can
