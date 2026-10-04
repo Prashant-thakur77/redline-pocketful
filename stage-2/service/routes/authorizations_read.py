@@ -64,10 +64,18 @@ class AuthorizationsListEndpoint(Endpoint):
         return 200, {"authorizations": out, "has_more": has_more}
 
 
-def _serialize(a: dict, now: float) -> dict:
+def serialize_authorization(a: dict, now: float | None = None) -> dict:
+    """Shared by the create response (R-2-041) and this listing (R-2-080)
+    so the two never drift. `payment_id` is the most recent capture's
+    payment (R-2-003's cumulative-capture model, N2-3); `payment_ids` is
+    every capture in order. Both stay null/empty until N2-3 exists, but
+    the shape ships now (planner's trap 3)."""
+    if now is None:
+        now = time.time()
     from_user = STORE.users_by_id.get(a["from_user_id"])
     to_user = STORE.users_by_id.get(a["to_user_id"])
     status = effective_status(a, now)
+    payment_ids = list(a.get("payment_ids", []))
     return {
         "authorization_id": a["id"],
         "from_user_id": a["from_user_id"],
@@ -83,10 +91,16 @@ def _serialize(a: dict, now: float) -> dict:
         "status": status,
         "captured_amount": a.get("captured_amount", 0),
         "remaining_amount": remaining_amount(a) if status == "open" else 0,
-        "payment_ids": list(a.get("payment_ids", [])),
+        "payment_id": payment_ids[-1] if payment_ids else None,
+        "payment_ids": payment_ids,
+        "closed_at": a.get("closed_at"),
         "created_at": a["created_at"],
         "expires_at": epoch_to_rfc3339(a["expires_at"]),
     }
+
+
+def _serialize(a: dict, now: float) -> dict:
+    return serialize_authorization(a, now)
 
 
 def register(router) -> None:
