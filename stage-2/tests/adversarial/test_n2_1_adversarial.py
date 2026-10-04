@@ -8,7 +8,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from conftest import (api_get, api_post, assert_error, auth, auth_idem, authorization,  # noqa: E402
-                      login_token, make_fixture, reset_ok, two_user_fixture, unique, unique_handle, user)
+                      login_token, make_fixture, reset_ok, unique, unique_handle, user)
 
 
 def _iso(delta: timedelta) -> str:
@@ -18,32 +18,50 @@ def _iso(delta: timedelta) -> str:
 def test_available_blocks_a_payment_that_total_would_allow():
     """R-2-002/R-2-013: with an open hold, a payment that fits `total` but
     not `available` must be 409 insufficient_funds — the exact behaviour
-    change stage 2 introduces over stage 1."""
+    change stage 2 introduces over stage 1.
+
+    Built manually, not via `two_user_fixture`: that helper generates its
+    own internal user ids and does not expose them before `reset_ok` runs,
+    so an `authorization(...)` built from a separately-`unique("u")`'d id
+    would reference a user that doesn't exist in the fixture it seeds
+    (exactly the bug @builder caught in d2f2cba: both callers of
+    `two_user_fixture` here minted their own a_id/b_id and got a spurious
+    422 unknown-user instead of the intended 409)."""
     a_id, b_id = unique("u"), unique("u")
-    fixture, a_token, b_token = two_user_fixture(
-        balance_a=1000, balance_b=0,
+    a_handle, b_handle = unique_handle("pa"), unique_handle("pb")
+    reset_ok(make_fixture(
+        [user(a_id, a_handle, balance=1000, email=f"{a_handle}@example.com"),
+         user(b_id, b_handle, balance=0, email=f"{b_handle}@example.com")],
         authorizations=[authorization(unique("auth"), a_id, b_id, amount=700)],
-    )
+    ))
+    a_token = login_token(f"{a_handle}@example.com")
+
     me = api_get("/me", headers=auth(a_token)).json()
     assert me["total"] == 1000 and me["held"] == 700 and me["available"] == 300
 
-    r = api_post("/payments", json={"to_handle": fixture["users"][1]["handle"], "amount": 500},
+    r = api_post("/payments", json={"to_handle": b_handle, "amount": 500},
                  headers=auth_idem(a_token, unique("blocked")))
     assert_error(r, 409, "insufficient_funds")
 
-    r_ok = api_post("/payments", json={"to_handle": fixture["users"][1]["handle"], "amount": 300},
+    r_ok = api_post("/payments", json={"to_handle": b_handle, "amount": 300},
                      headers=auth_idem(a_token, unique("fits")))
     assert r_ok.status_code == 201, r_ok.text
 
 
 def test_available_blocks_a_request_pay_that_total_would_allow():
-    """Same R-2-013 rule, via POST /requests/{id}/pay."""
+    """Same R-2-013 rule, via POST /requests/{id}/pay. Built manually for
+    the same reason as above."""
     a_id, b_id = unique("u"), unique("u")
-    fixture, a_token, b_token = two_user_fixture(
-        balance_a=1000, balance_b=0,
+    a_handle, b_handle = unique_handle("qa"), unique_handle("qb")
+    reset_ok(make_fixture(
+        [user(a_id, a_handle, balance=1000, email=f"{a_handle}@example.com"),
+         user(b_id, b_handle, balance=0, email=f"{b_handle}@example.com")],
         authorizations=[authorization(unique("auth"), a_id, b_id, amount=700)],
-    )
-    r_req = api_post("/requests", json={"payer_handle": fixture["users"][0]["handle"], "amount": 500},
+    ))
+    a_token = login_token(f"{a_handle}@example.com")
+    b_token = login_token(f"{b_handle}@example.com")
+
+    r_req = api_post("/requests", json={"payer_handle": a_handle, "amount": 500},
                       headers=auth_idem(b_token, unique("mkreq")))
     assert r_req.status_code == 201, r_req.text
     request_id = r_req.json()["request_id"]
