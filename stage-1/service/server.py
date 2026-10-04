@@ -204,5 +204,17 @@ class Handler(BaseHTTPRequestHandler):
         pass  # keep container logs quiet; stdout/stderr still available via traceback.print_exc
 
 
+class Server(ThreadingHTTPServer):
+    # R-1-005/R-1-015: stdlib's listen() backlog defaults to 5, so with 50
+    # requests genuinely in flight the OS itself starts resetting new
+    # connections before they ever reach the application — a dropped
+    # connection no amount of application-level error handling can catch.
+    # Comfortably over the required 50 concurrent, with headroom for the
+    # hardening storm's higher counts.
+    request_queue_size = 256
+    daemon_threads = True
+    allow_reuse_address = True
+
+
 def make_server(host: str, port: int) -> ThreadingHTTPServer:
-    return ThreadingHTTPServer((host, port), Handler)
+    return Server((host, port), Handler)
