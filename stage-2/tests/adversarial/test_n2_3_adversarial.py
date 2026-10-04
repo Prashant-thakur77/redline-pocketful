@@ -62,6 +62,39 @@ def test_partial_final_capture_releases_exact_remainder_immediately():
     assert me["held"] == 0, me
 
 
+def test_two_full_remainder_captures_race_exactly_one_winner():
+    """R-2-181/182: two captures of the same authorization, different
+    idempotency keys, both for the full remainder, fired concurrently.
+    Exactly one must land 201; the other must see 409
+    authorization_not_open (the entry closed under it), never a second
+    201 and never a value of total/available between the two legal
+    endpoints."""
+    for _trial in range(15):
+        auth_id, a_token, b_token = _two_party_hold(balance_a=1000, auth_amount=1000)
+        outs = []
+        lock = threading.Lock()
+
+        def do_cap():
+            r = api_post(f"/authorizations/{auth_id}/capture", json={}, headers=auth_idem(b_token, unique("capcap")))
+            with lock:
+                outs.append(r)
+
+        t1 = threading.Thread(target=do_cap)
+        t2 = threading.Thread(target=do_cap)
+        t1.start(); t2.start()
+        t1.join(timeout=5.0); t2.join(timeout=5.0)
+
+        successes = [r for r in outs if r.status_code == 201]
+        failures = [r for r in outs if r.status_code != 201]
+        assert len(successes) == 1 and len(failures) == 1, (
+            f"exactly one winner expected (trial {_trial}): {[r.status_code for r in outs]}"
+        )
+        assert_error(failures[0], 409, "authorization_not_open")
+
+        me = api_get("/me", headers=auth(a_token)).json()
+        assert me["total"] == 0 and me["available"] == 0 and me["held"] == 0, (_trial, me)
+
+
 def test_capture_vs_void_race_never_double_releases():
     """R-2-005: a capture and a void racing on the same authorization must
     have exactly one winner. Checked both ways: if the capture wins,
