@@ -35,7 +35,7 @@ item's own scope passing.** Gates 2 and 4 become binding as listed below.
 | item | gate 1 | gate 2 | gate 4 | gate 8 | item-scope tests that must pass |
 |---|---|---|---|---|---|
 | N1-1 | PASS | advisory | advisory | PASS | `test_runtime.py`, and the `test_errors_precedence.py` cases not needing a later endpoint |
-| N1-2 | PASS | advisory | **PASS** | PASS | + `test_reset_fixture.py` |
+| N1-2 | PASS | advisory | **PASS** | PASS | + `test_reset_fixture.py`, and `GET /me` (R-1-120) must answer, since gate 4's `invariant()` reads it per user to check conservation — @builder confirmed it by creating `stage-1/service/routes/me.py` in this item |
 | N1-3 | PASS | advisory | PASS | PASS | + `test_auth.py` |
 | N1-4 | PASS | advisory | PASS | PASS | + `test_idempotency.py` |
 | N1-5 | PASS | advisory | PASS | PASS | + `test_payments_activity.py` |
