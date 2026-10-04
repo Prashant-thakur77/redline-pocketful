@@ -51,7 +51,7 @@ def _clear_session_cookie() -> str:
 def _error_html(message: str | None) -> str:
     if not message:
         return ""
-    return f'<p class="form-error" data-testid="auth-error">{esc(message)}</p>'
+    return f'<p class="form-error" data-testid="auth-error" data-state="error">{esc(message)}</p>'
 
 
 def _login_body(error: str | None) -> str:
@@ -110,14 +110,16 @@ def render_public_page(path: str, user: dict | None):
 # ---------------------------------------------------------------------------
 
 def _home_body() -> str:
-    return """<section class="placeholder-card">
+    # No wallet/pay/activity content exists in this item yet (N2-6's
+    # scope) — this really is an empty view, not a stand-in for one.
+    return """<section class="placeholder-card" data-state="empty">
   <h1>Welcome back</h1>
   <p class="muted">Your balance, pay and request tools are coming soon.</p>
 </section>"""
 
 
 def _split_body() -> str:
-    return """<section class="placeholder-card">
+    return """<section class="placeholder-card" data-state="empty">
   <h1>Split a bill</h1>
   <p class="muted">Splitting a bill between several people is coming soon.</p>
 </section>"""
@@ -127,7 +129,7 @@ def _requests_body(user: dict) -> str:
     uid = user["id"]
     has_any = any(r["requester_id"] == uid or r["payer_id"] == uid for r in STORE.requests.values())
     if not has_any:
-        return """<section class="placeholder-card">
+        return """<section class="placeholder-card" data-state="empty">
   <h1>Requests</h1>
   <p data-testid="empty-requests" class="empty-state">No requests yet.</p>
 </section>"""
@@ -141,7 +143,7 @@ def _authorizations_body(user: dict) -> str:
     uid = user["id"]
     has_any = any(a["from_user_id"] == uid or a["to_user_id"] == uid for a in STORE.authorizations.values())
     if not has_any:
-        return """<section class="placeholder-card">
+        return """<section class="placeholder-card" data-state="empty">
   <h1>Authorizations</h1>
   <p data-testid="empty-authorizations" class="empty-state">No authorizations yet.</p>
 </section>"""
