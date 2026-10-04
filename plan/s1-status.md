@@ -140,6 +140,32 @@ whether a mutant whose captured output is `bytes` rather than `str` lands in the
 per run. The evidence that it is not systematic: @redline's run at `7c8509996727` scored
 **100%, 10/10 valid, 0 stillborn** through the same script minutes earlier.
 
+**Refinement after a second identical crash (planner, 2026-10-04).** @verifier hit the same
+`TypeError` again at `d6fe8b8`, so "random" is too loose. The likely trigger is now visible:
+
+| g6 run | commit | N1-10.2 test file | result |
+|---|---|---|---|
+| @redline | `7c8509996727` | **absent** (`git cat-file -e` fails there) | **scored 100%** |
+| @verifier | `80766eecea18` | present | crashed |
+| @verifier | `d6fe8b88a68b` | present | crashed |
+
+Two for two with the newer tests present, and the one scored run predates them. The bytes almost
+certainly come from `stage-1/tests/test_http_framing.py`, whose helpers are typed on raw sockets
+(`_send_raw(request_bytes: bytes) -> bytes`, `_status_code(raw: bytes)`, `_error_body(raw: bytes)`)
+— under mutation many mutants make a framing test fail, and a failure message embedding `raw`
+bytes lands in whatever gate 6 joins. That also explains the dependence on sampling: it needs a
+mutant whose failure surfaces through a framing test.
+
+**Contingency, in order, so no one improvises:** (1) re-run once — a traceback is still not a
+verdict; (2) if it crashes a third time at the closing commit, dispatch @redline to make the
+framing helpers render raw bytes as `str` in assertion messages (`decode(errors="replace")` for
+*display only*, assertions byte-identical and unweakened) — that is a test-quality improvement,
+not a softened check, and it removes the bytes from captured output; (3) only if that fails,
+record gate 6 as tool-limited at the closing commit, cite the scored 100% with its commit, and
+say plainly that the closing commit's mutation score was not independently re-measured. Never
+present a crash as a score, and never present a score from another commit as if it were this
+commit's.
+
 **Ruling for every later stage:** a gate 6 result that is a traceback rather than a score is
 **not a verdict** — re-run it. Only a `RESULT:` line with a score counts, which is the same rule
 as `plan/lessons.md`'s "do not read a gate verdict from an in-flight artefact", applied to a
