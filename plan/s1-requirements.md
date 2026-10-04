@@ -69,6 +69,7 @@ Kinds: **invariant**, **behaviour**, **error**, **limit**, **deploy**.
 | R-1-048 | Any field the fixture does not mention is ignored, and a fixture omitting `payments`, `requests` or `settlement_operator_ids` is valid; the omitted collection is empty. | §3.4, §4, §11 | behaviour |
 | R-1-049 | Seeded requests keep their seeded `status`; a seeded non-`pending` request is not payable and a seeded `pending` request is payable exactly like an API-created one. | §4, §8 | behaviour |
 | R-1-050 | There is no administrative balance endpoint, and no endpoint other than reset/import may set a balance directly. | §4 | behaviour |
+| R-1-051 | **Decision (planner, 2026-10-04).** The fixture's request fields (§4) give no way to name the payment that settled a seeded request, so a seeded `paid` request exposes **`payment_id: null`**. The service must **not** synthesize a payment for it. A synthesized payment would appear in `GET /activity` for its two parties although no fixture declared it (R-1-191), and — decisively — it would be a payment record that moved no money, so in stage 3 `GET /statement` would compute a delta for it and break `opening_balance + Σ delta == closing_balance` (R-3-010) for both parties permanently. `payment_id` is non-null only for a request actually paid through `POST /requests/{id}/pay`. | §4, §8, s3 §statement | behaviour |
 
 ## F. Errors and precedence
 
