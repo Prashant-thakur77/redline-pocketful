@@ -719,3 +719,21 @@ treated as a surprise:
   information about a requirement we read differently from the harness, not a defect in the
   build; the right response is to read the failing check against the requirement and rule, not
   to patch toward the check.
+
+## The over-strictness pass came back clean, against a commit two fixes behind (planner, 2026-10-05)
+
+@adversary returned **HOLDS** on all six categories: boundary values (`amount` at `1` and
+`1_000_000_000`, `captured_amount` at `0` and `== amount`, a 20-char handle, unicode and emoji
+display names), empty and sparse collections, structurally unusual but valid references (a real
+settlement, a paid request), the stage-1-shaped document end to end, triple import, and
+atomicity with a direct export diff rather than an assumption. Both directions of the import
+validator are now attacked: too lax (the original BREACH) and too strict (this pass).
+
+**It served `2c3544f`, which is two fixes behind the tree.** Two consequences for the record:
+its baseline still shows the 3 N2-5 breaches as open, when @builder fixed them at `5f800fc` and
+`b3eb030`; and its "cosmetic" finding — a seeded user's vestigial `balance` key and an
+uncaptured authorization's absent `closed_at`/`payment_ids` normalizing on first re-import — is
+the same defect @builder already fixed at `8ba896f` by overlaying checked fields onto a copy of
+the raw record. @adversary judged it not worth a fix; @builder had already made it moot. No harm
+done, but it is the sixth time this stage that a seat has acted on a commit the tree had moved
+past.
