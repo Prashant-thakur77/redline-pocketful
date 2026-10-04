@@ -1,0 +1,35 @@
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /home/prashant/projects/band-work/result/stage-1/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s1/adhoc-g2-20261004T141720-632f.junit.xml  (exit 1)
+........................................................................ [ 27%]
+.......................F................................................ [ 54%]
+........................................................................ [ 82%]
+..............................................                           [100%]
+=================================== FAILURES ===================================
+___________________ test_4xx_never_leaks_invisible_resource ____________________
+
+    def test_4xx_never_leaks_invisible_resource():
+        """R-1-078"""
+        a_id, b_id, c_id = unique("u"), unique("u"), unique("u")
+        a_handle, b_handle, c_handle = unique_handle("a"), unique_handle("b"), unique_handle("c")
+        fixture = make_fixture([user(a_id, a_handle, balance=0), user(b_id, b_handle, balance=0),
+                                 user(c_id, c_handle, balance=0)])
+        reset_ok(fixture)
+        token_a = login_token(fixture["users"][0]["email"])
+        token_c = login_token(fixture["users"][2]["email"])
+        r = api_post("/requests", json={"payer_handle": b_handle, "amount": 10}, headers={**auth(token_a), **idem(unique("k"))})
+        req_id = r.json()["request_id"]
+    
+        not_party = api_post(f"/requests/{req_id}/decline", json={}, headers=auth(token_c))
+        nonexistent = api_post("/requests/totally-made-up-id/decline", json={}, headers=auth(token_c))
+>       assert not_party.status_code == nonexistent.status_code
+E       assert 403 == 404
+E        +  where 403 = <Response [403 Forbidden]>.status_code
+E        +  and   404 = <Response [404 Not Found]>.status_code
+
+stage-1/tests/test_errors_precedence.py:268: AssertionError
+=========================== short test summary info ============================
+FAILED stage-1/tests/test_errors_precedence.py::test_4xx_never_leaks_invisible_resource
+1 failed, 261 passed in 28.82s
+
+
+
+RESULT: FAIL — 261 passed, 1 failed, 0 errors, 0 skipped

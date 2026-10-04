@@ -1,0 +1,10 @@
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /home/prashant/projects/band-work/result/stage-1/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s1/adhoc-g2-20261004T141827-6492.junit.xml  (exit 0)
+........................................................................ [ 26%]
+........................................................................ [ 52%]
+........................................................................ [ 78%]
+...........................................................              [100%]
+275 passed in 28.66s
+
+
+
+RESULT: PASS — 275 passed, 0 failed, 0 errors, 0 skipped
