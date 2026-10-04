@@ -403,6 +403,18 @@ def populate(base_url: str) -> dict:
     fixture = ctx["fixture"]
     id_to_handle = {u["id"]: u["handle"] for u in users}
 
+    # Capability probe: gate 5 calls populate() against the OLD stage's
+    # binary as well as the new one when checking an upgrade (see
+    # factory/gates/g5_regression.py's upgrade()), so this cannot assume the
+    # target supports holds just because THIS stage's hook was extended for
+    # them. A stage-1 binary has no /authorizations endpoint and GET /me
+    # never carries "held" — R-2-170's whole premise is that such an export
+    # has no authorization data at all, so populate() must degrade cleanly
+    # rather than 404 on an endpoint the old binary was never meant to have.
+    probe = _get(base_url, "/me", headers=_auth(users[0]["token"]))
+    assert probe.status_code == 200, probe.text
+    supports_holds = "held" in probe.json()
+
     # a completed direct payment, remembered by key+body for the retry-identity check
     payer, payee = users[0], users[1]
     pay_key = "populate-payment-1"
@@ -446,60 +458,69 @@ def populate(base_url: str) -> dict:
     known_requests.append((pending_request_id, requester["handle"]))
     known_requests += [(rid, caller["handle"]) for rid in split_request_ids]
 
-    # an open hold
-    auth_payer, auth_receiver = users[2], users[4]
-    r = _post(base_url, "/authorizations", json={"to_handle": auth_receiver["handle"], "amount": 200,
-                                                   "note": "populate-open"},
-              headers={**_auth(auth_payer["token"]), "Idempotency-Key": "populate-auth-open-1"})
-    assert r.status_code == 201, r.text
-    open_auth_id = r.json()["authorization_id"]
-
-    # a partially captured hold (final: false), with a claimed capture key remembered
-    part_payer, part_receiver = users[3], users[5]
-    r = _post(base_url, "/authorizations", json={"to_handle": part_receiver["handle"], "amount": 400,
-                                                   "note": "populate-partial"},
-              headers={**_auth(part_payer["token"]), "Idempotency-Key": "populate-auth-partial-1"})
-    assert r.status_code == 201, r.text
-    partial_auth_id = r.json()["authorization_id"]
-    capture_key = "populate-capture-partial-1"
-    capture_body = {"amount": 150, "final": False}
-    cap = _post(base_url, f"/authorizations/{partial_auth_id}/capture", json=capture_body,
-                headers={**_auth(part_receiver["token"]), "Idempotency-Key": capture_key})
-    assert cap.status_code == 201, cap.text
-
-    # a voided hold
-    void_payer, void_receiver = users[4], users[0]
-    r = _post(base_url, "/authorizations", json={"to_handle": void_receiver["handle"], "amount": 90,
-                                                   "note": "populate-void"},
-              headers={**_auth(void_payer["token"]), "Idempotency-Key": "populate-auth-void-1"})
-    assert r.status_code == 201, r.text
-    void_auth_id = r.json()["authorization_id"]
-    voided = _post(base_url, f"/authorizations/{void_auth_id}/void", json={}, headers=_auth(void_payer["token"]))
-    assert voided.status_code == 200, voided.text
-
-    known_authorizations = [(a["id"], id_to_handle[a["from_user_id"]]) for a in fixture.get("authorizations", [])]
-    known_authorizations += [
-        (open_auth_id, auth_payer["handle"]),
-        (partial_auth_id, part_payer["handle"]),
-        (void_auth_id, void_payer["handle"]),
-    ]
-
     _UPGRADE.clear()
     _UPGRADE.update({
         "tokens": {u["handle"]: u["token"] for u in users},
         "known_requests": known_requests,
-        "known_authorizations": known_authorizations,
+        "known_authorizations": [],
         "settlement_id": settlement_id,
         "settlement_participant_handle": a["handle"],
         "remembered_key": pay_key,
         "remembered_body": pay_body,
         "remembered_payer_handle": payer["handle"],
-        "remembered_capture_key": capture_key,
-        "remembered_capture_body": capture_body,
-        "remembered_capture_authorization_id": partial_auth_id,
-        "remembered_capture_receiver_handle": part_receiver["handle"],
+        "remembered_capture_key": None,
+        "remembered_capture_body": None,
+        "remembered_capture_authorization_id": None,
+        "remembered_capture_receiver_handle": None,
     })
-    return {"ctx": ctx, "settlement_id": settlement_id, "pending_request_id": pending_request_id}
+
+    if supports_holds:
+        # an open hold
+        auth_payer, auth_receiver = users[2], users[4]
+        r = _post(base_url, "/authorizations", json={"to_handle": auth_receiver["handle"], "amount": 200,
+                                                       "note": "populate-open"},
+                  headers={**_auth(auth_payer["token"]), "Idempotency-Key": "populate-auth-open-1"})
+        assert r.status_code == 201, r.text
+        open_auth_id = r.json()["authorization_id"]
+
+        # a partially captured hold (final: false), with a claimed capture key remembered
+        part_payer, part_receiver = users[3], users[5]
+        r = _post(base_url, "/authorizations", json={"to_handle": part_receiver["handle"], "amount": 400,
+                                                       "note": "populate-partial"},
+                  headers={**_auth(part_payer["token"]), "Idempotency-Key": "populate-auth-partial-1"})
+        assert r.status_code == 201, r.text
+        partial_auth_id = r.json()["authorization_id"]
+        capture_key = "populate-capture-partial-1"
+        capture_body = {"amount": 150, "final": False}
+        cap = _post(base_url, f"/authorizations/{partial_auth_id}/capture", json=capture_body,
+                    headers={**_auth(part_receiver["token"]), "Idempotency-Key": capture_key})
+        assert cap.status_code == 201, cap.text
+
+        # a voided hold
+        void_payer, void_receiver = users[4], users[0]
+        r = _post(base_url, "/authorizations", json={"to_handle": void_receiver["handle"], "amount": 90,
+                                                       "note": "populate-void"},
+                  headers={**_auth(void_payer["token"]), "Idempotency-Key": "populate-auth-void-1"})
+        assert r.status_code == 201, r.text
+        void_auth_id = r.json()["authorization_id"]
+        voided = _post(base_url, f"/authorizations/{void_auth_id}/void", json={}, headers=_auth(void_payer["token"]))
+        assert voided.status_code == 200, voided.text
+
+        known_authorizations = [(a["id"], id_to_handle[a["from_user_id"]]) for a in fixture.get("authorizations", [])]
+        known_authorizations += [
+            (open_auth_id, auth_payer["handle"]),
+            (partial_auth_id, part_payer["handle"]),
+            (void_auth_id, void_payer["handle"]),
+        ]
+
+        _UPGRADE["known_authorizations"] = known_authorizations
+        _UPGRADE["remembered_capture_key"] = capture_key
+        _UPGRADE["remembered_capture_body"] = capture_body
+        _UPGRADE["remembered_capture_authorization_id"] = partial_auth_id
+        _UPGRADE["remembered_capture_receiver_handle"] = part_receiver["handle"]
+
+    return {"ctx": ctx, "settlement_id": settlement_id, "pending_request_id": pending_request_id,
+            "supports_holds": supports_holds}
 
 
 def snapshot(base_url: str) -> dict:
@@ -545,6 +566,10 @@ def snapshot(base_url: str) -> dict:
     assert replay.status_code == 200, \
         f"replay of the remembered payment must stay a 200 replay: {replay.status_code} {replay.text}"
 
+    # Both empty/None when populate() ran against a binary with no holds
+    # support (see populate()'s capability probe), so the fingerprint
+    # compares equal on these fields for an old-stage-1 -> new-stage-2
+    # upgrade without ever calling an endpoint the old side doesn't have.
     auth_state = []
     for auth_id, viewer_handle in sorted(set(_UPGRADE["known_authorizations"])):
         token = tokens[viewer_handle]
@@ -556,13 +581,16 @@ def snapshot(base_url: str) -> dict:
                             tuple(match["payment_ids"]), match["closed_at"]))
     auth_state.sort()
 
-    capture_replay_token = tokens[_UPGRADE["remembered_capture_receiver_handle"]]
-    capture_replay = _post(
-        base_url, f"/authorizations/{_UPGRADE['remembered_capture_authorization_id']}/capture",
-        json=_UPGRADE["remembered_capture_body"],
-        headers={**_auth(capture_replay_token), "Idempotency-Key": _UPGRADE["remembered_capture_key"]})
-    assert capture_replay.status_code == 200, \
-        f"replay of the remembered capture must stay a 200 replay: {capture_replay.status_code} {capture_replay.text}"
+    capture_retry_identity = None
+    if _UPGRADE.get("remembered_capture_key"):
+        capture_replay_token = tokens[_UPGRADE["remembered_capture_receiver_handle"]]
+        capture_replay = _post(
+            base_url, f"/authorizations/{_UPGRADE['remembered_capture_authorization_id']}/capture",
+            json=_UPGRADE["remembered_capture_body"],
+            headers={**_auth(capture_replay_token), "Idempotency-Key": _UPGRADE["remembered_capture_key"]})
+        assert capture_replay.status_code == 200, \
+            f"replay of the remembered capture must stay a 200 replay: {capture_replay.status_code} {capture_replay.text}"
+        capture_retry_identity = (capture_replay.status_code, capture_replay.json())
 
     return {
         "balances": balances,
@@ -573,7 +601,7 @@ def snapshot(base_url: str) -> dict:
         "settlement_id": _UPGRADE["settlement_id"],
         "settlement_members": settlement_members,
         "retry_identity": (replay.status_code, replay.json()),
-        "capture_retry_identity": (capture_replay.status_code, capture_replay.json()),
+        "capture_retry_identity": capture_retry_identity,
     }
 
 
