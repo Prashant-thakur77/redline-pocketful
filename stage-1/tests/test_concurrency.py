@@ -49,26 +49,50 @@ def test_reset_completes_within_10s():
 
 
 def test_payment_atomic_concurrent_with_reads_never_torn():
-    """R-1-006"""
+    """R-1-002, R-1-006
+
+    Two sequential `/me` reads cannot observe cross-user conservation at an
+    instant (stage 1 has no atomic two-balance read: R-1-050 rules out an
+    admin endpoint for one), so this does not sum two balances and compare
+    against a constant — that sum can only drift as payments land between the
+    two reads, "torn" or not. Instead: (a) a balance is never negative, not
+    even transiently, under concurrent reads during writes (R-1-002); and
+    (b) once a payment's 201 response comes back, the debit is already
+    reflected in the sender's own balance and the payment is already visible
+    in BOTH parties' own feeds — never visible to one side and not the other
+    (R-1-006).
+    """
     fixture, handles, tokens = _n_user_fixture(2, balance=1000)
     stop = threading.Event()
-    torn = []
+    negative = []
 
-    def watch():
+    def watch_non_negative():
         while not stop.is_set():
             a = api_get("/me", headers=auth(tokens[0])).json()["balance"]
             b = api_get("/me", headers=auth(tokens[1])).json()["balance"]
-            if a + b != 2000:
-                torn.append((a, b))
+            if a < 0 or b < 0:
+                negative.append((a, b))
 
-    watcher = threading.Thread(target=watch)
+    watcher = threading.Thread(target=watch_non_negative)
     watcher.start()
+
     for i in range(20):
-        api_post("/payments", json={"to_handle": handles[1], "amount": 5},
-                 headers={**auth(tokens[0]), **idem(unique(f"k{i}"))})
+        r = api_post("/payments", json={"to_handle": handles[1], "amount": 5},
+                     headers={**auth(tokens[0]), **idem(unique(f"k{i}"))})
+        assert r.status_code == 201, r.text
+        payment_id = r.json()["payment_id"]
+
+        sender_balance = api_get("/me", headers=auth(tokens[0])).json()["balance"]
+        assert sender_balance == 1000 - 5 * (i + 1), "the debit must already be reflected once 201 returns"
+
+        sender_feed = {p["payment_id"] for p in api_get("/activity", headers=auth(tokens[0])).json()["payments"]}
+        receiver_feed = {p["payment_id"] for p in api_get("/activity", headers=auth(tokens[1])).json()["payments"]}
+        assert payment_id in sender_feed, "payment must be visible in the sender's own feed immediately"
+        assert payment_id in receiver_feed, "payment must be visible in the receiver's feed too, never one-sided"
+
     stop.set()
     watcher.join(5)
-    assert not torn, f"observed a torn debit/credit: {torn}"
+    assert not negative, f"observed a negative balance mid-storm: {negative}"
 
 
 def test_1000_concurrent_ops_with_replays_invariants_hold():
