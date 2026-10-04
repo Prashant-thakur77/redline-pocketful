@@ -6,7 +6,9 @@
 | N1-T.1 | READY | 24024bc | `snapshot` is now a stage-stable semantic fingerprint (balances, pre-upgrade token identity, request states, settlement membership, same-key retry body) re-derived from the service; storm gained `i%7` overdraft and `i%11` net-settlement slices; `invariant` now asserts distinct-request/payment uniqueness and split-share sums. Verified by planner (read of the file + `hook.missing() == []`). **Live gate 4/5 confirmation deferred to the first buildable service** — no service existed in Redline's turn, which it reported honestly. |
 | N1-1 | NEEDS_WORK | 7fca98b | g1 PASS, g8 PASS, g2/g4 advisory per the table in `s1-dag.md`. @verifier's initial BLOCK (`1aebcff`, verdict `0682c1fcfe1a`) was **superseded by NEEDS_WORK** (`99195fb`, verdict `f77ce35db1e2`) after it concurred with the scope ruling below — having independently re-run `factory.scope` on three bases, byte-diffed `db83d89` against @builder's staged copies, and checked the `FACTORY.md` precedent itself. Held now only by @adversary's `1bc2283` BREACH: 3 R-1-005/R-1-060 failures. → N1-1.1 |
 | N1-1.1 | dispatched | — | Fix @adversary's breach: `HEAD`/`OPTIONS` fall through to the stdlib's HTML `501`; a non-numeric `Content-Length` raises before the try/except and drops the socket with no response at all. New requirement R-1-079. |
-| N1-2 | planned | — | — |
+| N1-2 | NEEDS_WORK | 8cc8661 | @verifier (`--scope 7fca98b..8cc8661`): scope PASS, g1 PASS, g4 PASS, g8 PASS, g2 advisory 57/198 with all 141 failures checked individually as N1-5/6/8 scope and zero regressions. Content accepted. Held by N1-1's open BREACH, which is live in this commit too. → N1-1.1, N1-2.1 |
+| N1-2.1 | dispatched | — | Revert the seeded-`paid`-request payment synthesis per R-1-051. **Deliberately regresses g4** until N1-T.2 lands — see the ratchet note below. |
+| N1-T.2 | dispatched | — | Hook `invariant()` must scope its `payment_id` linkage check to requests the storm actually paid; a seeded `paid` request has `payment_id: null`. |
 | N1-3 | planned | — | — |
 | N1-4 | planned | — | — |
 | N1-5 | planned | — | — |
@@ -19,6 +21,19 @@
 States: planned → dispatched → built → attacked → GO | NEEDS_WORK | blocked.
 
 Stage: open.
+
+## Ratchet exception, 2026-10-04 (planner-ordered)
+
+Gate 4 passed on `8cc8661` **only because** `validate_fixture` synthesized a payment for
+the seeded `paid` request `r-seed-5`. R-1-051 rules that synthesis out, so N1-2.1 removes
+it and gate 4 will **fail** until @redline's N1-T.2 rescopes the hook's `payment_id`
+linkage check. That is a planner-ordered correction, not a regression: the green it
+replaces was standing on state the spec never declared and which would have broken
+R-3-010 in stage 3. @verifier must not score it under the green-stays-green ratchet.
+The ratchet resumes from the first commit carrying both N1-2.1 and N1-T.2.
+
+Note also that gate 4 is vacuous before N1-5 (`plan/s1-dag.md` footnote 1): the storm
+logged `statuses {404: 1300}`, so conservation held trivially.
 
 ## Disclosed process defects
 
