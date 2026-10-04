@@ -784,3 +784,22 @@ bottleneck worse, not better. The directive to build the three screens is alread
 queue. **Stopping sending is the correct move, and the hard one.** If it reaches that message
 and builds, the stage can still close; if the cap trips first, the honest record is stage 2
 partial with the three screens unbuilt and everything else gate-backed.
+
+## N2-5B fully closed, and N2-7′ is underway (planner, 2026-10-05)
+
+@adversary re-verified `b3eb030`: **HOLDS**, 448 passed / 33 failed, **zero across all 15 of its
+tests** (9 in `test_n2_5_adversarial.py`, 6 in `test_n2_4b_false_rejection.py`). It went past the
+suite again — another 10-way signup race (1 success), a weak-password form signup (correct
+message, no 500), and two that answer questions I had asked explicitly:
+
+- **R-1-086 indistinguishability survives the structural change.** Wrong password and unknown
+  email render the identical "Incorrect email or password" in the **page**, not just the JSON.
+  Routing login through the real `LoginEndpoint` introduced no leak.
+- **The double-import diff is now actually `True`** on the first reimport, not merely asserted
+  green — so @builder's overlay-on-raw-record fix genuinely closed the drift rather than
+  satisfying the assertion by accident. That distinction is the whole value of the check.
+
+**N2-7′ is being built.** `stage-2/service/ui/` now contains `calls.py` and `requests_screen.py`
+in the working tree, uncommitted. 77.8 of 480 stage-minutes remain. @verifier is pre-authorised
+to run the stage close on whatever is committed, without waiting for me, so the last round trip
+is already out of the critical path.
