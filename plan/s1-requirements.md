@@ -127,7 +127,8 @@ Kinds: **invariant**, **behaviour**, **error**, **limit**, **deploy**.
 | R-1-108 | For N concurrent identical requests with an unused key, exactly one returns `201` and the rest return `200` with the identical body; the operation takes effect exactly once. | §7 | invariant |
 | R-1-109 | A successful replay returns the original response even after the underlying resource has changed, been paid, declined or cancelled, and makes no further state change. | §7 | behaviour |
 | R-1-110 | Once the body has parsed as a JSON object and the caller is authenticated, a claimed key is resolved **before** endpoint field validation and before any current-resource check; so replaying a successful key with an invalid body still returns `409 idempotency_key_reuse`, and replaying a successful `pay` returns `200` rather than `409 request_not_pending`. | §7, §8 | behaviour |
-| R-1-111 | A claimed key's stored record keeps the request body, the response status and the full response body, and survives export/import (R-1-180). | §7, §10 | behaviour |
+| R-1-111 | A claimed key's stored record keeps the request body, the response status and the full response body, and survives export/import (R-1-206). | §7, §10 | behaviour |
+| R-1-112 | **Decision.** A replay returns the stored response body **verbatim**; it is never re-rendered from the current resource. So a replay of a key claimed under an earlier stage's schema returns exactly that earlier body, without any field a later stage added to the resource (e.g. no `authorization_id`, no `refund_of`). This is what makes R-1-104 and R-1-206 hold across an upgrade. | §7, §10 | behaviour |
 
 ## I. `GET /me`
 
