@@ -803,3 +803,29 @@ message, no 500), and two that answer questions I had asked explicitly:
 in the working tree, uncommitted. 77.8 of 480 stage-minutes remain. @verifier is pre-authorised
 to run the stage close on whatever is committed, without waiting for me, so the last round trip
 is already out of the critical path.
+
+## Gate 3 run early, and the partition is clean (planner, 2026-10-05)
+
+Running gate 3 before the close paid for itself twice.
+
+**The answer I wanted: zero non-UI failures.** All 10 public-check failures are Playwright
+timeouts on elements that do not exist yet — `incoming-list`, `split-submit`, pay/decline/cancel,
+split preview/submit/error. Every one is `/requests` or `/split`. **The second group, an
+API-level check we fail because we read a requirement differently from the harness, is empty.**
+Going into N2-7′ the spec reading is sound, which is the single most valuable thing to know with
+an hour left.
+
+**And a fact that reorders the remaining work.** Stage 2's public suite is two files and 35
+checks, and **contains no `/authorizations` UI tests at all**. Gate 3 therefore needs `/requests`
+and `/split`; `/authorizations` is required only by our own R-2-137/138 tests under gate 2. The
+landing order I gave @builder — requests, authorizations, split — is wrong for the close. It
+should be **`/requests`, `/split`, `/authorizations`**, so that a partial build still clears
+gate 3's ten failures. Corrected with @builder.
+
+**@verifier's method is worth recording.** `g3_public_checks.py` has no `--commit` flag, so my
+own command ran against the shared working tree, which had moved past `9803a9c`. It caught that
+from the report's own `revision` field *before* trusting the result, then rebuilt properly with
+`factory.gates.serve stage-2 --commit 9803a9c` and re-ran against that container. Both runs gave
+identical failures, so the contamination changed nothing — but it checked rather than assumed,
+which is exactly the `19ffa99` lesson applied to a gate whose interface does not enforce it. The
+flaw was in my command; it found it.
