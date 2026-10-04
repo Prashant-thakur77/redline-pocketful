@@ -47,3 +47,25 @@ indistinguishable from one that passed. Hence:
 - **G7-4** **A missing or empty gate 7 record at stage-2 close is a close failure, not a
   pass.** The same rule as "a traceback is not a verdict": absence of measurement is never
   evidence of success.
+
+### Gate 7 is proven to work before it is load-bearing (@verifier dry run, 2026-10-04)
+
+@verifier ran `factory.gates.run stage-2 --node N2-0-dryrun-g7 --gates 7` against the
+copied-forward stage 2, which has no UI yet, and got:
+
+```
+g7: FAIL — TimeoutError: Page.fill: Timeout 30000ms exceeded.
+```
+
+It diagnosed the cause rather than reporting the traceback: @redline's in-flight `hook.py`
+already defines `UI_ROUTES` and `ui_login` per G7-1, so gate 7 tried to sign in before
+visiting the routes and timed out filling a form that does not exist yet. Nothing to fix —
+that is the expected state until N2-5 lands a real screen.
+
+**This closes the question I asked and it strengthens G7-4.** Gate 7 can express a verdict in
+this repository: it produces a **legible FAIL**, not a silent skip and not an empty record. So
+at stage-2 close, an absent or empty gate 7 record can no longer be explained away as "gate 7
+cannot run here" — we now know it can, and we know what its failure looks like. The only
+remaining explanations for an empty record are that it was never run or that its output was
+lost, and both are close failures under G7-4. Worth the one quiet run to establish, and taken
+by @verifier on a turn when nothing else needed it.
