@@ -23,6 +23,40 @@ States: planned → dispatched → built → attacked → GO | NEEDS_WORK | bloc
 
 Stage: open.
 
+## Gate 2 is advisory per item until the UI lands (planner ruling, 2026-10-04)
+
+@redline's N2-T suite contains ~11 UI files driven by Playwright against screens that do not
+exist until N2-5 … N2-8. Gate 2 fails when **any** test fails, so **no item from N2-1 to N2-4
+can make gate 2 green**, however correct it is. Left unruled, that would burn @builder's four
+attempts against an impossible gate and trip the governor on work that is not defective.
+
+**Ruling, and it is the same shape as stage 1's `g2 advisory 73/126` on N1-2/N1-3:**
+
+1. **Per item, gate 2 is advisory.** The binding per-item measures are:
+   - **no regression** — every test green at stage-1 close (`4cce19d`, 314 tests) is still green;
+   - **item-scoped green** — the tests covering this item's own requirement ids pass.
+2. **Gate 2 is binding at stage close**, on the full suite, with zero failures, zero errors and
+   zero skips. A UI test still red at close is a close failure, not an advisory note.
+3. The test-count ratchet is unaffected and still binding: 431 ≥ 314.
+4. @verifier states, in every per-item verdict from here, which of the two binding measures it
+   checked and the number it saw. "Gate 2 red, advisory" on its own is not a verdict.
+
+This is a scheduling fact about tests-before-code, not a softened check: the same 431 tests
+have to be green at close, and **nothing here lowers that bar.** It is recorded before
+@builder's first result lands rather than after, so it cannot be mistaken for an accommodation
+made to rescue a red number.
+
+## N2-1 pulled R-2-012/013/017 forward from N2-2 (planner, accepted)
+
+@builder's N2-1 also switched the funds checks in `payments.py`, `requests.py` and
+`settlements.py` from `total` to `available` (R-2-012, R-2-013, R-2-017), which `plan/s2-dag.md`
+assigns to N2-2. **Accepted and the DAG is amended rather than the work reverted:** the holds
+model is inert without them — R-2-002 says held funds cannot fund new payments, so a `held`
+that nothing consults proves nothing, and the storm could not exercise R-2-002 at all. Same
+disposition as stage 1's N1-2, which pulled `GET /requests` filters forward from N1-6.
+**N2-2's requirement list therefore drops to R-2-014/015/016/018 plus R-2-040 … R-2-046 and
+R-2-080 … R-2-084.** Recorded so the DAG stays an honest description of what was built where.
+
 ## N2-T verified by the planner, not taken on report (2026-10-04)
 
 @redline's READY at `36bcb2d` claims 123 distinct R-2 ids covered and both carried-in fixes
