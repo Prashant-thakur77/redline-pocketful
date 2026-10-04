@@ -23,7 +23,6 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from . import auth
-from .errors import ApiError
 from .idempotency import IDEMPOTENCY
 from .json_utils import parse_json_object
 from .store import STORE
@@ -81,21 +80,30 @@ class Endpoint:
         if self.has_body:
             ctx.body = parse_json_object(ctx.raw_body)
 
-        idem_key = None
+        composite = None
         if self.requires_idempotency_key:
             idem_key = validate_idempotency_key(ctx.headers.get("idempotency-key"))
-            cached = IDEMPOTENCY.resolve(ctx.user["id"], ctx.method, ctx.path, idem_key, ctx.raw_body)
-            if cached is not None:
-                return cached
+            outcome, payload = IDEMPOTENCY.resolve_or_claim(ctx.user["id"], ctx.method, ctx.path,
+                                                              idem_key, ctx.body)
+            if outcome == "replay":
+                return payload
+            composite = payload  # this call is the one that must run the operation
 
-        fields = self.validate_fields(ctx)
-        resource = self.lookup(ctx, fields)
-        self.check_resource_permission(ctx, resource, fields)
-        self.check_resource_state(ctx, resource, fields)
+        try:
+            fields = self.validate_fields(ctx)
+            resource = self.lookup(ctx, fields)
+            self.check_resource_permission(ctx, resource, fields)
+            self.check_resource_state(ctx, resource, fields)
 
-        with STORE.write_lock():
-            status, body = self.apply(ctx, resource, fields)
+            with STORE.write_lock():
+                status, body = self.apply(ctx, resource, fields)
+        except Exception:
+            # R-1-107: never leave a claimed key behind a failed attempt —
+            # the next use, with any body, is a genuine first use.
+            if composite is not None:
+                IDEMPOTENCY.release(composite)
+            raise
 
-        if self.requires_idempotency_key:
-            IDEMPOTENCY.record(ctx.user["id"], ctx.method, ctx.path, idem_key, ctx.raw_body, status, body)
+        if composite is not None:
+            IDEMPOTENCY.commit(composite, status, body)
         return status, body
