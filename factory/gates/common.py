@@ -221,7 +221,7 @@ def pytest_counts(junit: Path) -> dict:
     return total
 
 
-def run_pytest(paths: list[Path], base_url: str, gate: Gate, timeout: float = 900,
+def run_pytest(paths: list[Path], base_url: str, gate: Gate, timeout: float = 2400,
                extra: list[str] | None = None) -> dict:
     junit = gate.log_path.with_suffix(".junit.xml")
     env = {**__import__("os").environ, "BASE_URL": base_url, "PYTHONDONTWRITEBYTECODE": "1"}
@@ -230,6 +230,7 @@ def run_pytest(paths: list[Path], base_url: str, gate: Gate, timeout: float = 90
     proc = run(cmd, timeout, env=env, gate=gate)
     counts = pytest_counts(junit)
     counts["exit"] = proc.returncode
+    counts["timed_out"] = proc.returncode == 124
     counts["passed"] = counts["tests"] - counts["failures"] - counts["errors"] - counts["skipped"]
     return counts
 

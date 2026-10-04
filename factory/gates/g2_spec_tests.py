@@ -20,9 +20,12 @@ def check(gate: Gate, base_url: str) -> int:
     if not tests.is_dir():
         return gate.finish(False, "tests/ is missing; tests come before code")
     high = previous_high(gate)
-    counts = run_pytest([tests], base_url, gate)
+    counts = run_pytest([tests], base_url, gate, timeout=gate.timeout)
     summary = (f"{counts['passed']} passed, {counts['failures']} failed, "
                f"{counts['errors']} errors, {counts['skipped']} skipped")
+    if counts.get("timed_out"):  # no report was written: say so, never call it a removed test
+        return gate.finish(False, f"the suite did not finish within {gate.timeout:.0f}s (raise --timeout); "
+                                  f"no test was removed", counts=counts)
     if counts["tests"] < high:
         return gate.finish(False, f"only {counts['tests']} tests collected, {high} passed before: "
                                   f"a test was removed — {summary}", counts=counts)
@@ -30,8 +33,11 @@ def check(gate: Gate, base_url: str) -> int:
 
 
 def main(argv=None) -> int:
-    args = base_parser(__doc__).parse_args(argv)
+    parser = base_parser(__doc__)
+    parser.add_argument("--timeout", type=float, default=2400, help="seconds the whole suite may take")
+    args = parser.parse_args(argv)
     gate = Gate("g2", args)
+    gate.timeout = args.timeout
     return run_gate(gate, args, lambda url: check(gate, url))
 
 
