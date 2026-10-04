@@ -5,16 +5,7 @@ import httpx
 import pytest
 
 from conftest import (api_get, api_post, assert_error, auth, idem, login_token, make_fixture,
-                       reset_ok, unique, unique_handle, url, user)
-
-
-def _two_user_fixture(balance_a=10_000, balance_b=0, operators=None):
-    a_id, b_id = unique("u"), unique("u")
-    a_handle, b_handle = unique_handle("a"), unique_handle("b")
-    fixture = make_fixture([user(a_id, a_handle, balance=balance_a), user(b_id, b_handle, balance=balance_b)],
-                            settlement_operator_ids=operators or [])
-    reset_ok(fixture)
-    return fixture, login_token(fixture["users"][0]["email"]), login_token(fixture["users"][1]["email"])
+                       reset_ok, two_user_fixture as _two_user_fixture, unique, unique_handle, url, user)
 
 
 def test_error_body_shape_every_4xx_and_5xx_family():

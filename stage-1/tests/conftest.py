@@ -128,7 +128,10 @@ def signup_ok(email: str | None = None, password: str = "password123",
 
 @pytest.fixture
 def two_users():
-    """A fresh two-user fixture: alice (balance 10000) and bob (balance 0)."""
+    """A fresh two-user fixture: alice (balance 10000) and bob (balance 0).
+    Used by @adversary's suite via pytest fixture injection — keep this
+    signature and these balances stable; it is not this file's helper to
+    change the defaults of (see two_user_fixture below for that one)."""
     a_id, b_id = unique("u"), unique("u")
     a_handle, b_handle = unique_handle("alice"), unique_handle("bob")
     fixture = make_fixture([
@@ -143,6 +146,26 @@ def two_users():
         "a": {"id": a_id, "handle": a_handle, "token": a_token, "email": fixture["users"][0]["email"]},
         "b": {"id": b_id, "handle": b_handle, "token": b_token, "email": fixture["users"][1]["email"]},
     }
+
+
+def two_user_fixture(balance_a: int = 10_000, balance_b: int = 10_000,
+                      settlement_operator_ids: list[str] | None = None):
+    """The one shared two-user fixture used as a plain function call (not
+    pytest-fixture injection) across several test files.
+
+    Both users are funded by default so EITHER may act as payer without
+    hitting insufficient_funds by accident; a test whose point is a broke
+    payer overrides balance_a/balance_b explicitly. This used to be copied
+    locally into four test files with drifting defaults (one copy left
+    balance_b at 0), which is exactly how N1-T.5 happened twice — fixing one
+    copy and not the other. One function, one default, fixed everywhere.
+    """
+    a_id, b_id = unique("u"), unique("u")
+    a_handle, b_handle = unique_handle("a"), unique_handle("b")
+    fixture = make_fixture([user(a_id, a_handle, balance=balance_a), user(b_id, b_handle, balance=balance_b)],
+                            settlement_operator_ids=settlement_operator_ids)
+    reset_ok(fixture)
+    return fixture, login_token(fixture["users"][0]["email"]), login_token(fixture["users"][1]["email"])
 
 
 @pytest.fixture
