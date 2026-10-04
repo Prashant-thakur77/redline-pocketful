@@ -14,7 +14,6 @@ from __future__ import annotations
 import sys
 import threading
 import time
-from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -106,21 +105,28 @@ def _run_waiter_race_once(wipe_fn, n_waiters=4, n_contenders=8):
     return responses, wipe_result
 
 
-def _run_waiter_race(wipe_fn, n_trials=15):
+def _run_waiter_race(wipe_fn, verify_fn, n_trials=15):
     """Repeat the single-trial race many times — the window is
     sub-millisecond and not reliably forced by black-box HTTP timing
-    alone, so a lone trial proves little in either direction. Returns
-    the union of every trial's (responses, wipe_result), plus the max
-    observed elapsed among all 2nd-through-last identical attempts per
-    trial as a proxy for whether genuine parking (not an instant
-    replay) was ever actually exercised."""
-    all_responses = []
-    wipe_results = []
-    for _ in range(n_trials):
+    alone, so a lone trial proves little in either direction.
+
+    Verifies EACH trial immediately after that trial's own wipe, before
+    the next trial runs its own reset/import — every credential a trial
+    mints is only valid against the state that trial itself just wiped
+    into existence, and the next trial's wipe would invalidate it. This
+    is the same "reset kills every earlier token" rule noted in the
+    N1-10 target 2 report, applied here across trials instead of within
+    one; batching verification after all trials (the form this file
+    shipped with first) made the whole run order-dependent on how many
+    trials happened to run after the one being checked. Returns the max
+    observed elapsed response time across all trials, as a proxy for
+    whether genuine parking (not an instant replay) was ever exercised."""
+    max_elapsed_seen = 0.0
+    for trial_i in range(n_trials):
         responses, wipe_result = _run_waiter_race_once(wipe_fn)
-        all_responses.append(responses)
-        wipe_results.append(wipe_result)
-    return all_responses, wipe_results
+        verify_fn(trial_i, responses, wipe_result)
+        max_elapsed_seen = max(max_elapsed_seen, max(e for _, _, e in responses))
+    return max_elapsed_seen
 
 
 def test_reset_landing_while_waiters_are_parked_on_an_in_flight_claim():
@@ -139,10 +145,8 @@ def test_reset_landing_while_waiters_are_parked_on_an_in_flight_claim():
         r = reset_ok(make_fixture([user(new_uid, new_handle, balance=777, email=new_email)]))
         return r.status_code, time.monotonic() - t0, new_email
 
-    all_responses, wipe_results = _run_waiter_race(do_reset)
-
-    max_elapsed_seen = 0.0
-    for trial_i, (responses, (reset_status, reset_elapsed, new_email)) in enumerate(zip(all_responses, wipe_results)):
+    def verify(trial_i, responses, wipe_result):
+        reset_status, reset_elapsed, new_email = wipe_result
         assert reset_status == 204
         assert reset_elapsed < 10.0, (
             f"R-1-015: reset must finish within 10s even mid-race, took {reset_elapsed:.2f}s (trial {trial_i})"
@@ -159,7 +163,6 @@ def test_reset_landing_while_waiters_are_parked_on_an_in_flight_claim():
             f"waiting on was wiped out from under it by a reset: {bad_5xx}"
         )
 
-        statuses = Counter(s for s, _, _ in responses)
         winners = [b for s, b, _ in responses if s == 201]
         assert len(winners) <= 1, f"never two winners even across a reset race (trial {trial_i}): {len(winners)} 201s"
         replays = [b for s, b, _ in responses if s == 200]
@@ -170,12 +173,13 @@ def test_reset_landing_while_waiters_are_parked_on_an_in_flight_claim():
                 assert 400 <= s < 500, f"unexpected non-4xx/non-2xx status {s} (trial {trial_i}): {b}"
                 assert '"error"' in b, f"a {s} response must carry the error envelope (trial {trial_i}): {b}"
 
+        # Verify THIS trial's new state right now, before the next
+        # trial's own reset invalidates this email/token.
         bal_new = api_get("/me", headers={"Authorization": f"Bearer {login_token(new_email)}"}).json()["balance"]
         assert bal_new == 777, f"R-1-001: new fixture's seeded balance must be exact post-race, got {bal_new} (trial {trial_i})"
 
-        max_elapsed_seen = max(max_elapsed_seen, max(e for _, _, e in responses))
-
-    print(f"reset-race: {len(all_responses)} trials, max single-response elapsed {max_elapsed_seen:.4f}s "
+    max_elapsed_seen = _run_waiter_race(do_reset, verify)
+    print(f"reset-race: max single-response elapsed {max_elapsed_seen:.4f}s "
           f"(near _MAX_TOTAL_WAIT's old 4.0s bound would indicate genuine parking was exercised)")
 
 
@@ -196,10 +200,8 @@ def test_import_landing_while_waiters_are_parked_on_an_in_flight_claim():
         r = api_post("/_test/import", json=export_doc)
         return r.status_code, time.monotonic() - t0, new_email
 
-    all_responses, wipe_results = _run_waiter_race(do_import)
-
-    max_elapsed_seen = 0.0
-    for trial_i, (responses, (import_status, import_elapsed, new_email)) in enumerate(zip(all_responses, wipe_results)):
+    def verify(trial_i, responses, wipe_result):
+        import_status, import_elapsed, new_email = wipe_result
         assert import_status == 204, f"import must succeed (trial {trial_i}): {import_status}"
         assert import_elapsed < 10.0, (
             f"R-1-015: import must finish within 10s even mid-race, took {import_elapsed:.2f}s (trial {trial_i})"
@@ -216,7 +218,6 @@ def test_import_landing_while_waiters_are_parked_on_an_in_flight_claim():
             f"waiting on was wiped out from under it by an import: {bad_5xx}"
         )
 
-        statuses = Counter(s for s, _, _ in responses)
         winners = [b for s, b, _ in responses if s == 201]
         assert len(winners) <= 1, f"never two winners even across an import race (trial {trial_i}): {len(winners)} 201s"
         replays = [b for s, b, _ in responses if s == 200]
@@ -227,9 +228,10 @@ def test_import_landing_while_waiters_are_parked_on_an_in_flight_claim():
                 assert 400 <= s < 500, f"unexpected non-4xx/non-2xx status {s} (trial {trial_i}): {b}"
                 assert '"error"' in b, f"a {s} response must carry the error envelope (trial {trial_i}): {b}"
 
+        # Verify THIS trial's imported state right now, before the next
+        # trial's own reset/import invalidates this email/token.
         bal_new = api_get("/me", headers={"Authorization": f"Bearer {login_token(new_email)}"}).json()["balance"]
         assert bal_new == 888, f"R-1-001: imported fixture's balance must be exact post-race, got {bal_new} (trial {trial_i})"
 
-        max_elapsed_seen = max(max_elapsed_seen, max(e for _, _, e in responses))
-
-    print(f"import-race: {len(all_responses)} trials, max single-response elapsed {max_elapsed_seen:.4f}s")
+    max_elapsed_seen = _run_waiter_race(do_import, verify)
+    print(f"import-race: max single-response elapsed {max_elapsed_seen:.4f}s")
