@@ -94,7 +94,13 @@ def _validate_user(raw, seen_ids: set, seen_handles: set, seen_emails: set) -> d
         raise validation_failed("user handle has invalid syntax")
     if handle in seen_handles:
         raise validation_failed("duplicate user handle")
-    return {"id": uid, "email": email, "password_hash": password_hash,
+    # R-1-207: import regenerates no field it doesn't itself validate —
+    # overlaying the checked fields on a copy of the raw record (rather
+    # than rebuilding from scratch) preserves anything else the record
+    # carried (e.g. a reset-seeded user's vestigial `balance` key) byte-
+    # for-byte, so a re-export of an unmodified re-import is identical,
+    # never a silently-dropped field (R-1-203's double-import stability).
+    return {**raw, "id": uid, "email": email, "password_hash": password_hash,
             "display_name": display_name, "handle": handle}
 
 
@@ -117,7 +123,7 @@ def _validate_payment(raw, users: dict, seen_ids: set) -> dict:
     created_at = _require_str(raw, "created_at", "payment")
     seq = _require_int(raw, "seq", "payment")
     return {
-        "id": pid, "from_user_id": from_user_id, "to_user_id": to_user_id, "amount": amount,
+        **raw, "id": pid, "from_user_id": from_user_id, "to_user_id": to_user_id, "amount": amount,
         "note": note, "visibility": visibility, "request_id": request_id,
         "settlement_id": settlement_id, "authorization_id": authorization_id,
         "created_at": created_at, "seq": seq,
@@ -150,7 +156,7 @@ def _validate_request_record(raw, users: dict, payments: dict, seen_ids: set) ->
     created_at = _require_str(raw, "created_at", "request")
     seq = _require_int(raw, "seq", "request")
     return {
-        "id": rid, "requester_id": requester_id, "payer_id": payer_id, "amount": amount,
+        **raw, "id": rid, "requester_id": requester_id, "payer_id": payer_id, "amount": amount,
         "note": note, "status": status, "payment_id": payment_id,
         "created_at": created_at, "seq": seq,
     }
@@ -168,7 +174,7 @@ def _validate_settlement(raw, payments: dict, seen_ids: set) -> dict:
         raise validation_failed("settlement.payment_ids must be a list of strings")
     if not all(p in payments for p in payment_ids):
         raise validation_failed("settlement.payment_ids must reference known payments")
-    return {"id": sid, "committed_at": committed_at, "payment_ids": list(payment_ids)}
+    return {**raw, "id": sid, "committed_at": committed_at, "payment_ids": list(payment_ids)}
 
 
 def _validate_idempotency_record(raw) -> dict:
@@ -257,7 +263,7 @@ def _validate_authorization(raw, users: dict, seen_ids: set) -> dict:
         raise validation_failed("authorization.seq must be an integer")
 
     return {
-        "id": aid, "from_user_id": from_user_id, "to_user_id": to_user_id,
+        **raw, "id": aid, "from_user_id": from_user_id, "to_user_id": to_user_id,
         "amount": amount, "note": note, "visibility": visibility, "status": status,
         "captured_amount": captured_amount, "payment_ids": list(payment_ids),
         "closed_at": closed_at, "expires_at": expires_at, "created_at": created_at, "seq": seq,
