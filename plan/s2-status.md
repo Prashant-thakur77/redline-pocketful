@@ -10,7 +10,8 @@ satisfied and must stay satisfied — that is gate 5's job from here on.
 | N2-T | **READY** | `36bcb2d` | 431 tests (up from stage 1's 314), 0 collection errors, red for the right reason (`httpx.ConnectError`, no service). Planner-verified below. |
 | N2-1 | **HOLDS — closed on content, not on a gate-backed GO** | `15b99f5` (+ `f8c6462` code, `e3f81bb`/`5b6df67` attack) | Holds model. @adversary **HOLDS** (`a5a39df7c0a0`, 15 attacks). @verifier re-ran tagged: **g1 PASS, g4 PASS, g8 PASS**; scope clean but for the already-ruled sanctioned finding; collection ratchet **447 ≥ 431**. **No GO is possible for this item** — gate 2 cannot be green until the UI lands and `factory.record` rightly refuses a GO the gates do not back. See the ruling below; this is reported as HOLDS, never as GO. |
 | N2-2 | **HOLDS — closed on content, gate 2 advisory** | `d2f2cba` (attack `bafc581`) | Authorization endpoints. @adversary **HOLDS** (`e676f9b34cc5`). @verifier: **g1 PASS, g4 PASS, g8 PASS**, `collect-only` 447, scope clean but for the sanctioned finding. The `405` prediction came true — **zero 405** in the mix. @verifier spot-checked the attribution by reading code (serve+pytest still sandbox-blocked) and found the two new adversarial failures to be a **genuine test bug**, not a defect. HOLDS, not GO, per the ruling below. |
-| N2-3 | dispatched | — | Capture (partial, extended, closing) and void: R-2-050…066, R-2-070…075. @builder. |
+| N2-3 | **HOLDS — closed on content, gate 2 advisory** | `07052a8` (attack `e81ff82`) | Capture and void. @adversary **HOLDS** (`f15cb0c7910c`). @verifier: **g1 PASS, g4 PASS, g8 PASS**, `collect-only` 447, scope clean but for the sanctioned finding. **The `404`-drop tripwire fired clean: zero `404`, down from 149.** All three traps independently confirmed by code reading. HOLDS, not GO, per the ruling below. |
+| N2-4 | dispatched | — | Export/import of holds and the stage-1 upgrade path: R-2-170…175. @builder. @verifier confirmed `snapshot.py` has **zero** references to `authorization`, so this is a real gap, correctly disclosed. |
 | N2-3 | planned | — | — |
 | N2-4 | planned | — | — |
 | N2-5 | planned | — | — |
@@ -276,6 +277,39 @@ Recorded because the failure mode is silent, and because a fixture edit in stage
 these same hooks copy forward — could remove it without any gate going red. **The `404`-drop
 tripwire above is also the guard for this:** it is the one observable that distinguishes "the
 capture slice ran" from "the capture slice was skipped".
+
+### The `404`-drop tripwire fired clean, and it changed the fragility it was guarding
+
+N2-3's mix is `{201: 672, 409: 438, 200: 190}` — **zero `404`**, against 149 at N2-1 and N2-2.
+I predicted "≈40 or below"; the actual is zero, because every call the hook makes now hits a
+routed endpoint. So the ~112 capture and void calls per storm are genuinely transacting, which
+is the thing the mix could not previously tell us. **Both tripwires I set on this item have now
+fired correctly and are spent** (`405` at N2-2, `404` at N2-3).
+
+**A useful side effect, which is why the number was worth chasing rather than just the pass.**
+The latent fragility recorded above — `_auth_capture_op` and `_auth_void_op` returning a
+**synthetic `404` with no HTTP call** when `seed_auth_targets` is empty — was dangerous
+precisely because it hid inside a band of 149 legitimate `404`s. With the real `404`s gone,
+**zero is now the baseline, so any `404` reappearing in the mix is a signal rather than noise.**
+The silent failure mode became self-announcing without anyone editing a hook. Carried forward:
+**a nonzero `404` count in any stage-2, 3 or 4 storm is worth tracing before accepting the run** —
+it most likely means a capture/void slice went vacuous, not that the service regressed.
+
+### The three capture/void traps, independently confirmed
+
+@verifier read the implementation rather than trusting the tests, and all three resolved:
+
+- **R-2-066** — `apply()` debits and credits `STORE.wallets` directly and never goes through
+  `available_for()`, so a capture spends the hold rather than the payer's spendable balance.
+- **R-2-005** — there is **no explicit release path at all**, and that is correct rather than a
+  gap: `held_for()` filters on `is_open(a, now)` and `effective_status()` returns the stored
+  status once it is `captured`/`voided` (`holds.py:20-27`), so a closed authorization drops out
+  of `held_for()` by construction. **There is nothing to double-release.** This is the stronger
+  design — the invariant holds structurally instead of depending on every release path being
+  written correctly once.
+- **R-2-065 vs R-2-073** — capture branches `expired` against `not-open` explicitly; void
+  collapses both to `not-open` unconditionally. A deliberate per-endpoint asymmetry that the
+  spec requires, not an inconsistency.
 
 ## Carried into N2-T from stage 1, not a new requirement
 
