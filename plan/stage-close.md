@@ -174,6 +174,13 @@ count ratchets upward across this and every earlier stage (gate 2).
   A later stage adding a field to the payment object (stage 2 `authorization_id`, stage 4
   `refund_of`) must not change replays of keys claimed earlier. Breaks as a **gate 5
   upgrade failure**, one stage after the mistake.
+- **R-1-107 × R-1-108, flagged by @adversary** — a claimed key whose operation **fails**
+  must be *released*, never committed with its failing status. `pipeline.py`'s except-block
+  releases unconditionally. @adversary's warning is worth heeding: this is exactly the
+  invariant a well-intentioned optimisation ("cache negative results too") silently breaks,
+  and the symptom is a key stuck at `409` forever rather than an obvious crash. Stage 2 adds
+  two more idempotent write paths and stage 4 three more — re-check it at every stage.
+  Guarded by `test_concurrent_failed_claim_is_released_not_cached`.
 - **R-1-086a** — login does equal work for an unknown email and a wrong password.
 - **R-1-051** — a seeded `paid` request exposes `payment_id: null`; never synthesize.
 - **R-1-080a** — client-caused errors are 4xx; a genuine uncaught exception is `500
