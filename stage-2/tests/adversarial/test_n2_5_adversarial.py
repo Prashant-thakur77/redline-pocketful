@@ -1,0 +1,122 @@
+"""Adversarial findings against N2-5 (the browser shell: R-2-090..093,
+R-2-120..125), attacked at commit a357441.
+
+BREACH: `service/ui/pages.py::_handle_signup` (the POST /signup FORM
+handler, reached via `ui.try_handle` -> `pages.handle_post`) duplicates
+the JSON `/auth/signup` endpoint's email/handle-uniqueness check-then-
+insert logic, but does it directly against `STORE` with no
+`STORE.write_lock()` at all — unlike `routes/auth.py::SignupEndpoint`,
+whose own comment states the email/handle checks and the insert run "in
+the same write-lock critical section... so two concurrent signups
+racing on the same email or derived handle still produce exactly one
+201 and one 409 (never two 201s)" (R-1-088). The UI path has no such
+guarantee: concurrent form signups with the identical email all read
+`email in STORE.users_by_email` as False before any of them writes,
+and all proceed to create separate user records, all sharing the
+seeded email and the same derived handle. Confirmed: 10 concurrent
+POST /signup submissions with one email produced 10 distinct user
+records, all with that email, all with the same handle, each with a
+valid session cookie/token — not the "exactly one succeeds" guarantee
+R-1-088 establishes for the JSON path.
+
+The rest of this item's surface (R-1-089 cookie/JSON separation,
+unauthenticated redirect to /login, a malformed session cookie, and
+escaping of a user-controlled display_name) was also attacked and
+holds; those are included below as regression coverage."""
+from __future__ import annotations
+
+import sys
+import threading
+from pathlib import Path
+
+import httpx
+
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from conftest import BASE_URL, unique  # noqa: E402
+
+
+def _signup_form(email: str, password: str = "password123", display_name: str = "Attacker"):
+    return httpx.post(BASE_URL + "/signup", data={"email": email, "password": password, "display_name": display_name},
+                       headers={"Accept": "text/html"}, follow_redirects=False, timeout=10.0)
+
+
+def test_concurrent_ui_signups_with_the_same_email_must_produce_exactly_one_account():
+    """BREACH: ten concurrent POST /signup form submissions with the
+    identical email must behave like the JSON endpoint — exactly one
+    succeeds (302 redirect with a session), the rest see the
+    'already registered' error page. The UI form handler currently has
+    no write-lock around its check-then-insert, so this fails: all ten
+    succeed, producing ten separate user records sharing one email and
+    one derived handle (R-1-088's 'exactly one 201, never two' promise,
+    violated for the form path)."""
+    email = f"{unique('race')}@example.com"
+    outs = []
+    lock = threading.Lock()
+
+    def do_signup():
+        r = _signup_form(email)
+        with lock:
+            outs.append(r)
+
+    threads = [threading.Thread(target=do_signup) for _ in range(10)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join(timeout=10.0)
+
+    successes = [r for r in outs if r.status_code == 302]
+    assert len(successes) == 1, (
+        f"exactly one concurrent signup for the same email must succeed, got {len(successes)} of 10: "
+        f"{[r.status_code for r in outs]}"
+    )
+
+    export = httpx.get(BASE_URL + "/_test/export", timeout=10.0).json()
+    matching_users = [u for u in export["state"]["users"] if u["email"] == email]
+    assert len(matching_users) == 1, (
+        f"exactly one user record must exist for {email!r} after the race, found {len(matching_users)}: "
+        f"{matching_users}"
+    )
+
+
+def test_cookie_never_authenticates_a_plain_json_request():
+    """R-1-089: the session cookie issued by the UI's POST /signup must
+    never authenticate a plain JSON endpoint — only a bearer token does."""
+    email = f"{unique('cookiechk')}@example.com"
+    r = _signup_form(email)
+    assert r.status_code == 302, r.text
+    cookie_val = r.headers.get("set-cookie", "").split(";")[0]
+
+    r2 = httpx.get(BASE_URL + "/me", headers={"Cookie": cookie_val}, timeout=10.0)
+    assert r2.status_code == 401, f"a UI session cookie must never authenticate /me: {r2.status_code} {r2.text}"
+
+
+def test_unauthenticated_negotiated_page_redirects_to_login():
+    """GET /requests with Accept: text/html and no session must redirect
+    to /login, not error or leak data."""
+    r = httpx.get(BASE_URL + "/requests", headers={"Accept": "text/html"}, follow_redirects=False, timeout=10.0)
+    assert r.status_code == 302
+    assert r.headers.get("location") == "/login"
+
+
+def test_garbage_session_cookie_does_not_crash_negotiated_page():
+    """A stale or forged cookie value must be treated as unauthenticated
+    (redirect to /login), never a 500."""
+    r = httpx.get(BASE_URL + "/requests", headers={"Accept": "text/html", "Cookie": "pocketful_session=not-a-real-token"},
+                   follow_redirects=False, timeout=10.0)
+    assert r.status_code != 500, f"a garbage session cookie must never 500: {r.status_code} {r.text}"
+    assert r.status_code == 302 and r.headers.get("location") == "/login"
+
+
+def test_display_name_with_markup_renders_escaped_not_raw():
+    """A display_name containing HTML must never appear unescaped in the
+    rendered page (stored-XSS check on the one user-controlled string
+    `layout._user_chip_html` renders)."""
+    evil_name = "<script>alert(1)</script>"
+    email = f"{unique('xsschk')}@example.com"
+    r = _signup_form(email, display_name=evil_name)
+    assert r.status_code == 302, r.text
+    cookie_val = r.headers.get("set-cookie", "").split(";")[0]
+
+    r2 = httpx.get(BASE_URL + "/", headers={"Cookie": cookie_val}, timeout=10.0)
+    assert "<script>alert(1)</script>" not in r2.text, "display_name must never render unescaped"
+    assert "&lt;script&gt;" in r2.text
