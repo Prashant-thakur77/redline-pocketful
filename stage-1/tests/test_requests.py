@@ -5,7 +5,7 @@ from conftest import (api_get, api_post, assert_error, auth, idem, login_token, 
                        reset_ok, unique, unique_handle, user)
 
 
-def _two_user_fixture(balance_a=10_000, balance_b=0):
+def _two_user_fixture(balance_a=10_000, balance_b=10_000):
     a_id, b_id = unique("u"), unique("u")
     a_handle, b_handle = unique_handle("a"), unique_handle("b")
     fixture = make_fixture([user(a_id, a_handle, balance=balance_a), user(b_id, b_handle, balance=balance_b)])

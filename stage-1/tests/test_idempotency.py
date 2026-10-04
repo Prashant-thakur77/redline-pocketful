@@ -8,7 +8,7 @@ from conftest import (api_get, api_post, assert_error, auth, idem, login_token, 
                        reset_ok, unique, unique_handle, user)
 
 
-def _two_user_fixture(balance_a=10_000, balance_b=0):
+def _two_user_fixture(balance_a=10_000, balance_b=10_000):
     a_id, b_id = unique("u"), unique("u")
     a_handle, b_handle = unique_handle("a"), unique_handle("b")
     fixture = make_fixture([user(a_id, a_handle, balance=balance_a), user(b_id, b_handle, balance=balance_b)])
@@ -141,13 +141,29 @@ def test_absent_vs_default_present_is_different_body():
     assert_error(r2, 409, "idempotency_key_reuse")
 
 
-def test_key_reused_after_4xx_failure_is_first_use():
-    """R-1-107"""
+def test_key_reused_after_422_failure_is_first_use():
+    """R-1-107: a key reused after the original request failed with
+    422 validation_failed (amount genuinely over R-1-134's 1,000,000,000
+    cap) is treated as a first use and may succeed."""
+    fixture, token_a, _ = _two_user_fixture(balance_a=5)
+    b_handle = fixture["users"][1]["handle"]
+    key = unique("k")
+    r1 = api_post("/payments", json={"to_handle": b_handle, "amount": 1_000_000_001}, headers={**auth(token_a), **idem(key)})
+    assert_error(r1, 422, "validation_failed")
+    r2 = api_post("/payments", json={"to_handle": b_handle, "amount": 5}, headers={**auth(token_a), **idem(key)})
+    assert r2.status_code == 201, r2.text
+
+
+def test_key_reused_after_409_failure_is_first_use():
+    """R-1-107: "any 4xx" includes 409, not just 422 — a key reused after the
+    original request failed with 409 insufficient_funds (amount: 1,000,000
+    is within R-1-134's cap, so the honest failure here is funds, not
+    validation) is treated as a first use and may succeed."""
     fixture, token_a, _ = _two_user_fixture(balance_a=5)
     b_handle = fixture["users"][1]["handle"]
     key = unique("k")
     r1 = api_post("/payments", json={"to_handle": b_handle, "amount": 1_000_000}, headers={**auth(token_a), **idem(key)})
-    assert_error(r1, 422, "validation_failed")
+    assert_error(r1, 409, "insufficient_funds")
     r2 = api_post("/payments", json={"to_handle": b_handle, "amount": 5}, headers={**auth(token_a), **idem(key)})
     assert r2.status_code == 201, r2.text
 
