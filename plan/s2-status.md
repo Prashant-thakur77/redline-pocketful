@@ -9,7 +9,8 @@ satisfied and must stay satisfied — that is gate 5's job from here on.
 | N2-0 | **done** | `721295c` (+ `0ba3d8f` cost) | @builder. `git diff --stat 4cce19d:stage-1 721295c:stage-2` is **empty** — the trees are identical, nothing differs but the path prefix — and `stage-2/tests/invariants/hook.py`, `stage-2/Dockerfile`, `stage-2/RUN.md` are all present. @builder reported both checks rather than asserting the copy worked, and stopped without starting N2-1. |
 | N2-T | **READY** | `36bcb2d` | 431 tests (up from stage 1's 314), 0 collection errors, red for the right reason (`httpx.ConnectError`, no service). Planner-verified below. |
 | N2-1 | **HOLDS — closed on content, not on a gate-backed GO** | `15b99f5` (+ `f8c6462` code, `e3f81bb`/`5b6df67` attack) | Holds model. @adversary **HOLDS** (`a5a39df7c0a0`, 15 attacks). @verifier re-ran tagged: **g1 PASS, g4 PASS, g8 PASS**; scope clean but for the already-ruled sanctioned finding; collection ratchet **447 ≥ 431**. **No GO is possible for this item** — gate 2 cannot be green until the UI lands and `factory.record` rightly refuses a GO the gates do not back. See the ruling below; this is reported as HOLDS, never as GO. |
-| N2-2 | dispatched | — | `POST /authorizations`, `GET /authorizations`, R-2-014/015/016/018 + R-2-040…046 + R-2-080…084 (R-2-012/013/017 already landed in N2-1). @builder. |
+| N2-2 | **HOLDS — closed on content, gate 2 advisory** | `d2f2cba` (attack `bafc581`) | Authorization endpoints. @adversary **HOLDS** (`e676f9b34cc5`). @verifier: **g1 PASS, g4 PASS, g8 PASS**, `collect-only` 447, scope clean but for the sanctioned finding. The `405` prediction came true — **zero 405** in the mix. @verifier spot-checked the attribution by reading code (serve+pytest still sandbox-blocked) and found the two new adversarial failures to be a **genuine test bug**, not a defect. HOLDS, not GO, per the ruling below. |
+| N2-3 | dispatched | — | Capture (partial, extended, closing) and void: R-2-050…066, R-2-070…075. @builder. |
 | N2-3 | planned | — | — |
 | N2-4 | planned | — | — |
 | N2-5 | planned | — | — |
@@ -224,19 +225,54 @@ in every stage, and stages 3 and 4 are where the dispatch asks for the most test
 **1600 s** (two thirds of the budget), I re-plan the close for the following stage before
 reaching it rather than at it. Recorded now so stage 4 cannot be surprised by it.
 
-Points 1–5 cost nothing if the full suite fits in 900 s at close. If it does not, **stage 2
-cannot close at all**, and I would rather know that now than discover it at the close run. The
-evidence to settle it already exists and needs no new container: **stage 1's close gate 2 run
-passed 314 tests and wrote a `junit.xml` with per-test durations.** That is the non-UI baseline,
-since those 314 tests copied forward into stage 2 nearly unchanged.
+## The `405` tripwire fired correctly, and reading *why* found a better one (planner, 2026-10-05)
 
-The arithmetic to check: stage 2 is ~447 collected, of which ~340 are non-UI and ~107 are
-Playwright. The timed-out run reached ~392 tests (≈88%) in 900 s, which means the non-UI bulk
-**did** finish and the UI files ate the remainder at 30 s per timeout. Once N2-5 … N2-8 land
-real screens, those same UI tests either pass or fail in seconds. Expected close runtime is
-therefore well inside 900 s — but that is a prediction, and I want it checked against stage 1's
-measured durations rather than assumed. **Obligation on the N2-5 verification**, so it is tested
-before close rather than at it.
+N2-2's gate 4 mix is `{404: 149, 201: 638, 409: 338, 200: 175}` against N2-1's
+`{404: 149, 201: 600, 409: 300, 405: 79, 200: 172}`. The obligation I put on N2-3 — that no
+`405` survive — is **discharged one item early**, and the arithmetic is exact rather than
+approximate: `+38` on `201`, `+38` on `409`, `+3` on `200` is **+79**, precisely the 79 `405`s
+that disappeared. Those were the `_auth_create_op` slice (`i % 13`, ≈77 of 1000 ops), which now
+routes. Nothing else in the mix moved.
+
+**But `404` is identical at 149 in both runs, and that is the number worth reading.** I traced
+it rather than accepting a clean-looking mix. `stage-2/tests/invariants/hook.py` dispatches
+`_auth_void_op` at `i % 19` and `_auth_capture_op` at `i % 17` — about 112 calls per storm —
+and capture and void have no routes until N2-3, so those calls are real HTTP `404`s sitting
+inside that 149. @verifier confirmed independently that no capture/void route files exist.
+
+**Sharpened tripwire for N2-3, replacing the spent `405` one.** After N2-3 lands, those ~112
+calls must return real capture/void statuses, so **the `404` count must fall materially from
+149** — expect roughly 40 or below, not 149. **If `404` stays near 149 after N2-3, capture and
+void are not being reached**, whatever the item's own tests say. This is a stronger check than
+the `405` one because it cannot be satisfied by a route merely existing; it only moves if the
+storm actually transacts against it.
+
+### A latent fragility in gate 4, recorded before it can bite
+
+`_auth_capture_op` and `_auth_void_op` both open with:
+
+```python
+targets = ctx["seed_auth_targets"]
+if not targets:
+    return 404
+```
+
+That is a **synthetic `404` returned without making any HTTP call at all**, and it is
+indistinguishable in the mix from the real `404` that an unrouted capture returns today. So if
+`seed_auth_targets` were ever empty, the capture and void slices would silently become no-ops,
+the mix would still show a healthy-looking band of `404`s, and **gate 4 would stop testing
+money conservation on the capture path — the single most dangerous operation in stage 2, being
+the only one that spends held money — while reporting nothing wrong.**
+
+What stands between us and that today is three lines of fixture: `stage-2/tests/demo_fixture.py`
+seeds exactly **3** authorizations with `status: "open"` (two far-future, one deliberately
+long-past to exercise R-2-030's expiry path). I checked; they are there, so the slices are live.
+Recorded because the failure mode is silent, and because a fixture edit in stage 3 or 4 — where
+these same hooks copy forward — could remove it without any gate going red. **The `404`-drop
+tripwire above is also the guard for this:** it is the one observable that distinguishes "the
+capture slice ran" from "the capture slice was skipped".
+
+## Carried into N2-T from stage 1, not a new requirement
 
 `stage-1/tests/test_http_framing.py`'s `_send_raw` helper decides a response is complete when
 it sees `\r\n\r\n` anywhere in the accumulated bytes, rather than reading the declared
