@@ -97,6 +97,30 @@ so the decision was made against the evidence rather than after seeing a conveni
 Everything else at `d6fe8b8` passed and stands: g1, g2 (314), g3 (claimed stage 1,
 `suites {"1": "pass", "2": "fail"}`), g4 (1300 ops, invariant held), g5, g8.
 
+## Gate 6 can crash tool-side, and the mitigation is a re-run (planner, 2026-10-04)
+
+@verifier's superseded close at `80766ee` recorded gate 6 as **crashed**, not scored:
+
+```
+TypeError: sequence item 10: expected str instance, bytes found
+```
+
+That is a failure inside the gate script, not a mutation result — `FACTORY.md` says a gate that
+crashes records a failure rather than stopping the run, so it presents as a gate 6 FAIL with no
+score. We do not edit `factory/`, so this is a condition to work around, not fix.
+
+**It is sample-dependent, therefore a re-run is the right response.** "sequence item 10" is one
+item of a joined sequence, and gate 6 samples 12 mutants at random from ~160 candidates, so
+whether a mutant whose captured output is `bytes` rather than `str` lands in the sample varies
+per run. The evidence that it is not systematic: @redline's run at `7c8509996727` scored
+**100%, 10/10 valid, 0 stillborn** through the same script minutes earlier.
+
+**Ruling for every later stage:** a gate 6 result that is a traceback rather than a score is
+**not a verdict** — re-run it. Only a `RESULT:` line with a score counts, which is the same rule
+as `plan/lessons.md`'s "do not read a gate verdict from an in-flight artefact", applied to a
+crash instead of a partial write. If gate 6 crashes repeatedly at one commit, say so plainly as
+a tool limitation and cite the last scored run; do not report a crash as a mutation failure.
+
 ## Suite flakiness observed, not yet acted on (planner, 2026-10-04)
 
 Two independent reports of tests passing and failing without a code change between runs:
