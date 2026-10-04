@@ -30,17 +30,8 @@ released, so this call becomes the new first use" (R-1-107).
 from __future__ import annotations
 
 import threading
-import time
 
 from .errors import idempotency_key_reuse
-
-# R-1-015 gives every non-test-control request a 5s budget; a waiter
-# blocked on a slow winner must not itself breach that, so the total time
-# this call may spend waiting (across possibly several wakeups — a
-# release makes the waiter loop and become the new first use, which can
-# itself have to wait again) is capped below it, with headroom for the
-# rest of the request's own work.
-_MAX_TOTAL_WAIT = 4.0
 
 
 def json_equal(a, b) -> bool:
@@ -83,7 +74,6 @@ class IdempotencyStore:
         as-is. Raises `idempotency_key_reuse` for a same-key, different-
         body conflict once the conflicting record is known to be complete."""
         composite = (user_id, method, path, key)
-        deadline = time.monotonic() + _MAX_TOTAL_WAIT
         while True:
             with self._lock:
                 entry = self._entries.get(composite)
@@ -95,20 +85,20 @@ class IdempotencyStore:
                         raise idempotency_key_reuse()
                     return "replay", (200, entry.response_body)
                 event = entry.event
-            # in flight (by this body or a different one): wait for the
-            # winner to commit or release, then re-check from scratch —
-            # a release means this call becomes the new first use.
-            remaining = deadline - time.monotonic()
-            if remaining <= 0:
-                # Every real operation here is in-memory and sub-millisecond,
-                # so hitting this is itself the defect — a winner that has
-                # held a claim this long is stuck, not slow. R-1-080a: say
-                # so loudly (500 internal_error via the generic exception
-                # handler), never silently relabel it as the caller's fault.
-                raise RuntimeError(
-                    f"timed out after {_MAX_TOTAL_WAIT}s waiting for an in-flight "
-                    f"request on key {key!r} to complete")
-            event.wait(remaining)
+            # In flight (by this body or a different one): wait with no
+            # timeout. R-1-080b: a slow winner, a starved thread or an
+            # entry removed under us are all *anticipated* conditions, not
+            # bugs, so this may never answer them with a 500 — the only
+            # way out that is licensed is a correct response. R-1-112a
+            # makes that safe: every path that can remove this entry
+            # before it completes (`release`, `clear`, `restore`) signals
+            # this exact event first, so the wait is bounded by the real
+            # winner's own R-1-015 compliance, not by a wall clock here.
+            # No lost wakeup: `event` was read under the lock above, and
+            # `Event.set()` latches — a `set()` landing between releasing
+            # that lock and this `wait()` call still makes `wait()` return
+            # immediately, it does not need to already be blocked.
+            event.wait()
 
     def commit(self, composite: tuple, status: int, body) -> None:
         """R-1-111/R-1-112: store the response verbatim — never a reference
@@ -132,7 +122,15 @@ class IdempotencyStore:
                 entry.event.set()
 
     def clear(self) -> None:
+        """R-1-040/R-1-112a: wake every waiter parked on an incomplete
+        entry before dropping it — otherwise a reset concurrent with
+        in-flight traffic leaves those callers blocked forever, since
+        nothing else will ever set their event. A woken waiter re-checks
+        from scratch, finds no entry, and becomes a genuine first use."""
         with self._lock:
+            for entry in self._entries.values():
+                if entry.state != "complete":
+                    entry.event.set()
             self._entries.clear()
 
     def export_records(self) -> list[dict]:
@@ -152,8 +150,14 @@ class IdempotencyStore:
     def restore(self, records: list[dict]) -> None:
         """R-1-201/203/206: import *replaces* the whole table with these
         completed records — the mirror of `clear()`, which reset uses
-        instead (R-1-209: reset clears even imported state)."""
+        instead (R-1-209: reset clears even imported state). Same
+        R-1-112a obligation as `clear()`: wake incomplete entries' waiters
+        *before* dropping them, so none hangs on an event an import can
+        never set otherwise."""
         with self._lock:
+            for entry in self._entries.values():
+                if entry.state != "complete":
+                    entry.event.set()
             self._entries.clear()
             for rec in records:
                 composite = (rec["user_id"], rec["method"], rec["path"], rec["key"])

@@ -1,0 +1,11 @@
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /home/prashant/projects/band-work/result/stage-1/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s1/N1-10.1-g2-20261004T152956-5f7b.junit.xml  (exit 0)
+........................................................................ [ 23%]
+........................................................................ [ 46%]
+........................................................................ [ 69%]
+........................................................................ [ 92%]
+........................                                                 [100%]
+312 passed in 46.58s
+
+
+
+RESULT: PASS — 312 passed, 0 failed, 0 errors, 0 skipped
