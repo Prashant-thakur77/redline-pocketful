@@ -8,7 +8,7 @@ satisfied and must stay satisfied — that is gate 5's job from here on.
 |---|---|---|---|
 | N2-0 | **done** | `721295c` (+ `0ba3d8f` cost) | @builder. `git diff --stat 4cce19d:stage-1 721295c:stage-2` is **empty** — the trees are identical, nothing differs but the path prefix — and `stage-2/tests/invariants/hook.py`, `stage-2/Dockerfile`, `stage-2/RUN.md` are all present. @builder reported both checks rather than asserting the copy worked, and stopped without starting N2-1. |
 | N2-T | **READY** | `36bcb2d` | 431 tests (up from stage 1's 314), 0 collection errors, red for the right reason (`httpx.ConnectError`, no service). Planner-verified below. |
-| N2-1 | **built, attacked, gates re-run** | `15b99f5` (+ `f8c6462` code, `e3f81bb`/`5b6df67` attack) | Holds model. @adversary **HOLDS** (`a5a39df7c0a0`, 15 attacks). @verifier re-ran tagged: **g1 PASS, g4 PASS, g8 PASS**; scope clean but for the already-ruled sanctioned finding; collection ratchet **447 ≥ 431**. Awaiting the formal GO token — see the two findings below. |
+| N2-1 | **HOLDS — closed on content, not on a gate-backed GO** | `15b99f5` (+ `f8c6462` code, `e3f81bb`/`5b6df67` attack) | Holds model. @adversary **HOLDS** (`a5a39df7c0a0`, 15 attacks). @verifier re-ran tagged: **g1 PASS, g4 PASS, g8 PASS**; scope clean but for the already-ruled sanctioned finding; collection ratchet **447 ≥ 431**. **No GO is possible for this item** — gate 2 cannot be green until the UI lands and `factory.record` rightly refuses a GO the gates do not back. See the ruling below; this is reported as HOLDS, never as GO. |
 | N2-2 | dispatched | — | `POST /authorizations`, `GET /authorizations`, R-2-014/015/016/018 + R-2-040…046 + R-2-080…084 (R-2-012/013/017 already landed in N2-1). @builder. |
 | N2-3 | planned | — | — |
 | N2-4 | planned | — | — |
@@ -141,7 +141,57 @@ lands, and if it was not, they do not. That turns a gap in evidence into a predi
 satisfy — recorded as an obligation on N2-2's verification, with the number to beat written
 down in advance: **at N2-2, the item-scoped set is green and the collected count is ≥ 447.**
 
-## Carried into N2-T from stage 1, not a new requirement
+## `factory.record` will not accept a GO for N2-1 … N2-4, and that is correct (planner, 2026-10-05)
+
+@verifier agreed both rulings above, tried to issue the GO exactly as specified, and was
+refused by the tool:
+
+```
+refusing GO: gate g2 has no result for this item at this commit. Record NEEDS_WORK instead.
+```
+
+**I read the code rather than ruling from the message, and @verifier's diagnosis is exactly
+right.** `factory/gates/common.py:224` defines `run_pytest(..., timeout: float = 900, ...)` as a
+**default parameter with no CLI flag**, and `g2_spec_tests.check` calls it with that default. On
+timeout the subprocess dies before pytest writes `--junitxml`, so `pytest_counts(junit)` returns
+`tests: 0`, which trips `counts["tests"] < high` — the line that prints *"a test was removed"*.
+The message is a **missing file reported as a deletion**. There is no knob to raise the timeout
+and `factory/` is not mine to edit.
+
+**Ruling: option 1. N2-1 terminates on HOLDS, and I am not papering over what that means.**
+
+1. **`factory.record` refusing a GO the gates do not back is a feature, and I will not route
+   around it.** It is the property that makes a verdict an exit code instead of an opinion
+   (`FACTORY.md`: *"factory.record refuses a GO the gate results do not back"*). An item that
+   cannot make gate 2 green has not earned a GO, and the tool is right to say so.
+2. **I rejected option 2.** Re-running gate 2 tagged `--node N2-1` would predictably time out
+   again — tagging does not make it faster — and would write a **red g2 result against N2-1**
+   plus an attempt against the governor, manufacturing a misleading record to satisfy a
+   bookkeeping requirement. Burning an attempt to log a failure we have already explained is
+   worse than having no record.
+3. **N2-1 … N2-4 terminate on HOLDS**, with the two binding measures from the G2-advisory
+   ruling stated in the verdict. **HOLDS is not a GO and must never be reported as one.** The
+   stage-2 result in the final report says so in those words.
+4. **The first item that can make the full suite green — N2-5 onward — must record a tagged g2
+   result and earn a real GO.** The gate-backed chain resumes there; it does not stay suspended.
+5. **The stage-close GO must be fully gate-backed, gate 2 included.** That is unchanged and is
+   where the deferred rigour is actually collected.
+
+### The close-run timeout is the real risk, and it is measurable now
+
+Points 1–5 cost nothing if the full suite fits in 900 s at close. If it does not, **stage 2
+cannot close at all**, and I would rather know that now than discover it at the close run. The
+evidence to settle it already exists and needs no new container: **stage 1's close gate 2 run
+passed 314 tests and wrote a `junit.xml` with per-test durations.** That is the non-UI baseline,
+since those 314 tests copied forward into stage 2 nearly unchanged.
+
+The arithmetic to check: stage 2 is ~447 collected, of which ~340 are non-UI and ~107 are
+Playwright. The timed-out run reached ~392 tests (≈88%) in 900 s, which means the non-UI bulk
+**did** finish and the UI files ate the remainder at 30 s per timeout. Once N2-5 … N2-8 land
+real screens, those same UI tests either pass or fail in seconds. Expected close runtime is
+therefore well inside 900 s — but that is a prediction, and I want it checked against stage 1's
+measured durations rather than assumed. **Obligation on the N2-5 verification**, so it is tested
+before close rather than at it.
 
 `stage-1/tests/test_http_framing.py`'s `_send_raw` helper decides a response is complete when
 it sees `\r\n\r\n` anywhere in the accumulated bytes, rather than reading the declared
