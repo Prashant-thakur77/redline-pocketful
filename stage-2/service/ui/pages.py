@@ -7,18 +7,29 @@ number, since neither screen's real listing exists yet.
 """
 from __future__ import annotations
 
-import secrets
-
 from ..errors import ApiError
 from ..json_utils import dumps
-from ..passwords import DUMMY_PASSWORD_HASH, verify_password
+from ..pipeline import RequestCtx
+from ..routes.auth import LoginEndpoint, SignupEndpoint
 from ..store import STORE
 from . import assets
 from .layout import esc, render_shell
-from ..routes.auth import create_user
 
 _HTML_HEADERS = [("Content-Type", "text/html; charset=utf-8")]
-_MIN_PASSWORD_LEN = 8
+
+# R-2-185: no UI handler reimplements a write the JSON API already has —
+# the login/signup forms call these exact endpoint objects (translating
+# form encoding in, and the response into a redirect or a rendered
+# error), never touching STORE directly. One implementation means every
+# guarantee the JSON path states (R-1-086/R-1-088) holds identically for
+# the form path, by construction, not by a second copy staying in sync.
+_LOGIN_ENDPOINT = LoginEndpoint()
+_SIGNUP_ENDPOINT = SignupEndpoint()
+
+
+def _call_endpoint(endpoint, path: str, fields: dict):
+    ctx = RequestCtx(method="POST", path=path, raw_body=dumps(fields), headers={}, query={}, path_params={})
+    return endpoint.handle(ctx)
 
 
 def serve_static(path: str):
@@ -175,64 +186,32 @@ def render_authed_page(path: str, user: dict | None):
 # ---------------------------------------------------------------------------
 
 def _handle_login(form: dict):
-    email = form.get("email", "")
-    password = form.get("password", "")
-    user = STORE.users_by_email.get(email)
-    # Same constant-time-against-an-unknown-email discipline as
-    # /auth/login (R-1-086) — a wrong password and an unknown email must
-    # cost the same, or wall-clock timing tells the two apart.
-    hash_to_check = user["password_hash"] if user is not None else DUMMY_PASSWORD_HASH
-    ok = verify_password(password, hash_to_check)
-    if user is None or not ok:
+    try:
+        status, body = _call_endpoint(_LOGIN_ENDPOINT, "/auth/login",
+                                       {"email": form.get("email", ""), "password": form.get("password", "")})
+    except ApiError:
+        # Every failure path LoginEndpoint has is the one R-1-086 case —
+        # unknown email and wrong password are indistinguishable, so the
+        # form shows the same message regardless of which one it was.
         html_bytes = render_shell(title="Log in", user=None, active_path="/login",
                                    body=_login_body("Incorrect email or password."))
         return 200, _HTML_HEADERS, html_bytes
-    token = secrets.token_urlsafe(32)
-    STORE.tokens[token] = user["id"]
-    return _redirect("/", set_cookie=_session_cookie(token))
-
-
-def _validate_signup_format(email: str, password: str, display_name: str) -> str | None:
-    """Format-only checks — never uniqueness. R-1-088's exactly-one-winner
-    guarantee can only be enforced inside the write lock, by `create_user`
-    itself; checking `email in STORE.users_by_email` out here (as this
-    function used to) is exactly the race adversary found, since two
-    concurrent submissions can both read "not taken" before either
-    writes."""
-    if "@" not in email:
-        return "Enter a valid email address."
-    local, _, domain = email.partition("@")
-    if not local or not domain:
-        return "Enter a valid email address."
-    if len(password) < _MIN_PASSWORD_LEN:
-        return f"Password must be at least {_MIN_PASSWORD_LEN} characters."
-    if not display_name:
-        return "Enter your name."
-    return None
+    return _redirect("/", set_cookie=_session_cookie(body["token"]))
 
 
 def _handle_signup(form: dict):
-    email = form.get("email", "")
-    password = form.get("password", "")
-    display_name = form.get("display_name", "")
-    error = _validate_signup_format(email, password, display_name)
-    if error is not None:
-        html_bytes = render_shell(title="Sign up", user=None, active_path="/signup",
-                                   body=_signup_body(error))
-        return 200, _HTML_HEADERS, html_bytes
-
-    # R-1-088: the check-then-insert must be one atomic step, same as the
-    # JSON /auth/signup path — `create_user` is the single place that
-    # does it, under the store's one write lock, so the two paths can
-    # never drift apart on this guarantee again.
+    fields = {"email": form.get("email", ""), "password": form.get("password", ""),
+              "display_name": form.get("display_name", "")}
     try:
-        with STORE.write_lock():
-            user_id, token = create_user(email, password, display_name)
-    except ApiError:
+        status, body = _call_endpoint(_SIGNUP_ENDPOINT, "/auth/signup", fields)
+    except ApiError as exc:
+        # SignupEndpoint's own messages (bad email shape, short password,
+        # email/handle already taken) are already user-facing — shown
+        # verbatim, the same validation a JSON caller would see.
         html_bytes = render_shell(title="Sign up", user=None, active_path="/signup",
-                                   body=_signup_body("That email is already registered."))
+                                   body=_signup_body(exc.message))
         return 200, _HTML_HEADERS, html_bytes
-    return _redirect("/", set_cookie=_session_cookie(token))
+    return _redirect("/", set_cookie=_session_cookie(body["token"]))
 
 
 def _handle_logout(cookies: dict):
