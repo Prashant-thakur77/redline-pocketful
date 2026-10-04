@@ -94,6 +94,28 @@ class Handler(BaseHTTPRequestHandler):
     server_version = "pocketful/1.0"
     protocol_version = "HTTP/1.1"
 
+    def _drain_unread_input(self) -> None:
+        """When we answer a framing error (e.g. an over-long header block)
+        without having read everything the client sent, that unread data
+        can still be sitting in the kernel's receive buffer when the
+        connection closes. Closing a socket with unread data queued makes
+        the OS send RST instead of a clean FIN — and an RST can discard
+        data already written and buffered on the *other* end, including
+        our own just-written response, before the client application
+        reads it. Draining first (bounded, with a short timeout) avoids
+        that, so a correct status line never arrives with a missing body."""
+        try:
+            sock = self.connection
+            sock.settimeout(0.5)
+            drained = 0
+            while drained < _MAX_CONTENT_LENGTH:
+                chunk = sock.recv(65536)
+                if not chunk:
+                    break
+                drained += len(chunk)
+        except OSError:
+            pass
+
     # --- the R-1-079 safety net: no stdlib HTML error page ever reaches the wire ---
     def send_error(self, code, message=None, explain=None):
         status, error_code = _map_stdlib_error(int(code))
@@ -106,8 +128,15 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
             if getattr(self, "command", None) != "HEAD":
                 self.wfile.write(payload)
+            self.wfile.flush()
         except Exception:
             pass
+        finally:
+            # This is only reached from stdlib's own framing-error paths
+            # (parse_request sets close_connection=True before any of
+            # them), so the connection is always about to close here —
+            # never skip the drain for a request we're about to keep alive.
+            self._drain_unread_input()
 
     def _dispatch(self, method: str, suppress_body: bool = False) -> None:
         try:
