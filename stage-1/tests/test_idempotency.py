@@ -316,7 +316,7 @@ def test_r_1_108_concurrent_losers_get_winner_body_payments():
     service that gave up waiting on the in-flight winner and answered a
     loser with a timeout, a 409, a 503 or an empty body would violate this
     and a looser assertion (checking only the 201 count) would miss it."""
-    fixture, token_a, _ = _two_user_fixture(balance_a=10_000)
+    fixture, token_a, _ = _two_user_fixture(balance_a=10_000, balance_b=0)
     b_handle = fixture["users"][1]["handle"]
     key = unique("concurrent-strict")
     body = {"to_handle": b_handle, "amount": 37, "note": "strict-108"}
