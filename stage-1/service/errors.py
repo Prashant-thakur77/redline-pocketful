@@ -45,3 +45,9 @@ def idempotency_key_reuse(message: str = "Idempotency-Key was already used with 
 
 def validation_failed(message: str = "validation failed") -> ApiError:
     return ApiError(422, "validation_failed", message)
+
+
+def internal_error(message: str = "unexpected server error") -> ApiError:
+    """R-1-080a: a genuine uncaught exception is a server defect, not the
+    caller's fault — it must answer loudly, not hide behind a 4xx."""
+    return ApiError(500, "internal_error", message)

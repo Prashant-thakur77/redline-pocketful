@@ -6,10 +6,14 @@ enough for 50 in-flight requests when every handler is fast in-memory work
 guarded by one lock (see store.py / pipeline.py).
 
 R-1-079 is an invariant on the whole transport, not an endpoint behaviour:
-every condition `BaseHTTPRequestHandler` would otherwise answer with its
-own HTML error page (unsupported method, bad request line, headers/URI
-too long, unsupported HTTP version) is intercepted via `send_error` and
-turned into the same JSON envelope every endpoint uses, and never a 5xx.
+every client-caused condition `BaseHTTPRequestHandler` would otherwise
+answer with its own HTML error page (unsupported method, bad request
+line, headers/URI too long, unsupported HTTP version) is intercepted via
+`send_error` and turned into the same JSON envelope every endpoint uses,
+mapped to the correct 4xx. A condition that is NOT one of those — a
+genuine defect in our own code — answers 500 internal_error through the
+same envelope instead: R-1-080a, loud and honest, never relabelled as a
+4xx to make a gate look green.
 """
 from __future__ import annotations
 
@@ -18,7 +22,7 @@ import traceback
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qsl, urlsplit
 
-from .errors import ApiError, malformed_request, method_not_allowed, not_found
+from .errors import ApiError, internal_error, malformed_request, method_not_allowed, not_found
 from .json_utils import dumps
 from .pipeline import Endpoint, RequestCtx
 
@@ -41,10 +45,15 @@ _STDLIB_ERROR_MAP: dict[int, tuple[int, str]] = {
 
 
 def _map_stdlib_error(code: int) -> tuple[int, str]:
+    """Only the client-caused conditions named in R-1-079 get remapped to a
+    4xx envelope. Anything else the stdlib hands us (an internal failure
+    inside its own request handling, not one of the named framing errors)
+    is a server defect — R-1-080a says that answers 500 internal_error,
+    loudly, not a 4xx that hides it from the gates."""
     if code in _STDLIB_ERROR_MAP:
         return _STDLIB_ERROR_MAP[code]
     if code >= 500:
-        return 400, "malformed_request"
+        return 500, "internal_error"
     if code >= 400:
         return code, "malformed_request"
     return 400, "malformed_request"
@@ -133,10 +142,11 @@ class Handler(BaseHTTPRequestHandler):
             return
         except Exception:
             traceback.print_exc()
-            # R-1-005 is an invariant on every response, including this
-            # last-resort fallback: never a 5xx, even for a genuine bug.
-            self._write_error(ApiError(400, "malformed_request", "unexpected server condition"),
-                               suppress_body=suppress_body)
+            # R-1-080a: a genuine uncaught exception is a server defect and
+            # must say so loudly (500), never be relabelled as the
+            # caller's fault — R-1-005 is satisfied by never reaching this
+            # path, not by renaming what happens when it is.
+            self._write_error(internal_error(), suppress_body=suppress_body)
             return
         self._write_json(status, body, suppress_body=suppress_body)
 
@@ -176,7 +186,7 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
         except Exception:
             traceback.print_exc()
-            self._write_error(ApiError(400, "malformed_request", "unexpected server condition"))
+            self._write_error(internal_error())
 
     def do_POST(self):
         self._dispatch("POST")
