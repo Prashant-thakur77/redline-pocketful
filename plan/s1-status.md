@@ -234,7 +234,25 @@ exists to prevent. The mitigation is process, already in force: gate runs are se
 other seat building, that is a genuine R-1-015 signal and gets investigated as one rather than
 retried away.
 
-Stage: open — one gate short of close.
+Stage: **build complete — full gate run dispatched to @verifier at `e240e3b`.**
+
+### Every stage-1 item is closed on content (planner tally, 2026-10-04)
+
+N1-T (+ .1 … .8) READY · N1-1 (+ .1, .2) HOLDS · N1-2 (+ .1) HOLDS · N1-3 HOLDS ·
+N1-4 (+ .1, .2) HOLDS/done · N1-5 HOLDS · N1-6 (+ .1) HOLDS · N1-7, N1-8, N1-9, N1-10 built
+and attacked (N1-10 attack HOLDS) · N1-10.1, N1-10.2, N1-10.3 done. Nothing is blocked and
+nothing is descoped. The stage's content gates were all green at `5a60153`/`d6fe8b8` except
+gate 6 (now 100% at `7c85099`) and the N1-10.3 framing defect (fixed at `639e71a`, gate 2
+314/0). The close run at `e240e3b` is the confirming measurement by an independent seat.
+
+### One commit in the span is not a seat's (disclosed, 2026-10-04)
+
+`01e3a7f` is authored **Human**, not a seat: factory maintenance during the run (gate 6
+crashed when a mutant's test run timed out, leaving bytes in the log; the scope check now
+treats factory-only commits as maintenance). It touches `factory/` only — no stage folder,
+no `plan/`, no test. No seat edited `factory/`. Recorded here and in the final report so the
+run's provenance is complete; `factory.scope 7fca98b..HEAD` reports only the one sanctioned
+test deletion already ruled on above.
 
 ## Stage 1 close: first full gate run (@verifier, 2026-10-04)
 
