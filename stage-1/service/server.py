@@ -1,9 +1,15 @@
-"""HTTP routing and dispatch (R-1-012, R-1-013, R-1-020, R-1-060).
+"""HTTP routing and dispatch (R-1-012, R-1-013, R-1-020, R-1-060, R-1-079).
 
 Stdlib only, so the image needs no build-time package fetch and the
 container makes no outbound request at run time. A threaded server is
 enough for 50 in-flight requests when every handler is fast in-memory work
 guarded by one lock (see store.py / pipeline.py).
+
+R-1-079 is an invariant on the whole transport, not an endpoint behaviour:
+every condition `BaseHTTPRequestHandler` would otherwise answer with its
+own HTML error page (unsupported method, bad request line, headers/URI
+too long, unsupported HTTP version) is intercepted via `send_error` and
+turned into the same JSON envelope every endpoint uses, and never a 5xx.
 """
 from __future__ import annotations
 
@@ -12,11 +18,36 @@ import traceback
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qsl, urlsplit
 
-from .errors import ApiError, malformed_request, not_found
+from .errors import ApiError, malformed_request, method_not_allowed, not_found
 from .json_utils import dumps
 from .pipeline import Endpoint, RequestCtx
 
 _PARAM_RE = re.compile(r"\{([a-zA-Z_][a-zA-Z0-9_]*)\}")
+_MAX_CONTENT_LENGTH = 10 * 1024 * 1024  # 10 MiB; well over any real request body here
+
+# Maps a status code BaseHTTPRequestHandler's internals might pass to
+# send_error (bad request line, headers/URI too long, unsupported method,
+# unsupported HTTP version) to the (status, code) our envelope actually
+# emits — never the stdlib default, and never a 5xx (R-1-079).
+_STDLIB_ERROR_MAP: dict[int, tuple[int, str]] = {
+    400: (400, "malformed_request"),
+    404: (404, "not_found"),
+    405: (405, "method_not_allowed"),
+    414: (400, "malformed_request"),   # URI too long
+    431: (400, "malformed_request"),   # header fields too large
+    501: (405, "method_not_allowed"),  # "Unsupported method" from handle_one_request
+    505: (400, "malformed_request"),   # HTTP version not supported
+}
+
+
+def _map_stdlib_error(code: int) -> tuple[int, str]:
+    if code in _STDLIB_ERROR_MAP:
+        return _STDLIB_ERROR_MAP[code]
+    if code >= 500:
+        return 400, "malformed_request"
+    if code >= 400:
+        return code, "malformed_request"
+    return 400, "malformed_request"
 
 
 class Router:
@@ -28,13 +59,23 @@ class Router:
         self._routes.append((method.upper(), re.compile(f"^{regex}$"), endpoint))
 
     def match(self, method: str, path: str):
+        """Return (endpoint, path_params, allowed_methods).
+
+        `endpoint` is None and `allowed_methods` non-empty when the path
+        exists but not for this method (-> 405); both are empty/None when
+        no route matches the path at all (-> 404)."""
+        allowed: set[str] = set()
         for route_method, regex, endpoint in self._routes:
-            if route_method != method.upper():
-                continue
             m = regex.match(path)
-            if m:
-                return endpoint, m.groupdict()
-        return None, None
+            if not m:
+                continue
+            allowed.add(route_method)
+            if route_method == method.upper():
+                return endpoint, m.groupdict(), allowed
+        return None, None, allowed
+
+    def allowed_methods(self, path: str) -> set[str]:
+        return {route_method for route_method, regex, _ in self._routes if regex.match(path)}
 
 
 ROUTER = Router()
@@ -43,6 +84,21 @@ ROUTER = Router()
 class Handler(BaseHTTPRequestHandler):
     server_version = "pocketful/1.0"
     protocol_version = "HTTP/1.1"
+
+    # --- the R-1-079 safety net: no stdlib HTML error page ever reaches the wire ---
+    def send_error(self, code, message=None, explain=None):
+        status, error_code = _map_stdlib_error(int(code))
+        body = {"error": {"code": error_code, "message": str(message) if message else error_code.replace("_", " ")}}
+        try:
+            payload = dumps(body)
+            self.send_response(status)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(payload)))
+            self.end_headers()
+            if getattr(self, "command", None) != "HEAD":
+                self.wfile.write(payload)
+        except Exception:
+            pass
 
     def _dispatch(self, method: str, suppress_body: bool = False) -> None:
         try:
@@ -57,12 +113,16 @@ class Handler(BaseHTTPRequestHandler):
                     length = int(raw_length)
                 except ValueError:
                     raise malformed_request("Content-Length must be a valid integer")
+                if length < 0 or length > _MAX_CONTENT_LENGTH:
+                    raise malformed_request("Content-Length out of range")
             raw_body = self.rfile.read(length) if length > 0 else b""
 
             headers = {k.lower(): v for k, v in self.headers.items()}
 
-            endpoint, path_params = ROUTER.match(method, path)
+            endpoint, path_params, allowed = ROUTER.match(method, path)
             if endpoint is None:
+                if allowed:
+                    raise method_not_allowed(allowed)
                 raise not_found(f"no such endpoint: {method} {path}")
 
             ctx = RequestCtx(method=method, path=path, raw_body=raw_body, headers=headers,
@@ -73,7 +133,10 @@ class Handler(BaseHTTPRequestHandler):
             return
         except Exception:
             traceback.print_exc()
-            self._write_error(ApiError(500, "internal_error", "unexpected server error"), suppress_body=suppress_body)
+            # R-1-005 is an invariant on every response, including this
+            # last-resort fallback: never a 5xx, even for a genuine bug.
+            self._write_error(ApiError(400, "malformed_request", "unexpected server condition"),
+                               suppress_body=suppress_body)
             return
         self._write_json(status, body, suppress_body=suppress_body)
 
@@ -101,7 +164,19 @@ class Handler(BaseHTTPRequestHandler):
         self._dispatch("GET", suppress_body=True)
 
     def do_OPTIONS(self):
-        self._dispatch("OPTIONS")
+        try:
+            path = urlsplit(self.path).path
+            allowed = ROUTER.allowed_methods(path)
+            if not allowed:
+                self._write_error(not_found(f"no such endpoint: OPTIONS {path}"))
+                return
+            self.send_response(204)
+            self.send_header("Allow", ", ".join(sorted(allowed | {"OPTIONS"})))
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+        except Exception:
+            traceback.print_exc()
+            self._write_error(ApiError(400, "malformed_request", "unexpected server condition"))
 
     def do_POST(self):
         self._dispatch("POST")

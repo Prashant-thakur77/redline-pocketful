@@ -25,6 +25,12 @@ def not_found(message: str = "no such resource") -> ApiError:
     return ApiError(404, "not_found", message)
 
 
+def method_not_allowed(allowed: set[str] | None = None) -> ApiError:
+    allowed_str = ", ".join(sorted(allowed)) if allowed else ""
+    message = f"method not allowed; try one of: {allowed_str}" if allowed_str else "method not allowed"
+    return ApiError(405, "method_not_allowed", message)
+
+
 def malformed_request(message: str = "request body is not a valid JSON object") -> ApiError:
     return ApiError(400, "malformed_request", message)
 
