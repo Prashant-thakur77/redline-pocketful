@@ -1,30 +1,50 @@
-"""GET /requests — read-only minimal slice, wired in N1-2 only because the
-storm invariant (gate 4) reads it for every user after every operation.
-
-Full request lifecycle — create, pay, decline, cancel, direction/status
-filters (R-1-150..167) — is N1-6's scope. This endpoint only guarantees
-R-1-163 (visible to participants only, newest first) and basic
-limit/offset pagination so the invariant can run; N1-6 extends it rather
-than replacing it.
+"""GET /requests — R-1-163..167, read-only (create/pay/decline/cancel are
+N1-6's scope; this wired early because the storm invariant, gate 4, reads
+it for every user after every operation).
 """
 from __future__ import annotations
 
+from ..errors import validation_failed
 from ..pipeline import Endpoint, RequestCtx
 from ..store import STORE
 from ..validation import parse_limit, parse_offset
 
+_VALID_DIRECTIONS = {"incoming", "outgoing"}
+_VALID_STATUSES = {"pending", "paid", "declined", "cancelled"}
+
 
 class RequestsListEndpoint(Endpoint):
     def validate_fields(self, ctx: RequestCtx) -> dict:
+        direction = ctx.query.get("direction")
+        if direction is not None and direction not in _VALID_DIRECTIONS:
+            raise validation_failed('direction must be "incoming" or "outgoing"')
+        status = ctx.query.get("status")
+        if status is not None and status not in _VALID_STATUSES:
+            raise validation_failed("status must be one of pending/paid/declined/cancelled")
         return {
             "limit": parse_limit(ctx.query.get("limit")),
             "offset": parse_offset(ctx.query.get("offset")),
+            "direction": direction,
+            "status": status,
         }
 
     def apply(self, ctx: RequestCtx, resource, fields: dict):
         user_id = ctx.user["id"]
-        visible = [r for r in STORE.requests.values()
-                   if r["requester_id"] == user_id or r["payer_id"] == user_id]
+        direction, status = fields["direction"], fields["status"]
+
+        visible = []
+        for r in STORE.requests.values():
+            is_requester = r["requester_id"] == user_id
+            is_payer = r["payer_id"] == user_id
+            if not (is_requester or is_payer):
+                continue
+            if direction == "outgoing" and not is_requester:
+                continue
+            if direction == "incoming" and not is_payer:
+                continue
+            if status is not None and r["status"] != status:
+                continue
+            visible.append(r)
         visible.sort(key=lambda r: r["seq"], reverse=True)
 
         limit, offset = fields["limit"], fields["offset"]
