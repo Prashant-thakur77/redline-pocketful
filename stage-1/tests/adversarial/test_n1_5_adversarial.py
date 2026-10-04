@@ -2,13 +2,14 @@
 from __future__ import annotations
 
 import sys
+import threading
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from conftest import (api_get, api_post, assert_error, auth, auth_idem, login_token, make_fixture,  # noqa: E402
-                      reset_ok, signup_ok, unique, user)
+                      reset_ok, signup_ok, unique, unique_handle, user)
 
 
 def _pay(token, to_handle, amount, key, note=None, visibility=None, extra=None):
@@ -97,6 +98,123 @@ def test_concurrent_conflicting_body_same_key_resolves_to_one_winner_and_clean_4
 
     bal_b = api_get("/me", headers=auth(b["token"])).json()["balance"]
     assert bal_b in (10, 20), f"exactly one payment amount must have moved, got balance {bal_b}"
+
+
+def test_idempotency_bool_vs_number_conflict_over_http(two_users):
+    """R-1-106/R-1-110, over real HTTP (migrated from the white-box
+    test_n1_4_adversarial.py now that /payments makes this reachable):
+    a key claimed with `{"amount": 1, ...}` and replayed with
+    `{"amount": true, ...}` must be `409 idempotency_key_reuse`, not a
+    `200` replay (Python's bare `==` would say `1 == True`) and not a
+    `422` from amount-type validation either — R-1-110 resolves the key
+    *before* field validation, so the conflict must win over the
+    validation error the second body would otherwise earn on its own.
+    """
+    a, b = two_users["a"], two_users["b"]
+    key = unique("boolconflict")
+
+    r1 = _pay(a["token"], b["handle"], 1, key)
+    assert r1.status_code == 201, r1.text
+
+    r2 = api_post("/payments", json={"to_handle": b["handle"], "amount": True},
+                  headers=auth_idem(a["token"], key))
+    assert_error(r2, 409, "idempotency_key_reuse")
+
+
+def test_concurrent_failed_claim_is_released_not_cached(two_users):
+    """R-1-107 x R-1-108, the subtlest interaction in the layer: when the
+    *winner* of a concurrent identical-key race fails (409
+    insufficient_funds), the key must be released, not cached as a
+    completed response — every waiter must get its own genuine fresh
+    attempt, not a replayed failure. If the implementation ever committed
+    a failure as "complete", the key would be permanently stuck 409 even
+    after the payer's balance recovers.
+
+    20 concurrent identical requests against a payer with balance 0 must
+    all fail (no possible success). The real assertion is what happens
+    *after*: once the payer's balance recovers, reusing the exact same
+    key must succeed with 201 — proof that none of the 20 failures was
+    ever cached as the key's permanent outcome.
+    """
+    a, b = two_users["a"], two_users["b"]
+    third_id, third_handle, third_email = unique("u"), unique_handle("funder"), f"{unique('funder')}@example.com"
+    reset_ok(make_fixture([
+        user(a["id"], a["handle"], balance=0, email=a["email"]),
+        user(b["id"], b["handle"], balance=0, email=b["email"]),
+        user(third_id, third_handle, balance=500, email=third_email),
+    ]))
+    a_token = login_token(a["email"])
+    third_token = login_token(third_email)
+    key = unique("fail-release")
+
+    def attempt(_i):
+        return _pay(a_token, b["handle"], 100, key)
+
+    with ThreadPoolExecutor(20) as pool:
+        responses = list(pool.map(attempt, range(20)))
+
+    statuses = Counter(r.status_code for r in responses)
+    assert statuses[409] == 20, f"payer has balance 0, every attempt must fail, got {dict(statuses)}"
+
+    # Top up the payer so a retry with the same key could actually succeed.
+    r_fund = _pay(third_token, a["handle"], 500, unique("topup"))
+    assert r_fund.status_code == 201, r_fund.text
+
+    r_retry = _pay(a_token, b["handle"], 100, key)
+    assert r_retry.status_code == 201, (
+        f"same key after a race of all-failed attempts must still be a fresh first use, got "
+        f"{r_retry.status_code}: {r_retry.text}"
+    )
+
+
+def test_concurrent_drain_to_exactly_zero_never_observes_negative_balance(two_users):
+    """R-1-002, transiently: 'no balance is ever negative, not even
+    transiently'. Drain a payer's balance to exactly zero with 50
+    concurrent payments (each a different idempotency key, so all 50 are
+    genuine independent operations) while a background poller hammers
+    GET /me for that payer throughout. Every single observed balance,
+    at every poll, must be within [0, initial_balance] — never negative,
+    never above the starting balance."""
+    a, b = two_users["a"], two_users["b"]
+    initial = 5_000
+    reset_ok(make_fixture([
+        user(a["id"], a["handle"], balance=initial, email=a["email"]),
+        user(b["id"], b["handle"], balance=0, email=b["email"]),
+    ]))
+    a_token = login_token(a["email"])
+
+    observed = []
+    stop = threading.Event()
+
+    def poll():
+        while not stop.is_set():
+            r = api_get("/me", headers=auth(a_token))
+            if r.status_code == 200:
+                observed.append(r.json()["balance"])
+
+    poller = threading.Thread(target=poll)
+    poller.start()
+
+    def attempt(i):
+        return _pay(a_token, b["handle"], 100, unique(f"drain{i}"))
+
+    with ThreadPoolExecutor(50) as pool:
+        responses = list(pool.map(attempt, range(50)))
+
+    stop.set()
+    poller.join(timeout=5.0)
+
+    assert all(r.status_code == 201 for r in responses), (
+        f"every drain payment should fit exactly: {Counter(r.status_code for r in responses)}"
+    )
+    assert observed, "the poller must have captured at least one reading"
+    assert all(0 <= v <= initial for v in observed), (
+        f"observed a balance outside [0, {initial}] during the drain: "
+        f"{[v for v in observed if not (0 <= v <= initial)]}"
+    )
+
+    final = api_get("/me", headers=auth(a_token)).json()["balance"]
+    assert final == 0, f"payer must land at exactly 0 after draining the full balance, got {final}"
 
 
 def test_self_payment_precedence_over_insufficient_funds(two_users):
