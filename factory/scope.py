@@ -59,6 +59,10 @@ def violations(repo: Path, span: str, seats: dict[str, Seat] | None = None) -> l
         seat = seat_of(author, seats)
         short = commit[:10]
         if seat is None:
+            fields = git(repo, "show", "--format=", "--name-only", "-z", commit).split("\0")
+            paths = [f for f in fields if f]
+            if paths and all(glob_match(f, "factory/**") for f in paths):
+                continue  # factory maintenance: the tools, never the band's output (stated in FACTORY.md)
             found.append(f"{short}: author {author!r} is not a seat")
             continue
         if committer.strip().lower() != author.strip().lower():

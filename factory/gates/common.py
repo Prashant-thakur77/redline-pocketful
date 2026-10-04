@@ -96,7 +96,9 @@ def run(cmd: list[str], timeout: float = 600, cwd: Path | None = None, env: dict
     try:
         proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, cwd=cwd, env=env)
     except subprocess.TimeoutExpired as exc:
-        proc = subprocess.CompletedProcess(cmd, 124, exc.stdout or "", f"timed out after {timeout}s")
+        # TimeoutExpired carries raw bytes even in text mode; decode before anything joins it with str
+        out = exc.stdout.decode(errors="replace") if isinstance(exc.stdout, bytes) else (exc.stdout or "")
+        proc = subprocess.CompletedProcess(cmd, 124, out, f"timed out after {timeout}s")
     if gate:
         gate.log(f"$ {' '.join(map(str, cmd))}  (exit {proc.returncode})",
                  (proc.stdout or "")[-6000:], (proc.stderr or "")[-4000:])
