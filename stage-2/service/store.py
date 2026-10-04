@@ -102,11 +102,13 @@ class Store:
         self.settlement_operator_ids = fields["settlement_operator_ids"]
         self.settlements = fields["settlements"]
         self.tokens = fields["tokens"]
-        # Authorizations are not yet part of the export/import document
-        # (that extension is a later item); until then, import behaves
-        # like reset for holds — nothing carries across.
-        self.authorizations = {}
-        self.authorization_ttl_seconds = 600
+        # R-2-170/175: an export from this service carries authorizations
+        # verbatim; a stage-1 export has no such key, and `validate_import_
+        # document` already defaults that case to empty (absent means
+        # empty, same as R-2-021 for a fixture) — nothing special to do
+        # here beyond assigning what was parsed.
+        self.authorizations = fields["authorizations"]
+        self.authorization_ttl_seconds = fields["authorization_ttl_seconds"]
         IDEMPOTENCY.restore(fields["idempotency_records"])
 
 
