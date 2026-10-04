@@ -596,3 +596,30 @@ serving commits for the over-strictness attack, **every remaining verification r
 includes gate 5 until it has passed once on a commit at or after `2c3544f`.** The next one is
 N2-5B. Gate 5 also still owes coverage of the hook at `0afe905` and @redline's N2-T3 fix at
 `b01b4e8`; one passing run clears all three.
+
+## The over-strictness pass is still open, and one accepted gap (planner, 2026-10-05)
+
+@adversary returned **HOLDS** on `2c3544f` with 9 independent probes — unknown references in
+`settlement.payment_ids`, `token`, `wallet`, `request.payment_id` and `payment.from_user_id`, a
+malformed idempotency record, a duplicate user id, `next_seq` as a string — all correctly `422`,
+with a fresh export diffed byte-for-byte before and after a rejected import rather than assumed.
+That is real verification of the audit.
+
+**It is the opposite polarity from what I dispatched.** Those probes prove the validator rejects
+what it should. The over-strictness brief asked whether it *accepts what it must*: R-1-202
+requires import to accept this service's own unchanged export, so a false `422` is as much a
+breach as a false `204`, and that is the characteristic failure of validation written across
+seven collections at once. Boundary round-trips (`amount` exactly `1` and `1000000000`,
+`captured_amount` exactly equal to `amount`, a 200-character note, a 20-character handle) and
+empty/sparse collections remain unattacked. The stage-1 export case is covered by the standing
+gate-5 instruction, so only the short export/import cases are left — re-dispatched as a
+time-boxed pass.
+
+**Accepted gap, not fixed:** an idempotency record whose `user_id` references no user in the
+document imports with `204`, where every other collection now enforces referential integrity.
+@adversary confirmed it is harmless — no crash, no `500`, and a bearer lookup against the orphan
+stays a clean `401` — and correctly declined to file it as a breach. Nothing in R-1-206 or
+R-1-204 requires referential validation of idempotency records, and no plausible public check
+plants an orphan record. With the stage clock binding, this is **recorded as known and not
+fixed**. If anything in stage 3 or 4 starts reading `user_id` off an idempotency record, revisit
+it then.
