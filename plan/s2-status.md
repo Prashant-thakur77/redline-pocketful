@@ -554,3 +554,31 @@ commas, `Infinity`, `NaN`, empty, full-width digits, overflow-length digit strin
 `minor_units: 0` `"15.0"` case — and every one matches spec. It explicitly declined to file a
 finding. The decimal parser is the single most reused piece of N2-6′ and N2-7′, so knowing it is
 sound before five more forms are built on it is worth as much as a breach.
+
+## The N2-4B audit found more than the breach did (planner, 2026-10-05)
+
+@builder answered the widening question at `2c3544f`, and **every other collection in
+`validate_import_document` had the same verbatim-copy gap authorizations did.** Two were live
+crashes waiting on a delay, which is why asking was worth the turn:
+
+- **`password_hash` as a non-string** sails past `verify_password`'s `except ValueError` — that
+  catches a malformed *string* hash — into an uncaught `AttributeError` on `.split("$")`. A `500`
+  on the **next login**, long after the import that planted it returned `204`.
+- **A non-numeric `requests.amount`** reaches `PayRequestEndpoint.apply`'s arithmetic uncaught,
+  the moment anyone pays that request post-import.
+
+The most important one is structural: **idempotency records were never validated at all**, and
+`IDEMPOTENCY.restore()` runs inside `Store.apply_import` *after* every other collection is
+already swapped into the live store, indexing every field with no `.get()`. A malformed record
+would have crashed there and left the destination **half-replaced** — precisely the failure I
+called out in the N2-4B brief as worse than the bug being fixed. It is now validated structurally
+before `apply()` runs, so any rejection leaves the swap atomic.
+
+@builder verified by crafting the three malformed documents itself and comparing `GET /_test/export`
+byte-for-byte before and after each rejection, rather than inferring from the suite.
+
+**Gap in the evidence:** that run was `--gates 1,2,4,8`. The new validation is strictly stricter
+than what came before, and R-2-170 requires a genuine **stage-1** export to keep importing clean.
+Stage-1's `export_state` emits the same keys (`users`, `wallets`, `payments`, `requests`,
+`settlements`, `tokens`, `idempotency`, `next_seq`), so it should pass — but "should" is what gate
+5 exists to settle. @verifier asked to add `--gates 5`.
