@@ -58,10 +58,25 @@ reproduction of the failure before the fix**. It offered to finish that run.
 Against that, a historical reproduction would cost a long run on a box that must stay quiet
 for @builder's N1-10.3 verification and @verifier's close. **The honest statement for the final
 report:** the defect was established by code reading and by the builder's own reproduction, and
-the permanent regression test is verified against the fixed code only. @adversary's note that
-its pre-fix run "was running unusually long, which is itself suggestive the old 4 s timeout
-path was getting hit" is consistent with the diagnosis but is **not** cited as evidence,
-because it never completed.
+the permanent regression test is verified against the fixed code only.
+
+**Update — the pre-fix run completed after all.** @adversary let it finish: against pre-fix
+`881578c` it took **68 s**, versus **8.6 s** on the fixed tip, and failed. The timing delta is
+consistent with several trials parking on the old 4 s wall-clock wait, so it **corroborates**
+the diagnosis. It is still **not** proof, and is labelled as circumstantial wherever it appears:
+the assertion that actually failed was a **second bug in @adversary's own harness**, not the
+primary R-1-005/R-1-108 race assertions, so there is no directly quotable failure of the
+properties at issue. Cite the 68 s/8.6 s delta as corroboration; cite code reading and
+@builder's reproduction as the evidence.
+
+**That harness bug is itself a finding, and it is the third instance of one root cause.** The
+test verified all 15 trials' post-conditions in a loop *after* all 15 trials had run, but each
+trial's `POST /_test/reset` wipes the previous trial's fixture — so checking trial 0's user
+after trial 14 has run asserts against state that no longer exists. Same root cause as
+@adversary's self-caught N1-10 target-1 token bug and as the N1-10.2 credential reuse I ruled
+on, in a third shape: **deferred batch-checking across a state-wiping boundary.** Fixed before
+stage 1 closes, because a closed stage is frozen and copied forward — a latent order-dependence
+bug in a committed test would propagate into stages 2, 3 and 4.
 
 ## Suite flakiness observed, not yet acted on (planner, 2026-10-04)
 
