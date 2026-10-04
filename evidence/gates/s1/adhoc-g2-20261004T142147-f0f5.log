@@ -1,0 +1,111 @@
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /home/prashant/projects/band-work/result/stage-1/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s1/adhoc-g2-20261004T142147-f0f5.junit.xml  (exit 1)
+      """
+        uid, handle = unique("u"), unique_handle("negimp")
+        email = f"{handle}@example.com"
+        reset_ok(make_fixture([user(uid, handle, balance=500, email=email)]))
+        export = _export()
+    
+        doc = copy.deepcopy(export)
+        doc["state"]["wallets"][uid] = -999_999
+    
+        r = _import(doc)
+        assert r.status_code == 204, (
+            f"expected the import to be rejected for a negative wallet balance, but it was "
+            f"accepted: {r.status_code} {r.text}"
+        )
+    
+        token = login_token(email)
+        balance = api_get("/me", headers=auth(token)).json()["balance"]
+>       assert balance >= 0, (
+            f"R-1-002 violated: GET /me reports balance={balance} after an import carrying a "
+            "negative wallet — import must validate wallet balances the same way reset does "
+            "(R-1-045) instead of trusting the document verbatim"
+        )
+E       AssertionError: R-1-002 violated: GET /me reports balance=-999999 after an import carrying a negative wallet — import must validate wallet balances the same way reset does (R-1-045) instead of trusting the document verbatim
+E       assert -999999 >= 0
+
+stage-1/tests/adversarial/test_n1_9_adversarial.py:65: AssertionError
+______ test_r_1_206_idempotency_replay_survives_export_import_round_trip _______
+
+    def test_r_1_206_idempotency_replay_survives_export_import_round_trip():
+        """R-1-206: export/import preserves every completed idempotent
+        request body with its original response, so a retry after import
+        returns the original response. Tested as a genuine round trip: pay,
+        export, reset to a DIFFERENT state (proving nothing survives by
+        accident), import the export back, then replay the original key."""
+        uid_a, h_a = unique("u"), unique_handle("imp_a")
+        uid_b, h_b = unique("u"), unique_handle("imp_b")
+        email_a, email_b = f"{h_a}@example.com", f"{h_b}@example.com"
+        reset_ok(make_fixture([user(uid_a, h_a, balance=1000, email=email_a),
+                                user(uid_b, h_b, balance=0, email=email_b)]))
+        token_a = login_token(email_a)
+    
+        key = unique("roundtrip")
+        r_pay = api_post("/payments", json={"to_handle": h_b, "amount": 100},
+                          headers=auth_idem(token_a, key))
+        assert r_pay.status_code == 201, r_pay.text
+        original_body = r_pay.json()
+    
+        export = _export()
+    
+        # Prove nothing survives by accident: wipe to an unrelated fixture.
+        reset_ok(make_fixture([user(unique("u"), unique_handle("other"), balance=0,
+>                                    email=unique_email("other"))]))
+                                           ^^^^^^^^^^^^
+E       NameError: name 'unique_email' is not defined
+
+stage-1/tests/adversarial/test_n1_9_adversarial.py:95: NameError
+____ test_r_1_205_every_pre_existing_token_still_authenticates_after_import ____
+
+    def test_r_1_205_every_pre_existing_token_still_authenticates_after_import():
+        """R-1-205: export/import preserves every existing bearer token —
+        not just the account, the token string itself, so a client holding
+        it from before the import doesn't need to re-login."""
+        uid, handle = unique("u"), unique_handle("tok")
+        email = f"{handle}@example.com"
+        reset_ok(make_fixture([user(uid, handle, balance=10, email=email)]))
+        token = login_token(email)
+    
+        export = _export()
+        reset_ok(make_fixture([user(unique("u"), unique_handle("other2"), balance=0,
+>                                    email=unique_email("other2"))]))
+                                           ^^^^^^^^^^^^
+E       NameError: name 'unique_email' is not defined
+
+stage-1/tests/adversarial/test_n1_9_adversarial.py:118: NameError
+_____ test_r_1_207_balances_after_import_equal_balances_at_export_exactly ______
+
+    def test_r_1_207_balances_after_import_equal_balances_at_export_exactly():
+        """R-1-207: import regenerates no monetary record and never replays
+        exported payments against an already-net balance. A wallet whose
+        balance would differ from the sum of its payments (an impossible
+        state to reach through normal API use, but exactly what export
+        captures verbatim) must come back unchanged, not recomputed."""
+        uid_a, h_a = unique("u"), unique_handle("bal_a")
+        uid_b, h_b = unique("u"), unique_handle("bal_b")
+        email_a, email_b = f"{h_a}@example.com", f"{h_b}@example.com"
+        reset_ok(make_fixture(
+            [user(uid_a, h_a, balance=1000, email=email_a), user(uid_b, h_b, balance=500, email=email_b)],
+            payments=[{"id": "seed-p1", "from_user_id": uid_a, "to_user_id": uid_b, "amount": 9999,
+                       "note": "", "visibility": "public"}],
+        ))
+        bal_a_before = api_get("/me", headers=auth(login_token(email_a))).json()["balance"]
+        bal_b_before = api_get("/me", headers=auth(login_token(email_b))).json()["balance"]
+    
+        export = _export()
+        reset_ok(make_fixture([user(unique("u"), unique_handle("other3"), balance=0,
+>                                    email=unique_email("other3"))]))
+                                           ^^^^^^^^^^^^
+E       NameError: name 'unique_email' is not defined
+
+stage-1/tests/adversarial/test_n1_9_adversarial.py:145: NameError
+=========================== short test summary info ============================
+FAILED stage-1/tests/adversarial/test_n1_9_adversarial.py::test_import_accepts_a_negative_wallet_balance_r_1_002
+FAILED stage-1/tests/adversarial/test_n1_9_adversarial.py::test_r_1_206_idempotency_replay_survives_export_import_round_trip
+FAILED stage-1/tests/adversarial/test_n1_9_adversarial.py::test_r_1_205_every_pre_existing_token_still_authenticates_after_import
+FAILED stage-1/tests/adversarial/test_n1_9_adversarial.py::test_r_1_207_balances_after_import_equal_balances_at_export_exactly
+4 failed, 277 passed in 30.75s
+
+
+
+RESULT: FAIL — 277 passed, 4 failed, 0 errors, 0 skipped
