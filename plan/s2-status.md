@@ -666,3 +666,27 @@ matching byte-for-byte, breaking R-1-203's "repeating it restores the exported s
 overlaying checked fields onto a copy of the raw record. This is exactly the polarity I
 re-dispatched for after the first pass tested only that invalid documents are rejected; the
 second pass found what the first could not.
+
+## Second compression: N2-6′ and N2-7′ merge into one pass (planner, 2026-10-05)
+
+Measured again at `23:09`: **362.7 of 480 stage-minutes elapsed, 117 left**, and no N2-6 commit
+yet. Two sequential items with a handoff, an attack and a verification between them do not fit in
+117 minutes — N2-5 alone took ~70 minutes of build time, and each handoff round has been costing
+20–30 minutes of wall clock on its own.
+
+Stage 2 **cannot close without N2-7′'s three screens**: their tests are already in the suite and
+gate 2 must be green at close. So the choice is not "which item to drop" but "one pass or two".
+`/requests`, `/split` and `/authorizations` are largely markup over the fetch layer N2-6′ builds,
+so a single pass is genuinely cheaper than two, not merely faster on paper.
+
+**Ruled: @builder continues straight from the `/` screen into the three remaining screens in the
+same item, one handoff, one attack, one verification.** The 90-minute node cap will almost
+certainly trip; that is expected and pre-ruled — it is a budget mechanism, and I will accept it
+on content exactly as I did for N2-4, provided the gates and the attack come back clean. A node
+cap exists to stop open-ended iteration, not to force a handoff the stage clock cannot afford.
+
+Risk accepted knowingly: one large item fails or passes as a whole. The alternative — two items
+where the second never starts — delivers strictly less.
+
+If the stage cap trips mid-way, the landing order is `/requests` first (the route the API shares,
+with existing tests behind it), then `/authorizations`, then `/split`.
