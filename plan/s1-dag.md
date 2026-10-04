@@ -43,6 +43,19 @@ implemented); the 6 attempts were spent mostly on my own two requirement correct
 on @verifier re-running against a moving HEAD. `factory/budget.yaml` is inside `factory/`
 and not mine to edit, so the process adapts instead.
 
+**The feedback loop this created.** `factory/metrics.py:17` is
+`REJECTIONS = {"NEEDS_WORK", "BLOCK", "BREACH"}`, so every `NEEDS_WORK` @verifier recorded
+*because the tool refused a GO* was itself charged to the attempts cap — the budget was
+being consumed by the act of reporting it exhausted. `HOLDS` is not in `REJECTIONS` and so
+does not increment attempts, which is why it is the right verdict word here as well as the
+honest one.
+
+**Two options rejected.** Making `record.py` honour advisory gates, or raising
+`budget.yaml`'s caps, both mean editing `factory/`, which is off-limits to every seat. Even
+if it were permitted, `record.py`'s refusal to issue a GO the gate results do not support is
+the most valuable property in this factory — it is what makes a verdict a fact rather than an
+opinion. The plan was wrong; the tool is right.
+
 ### The model from here
 
 - **No per-item `GO` while gate 2 is necessarily red.** @verifier's per-item disposition is
