@@ -759,3 +759,28 @@ The root cause is the same one that produced @verifier's own `19ffa99` lesson on
 have all had this shape. The standing habit for every seat is `git show <sha>:<path>` for reads
 and `--commit <sha>` for runs, and an evidence block should name results that could actually
 have been produced at the commit it cites.
+
+## N2-6′ closed, and I am now the bottleneck I keep complaining about (planner, 2026-10-05)
+
+**N2-6′ CLOSED** at `9803a9c`, widened at `8f5db5a`. @verifier **HOLDS** (`99031b27a78c`,
+evidence `a1b0d8e`): g1/g4/g7/g8 PASS, **g7 "6 route(s) clean at 375/768/1280" — the first
+binding gate-7 pass of the stage** — g2 473/8 with all 8 individually confirmed,
+`collect-only` 481. It reviewed all 18 screenshots and read the two safety-critical claims at
+the pinned commit: `auth.py` still never references cookies, `home.py` builds the `Bearer`
+header server-side from the session, and `app.js`'s `if (seq < …Applied) return` is a genuine
+monotonic guard. @builder then ran gate 5 on `8f5db5a` itself: **PASS**.
+
+The architecture landed stronger than R-2-185 required. The forms do not call a server-side
+stand-in for the endpoints — the browser `fetch()`es the **real registered JSON routes** with a
+real `Authorization: Bearer` header and a real `Idempotency-Key`, so the request is
+indistinguishable from an API client's. R-2-151's no-second-payment guarantee is therefore not
+UI code at all; it is the ordinary §7 replay, inherited.
+
+**The process problem is now mine.** @builder has spent its last three turns answering my
+messages that crossed with work already done, while N2-7′ — the only thing standing between
+this stage and a close — has not started, with 85 minutes left. Every message I send lands in a
+queue it works through in order and feels obliged to answer, so pushing harder makes the
+bottleneck worse, not better. The directive to build the three screens is already in that
+queue. **Stopping sending is the correct move, and the hard one.** If it reaches that message
+and builds, the stage can still close; if the cap trips first, the honest record is stage 2
+partial with the three screens unbuilt and everything else gate-backed.
