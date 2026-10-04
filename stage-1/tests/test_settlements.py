@@ -135,6 +135,61 @@ def test_unaffordable_net_batch_rejected_and_changes_nothing():
     assert api_get("/me", headers=auth(tokens[1])).json()["balance"] == 50
 
 
+def _chain_fixture():
+    """ada (100) -> bob (0) -> cy (0): bob's own starting balance cannot
+    cover his outgoing leg, and only nets to zero because of ada's earlier
+    entry in the SAME batch. Stricter than a mutual pair: a per-wallet net
+    check passes it, a running-balance-in-input-order simulation also
+    happens to pass it (since ada's credit lands before bob's debit in
+    forward order), but checking each leg against the wallet's STARTING
+    balance does not."""
+    ada_id, bob_id, cy_id = unique("u"), unique("u"), unique("u")
+    ada, bob, cy = unique_handle("ada"), unique_handle("bob"), unique_handle("cy")
+    fixture = make_fixture(
+        [user(ada_id, ada, balance=100), user(bob_id, bob, balance=0), user(cy_id, cy, balance=0)],
+        settlement_operator_ids=[ada_id],
+    )
+    reset_ok(fixture)
+    token_ada = login_token(fixture["users"][0]["email"])
+    token_bob = login_token(fixture["users"][1]["email"])
+    token_cy = login_token(fixture["users"][2]["email"])
+    return (token_ada, ada), (token_bob, bob), (token_cy, cy)
+
+
+def test_net_affordability_chain_through_intermediary_forward_order():
+    """R-1-227: bob is a pass-through with zero starting balance; his
+    outgoing leg exceeds it, but his net across the batch is zero. Must
+    succeed, ending ada at 0, bob at 0, cy at 100."""
+    (token_ada, ada), (token_bob, bob), (token_cy, cy) = _chain_fixture()
+    transfers = [
+        {"from_handle": ada, "to_handle": bob, "amount": 100},
+        {"from_handle": bob, "to_handle": cy, "amount": 100},
+    ]
+    r = api_post("/settlements", json={"transfers": transfers}, headers={**auth(token_ada), **idem(unique("k"))})
+    assert r.status_code == 201, r.text
+    assert api_get("/me", headers=auth(token_ada)).json()["balance"] == 0
+    assert api_get("/me", headers=auth(token_bob)).json()["balance"] == 0
+    assert api_get("/me", headers=auth(token_cy)).json()["balance"] == 100
+
+
+def test_net_affordability_chain_through_intermediary_reverse_order():
+    """R-1-227: the same chain with its transfers listed in reverse order
+    (bob->cy BEFORE ada->bob) must still succeed — affordability is about net
+    position, not about there existing a feasible sequential ordering. An
+    implementation that simulates strictly in input order fails this one
+    even though it happens to pass the forward-order case above."""
+    (token_ada, ada), (token_bob, bob), (token_cy, cy) = _chain_fixture()
+    transfers = [
+        {"from_handle": bob, "to_handle": cy, "amount": 100},
+        {"from_handle": ada, "to_handle": bob, "amount": 100},
+    ]
+    r = api_post("/settlements", json={"transfers": transfers}, headers={**auth(token_ada), **idem(unique("k"))})
+    assert r.status_code == 201, r.text
+    assert api_get("/me", headers=auth(token_ada)).json()["balance"] == 0
+    assert api_get("/me", headers=auth(token_bob)).json()["balance"] == 0
+    assert api_get("/me", headers=auth(token_cy)).json()["balance"] == 100
+
+
 def test_settlement_atomic_all_or_nothing():
     """R-1-228"""
     fixture, ids, handles, tokens = _setup(n=3, balance=100)
