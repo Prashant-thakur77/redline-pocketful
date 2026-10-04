@@ -20,12 +20,10 @@
 | N1-6 | BREACH → N1-6.1 | 09236f9 | Requests create/pay/decline/cancel. Builder's design — permission pre-lock, authoritative status check inside `apply()` under the write lock — held under @adversary's 11 attacks: R-1-241 ten-thread race gave exactly one `201` and nine `409`, decline-vs-pay and cancel-vs-pay each one winner. One real break: a third party got `404` instead of `403` (`eec01c3`). Gate 4 mix lost all `405`s: `{404: 524, 201: 361, 409: 304, 200: 111}`. |
 | N1-6.1 | dispatched | — | R-1-078a: a caller who is neither requester nor payer gets `403`, not `404`. Resolves a conflict between the planner's own R-1-078 and R-1-158/160/161; decided by stage 2's explicit "including callers who are neither party" (R-2-074). |
 | N1-7 | built | 4949023 | `POST /splits` + share arithmetic, all five spec examples verified. The R-1-175/R-1-153 tension (a `0` share must still create a request, but `POST /requests` rejects `amount < 1`) resolved by constructing the request record directly rather than reusing the create-endpoint validator. Gate 4 mix: `{201: 512, 404: 323, 409: 309, 200: 156}` — `404`s down from 524, residual is settlements. |
-| N1-8 | dispatched | — | `POST /settlements`. Key trap: R-1-227 is bidirectional — aggregate each wallet's net delta then check `balance + net >= 0`; a chain through a zero-balance intermediary must succeed in **either** entry order. |
-| N1-6 | planned | — | — |
-| N1-7 | planned | — | — |
-| N1-8 | planned | — | — |
-| N1-9 | planned | — | — |
-| N1-10 | planned | — | — |
+| N1-8 | built | 7984b41 | `POST /settlements`. R-1-227 solved by aggregating each wallet's **net** delta across all transfers before checking `balance + net >= 0`; a chain through a zero-balance intermediary succeeds in either entry order. One shared `committed_at` across members. R-1-229 needed no special handling — `pipeline.py`'s existing `except`/`release()` already covers an `insufficient_funds` raised inside `apply()`. **Gate 4 mix reached `{201: 733, 409: 351, 200: 216}` — zero `404`s, zero `405`s: every write verb registered and exercised.** |
+| N1-9 | built | e336885 | `GET /_test/export`, `POST /_test/import`. The reset-clears / import-restores asymmetry @builder flagged itself in `b78abac`'s commit message. |
+| N1-10 | built | ae12b99 | Hardening. @builder's decision on the one open question: `_WAIT_TIMEOUT = 15.0` → `_MAX_TOTAL_WAIT = 4.0` with a deadline and an honest timeout response, so a waiter blocked on a slow winner can no longer breach R-1-015's 5 s request budget. |
+| N1-T.6 | READY | a981cc6 | `test_4xx_never_leaks_invisible_resource` asserted a non-party and an unknown id share a status; R-1-078a reversed that. Now `test_non_party_403_vs_unknown_404_on_pay_decline_cancel`, with a docstring recording why the first form was wrong — the file is copied into stages 2–4. @redline also consolidated four private copies of the two-user fixture helper into `conftest.py`, and self-reported a near-miss: its first pass deleted an unrelated `two_users` **pytest fixture** that @adversary's folder injects by name, caught with `grep -rn` before committing. |
 
 States: planned → dispatched → built → attacked → GO | NEEDS_WORK | blocked.
 
