@@ -21,7 +21,7 @@ def test_requests_and_authorizations_shared_html_json(page, demo):
     """R-2-091: Accept: text/html gets the UI; no Accept / application/json
     gets JSON, and existing API clients are unaffected."""
     user = ui_login_demo_user(page, demo["fixture"])
-    token = demo["tokens"][user["handle"]]["token"]
+    token = user["token"]
 
     html_resp = api_get("/requests", headers={"Authorization": f"Bearer {token}", "Accept": "text/html"})
     assert html_resp.status_code == 200

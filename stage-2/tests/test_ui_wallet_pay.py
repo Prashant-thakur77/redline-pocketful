@@ -80,7 +80,7 @@ def test_decimal_input_submits_minor_units(page, demo):
     page.click(tid("pay-submit"))
     page.wait_for_timeout(500)
 
-    token = demo["tokens"][user["handle"]]["token"]
+    token = user["token"]
     feed = api_get("/activity", headers=auth(token)).json()["payments"]
     match = next((p for p in feed if p.get("note") == "decimal-15"), None)
     assert match is not None, "payment not found in feed after submit"
@@ -146,7 +146,7 @@ def test_resubmitting_unchanged_form_sends_no_second_payment(page, demo):
     """R-2-151"""
     user = ui_login_demo_user(page, demo["fixture"])
     receiver = demo["fixture"]["users"][1]
-    token = demo["tokens"][user["handle"]]["token"]
+    token = user["token"]
     page.goto(url("/"), wait_until="load")
     page.fill(tid("pay-handle"), receiver["handle"])
     page.fill(tid("pay-amount"), "4.00")
@@ -168,7 +168,7 @@ def test_changing_a_field_creates_a_new_payment(page, demo):
     """R-2-152"""
     user = ui_login_demo_user(page, demo["fixture"])
     receiver = demo["fixture"]["users"][1]
-    token = demo["tokens"][user["handle"]]["token"]
+    token = user["token"]
     page.goto(url("/"), wait_until="load")
     page.fill(tid("pay-handle"), receiver["handle"])
     page.fill(tid("pay-amount"), "4.00")
@@ -205,7 +205,7 @@ def test_refused_payment_shows_error_refreshes_preserves_inputs(page, demo):
     """R-2-155"""
     user = ui_login_demo_user(page, demo["fixture"])
     receiver = demo["fixture"]["users"][1]
-    token = demo["tokens"][user["handle"]]["token"]
+    token = user["token"]
     page.goto(url("/"), wait_until="load")
     page.fill(tid("pay-handle"), receiver["handle"])
     page.fill(tid("pay-amount"), "85.00")  # alice's available is 90.00
@@ -231,7 +231,7 @@ def test_pay_uncertain_on_response_lost_after_commit(page, demo):
     it genuinely commits; only the browser's view of the response is lost."""
     user = ui_login_demo_user(page, demo["fixture"])
     receiver = demo["fixture"]["users"][1]
-    token = demo["tokens"][user["handle"]]["token"]
+    token = user["token"]
     page.goto(url("/"), wait_until="load")
     page.fill(tid("pay-handle"), receiver["handle"])
     page.fill(tid("pay-amount"), "6.00")

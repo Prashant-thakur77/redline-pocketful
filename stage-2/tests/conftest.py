@@ -294,8 +294,17 @@ def ui_login(page, email: str, password: str) -> None:
 
 
 def ui_login_demo_user(page, fixture: dict, index: int = 0) -> dict:
-    """Reset to `fixture` and log the UI in as `fixture["users"][index]`."""
+    """Reset to `fixture` and log the UI in as `fixture["users"][index]`.
+
+    Returns the user dict with a LIVE `"token"` key obtained after this
+    function's own reset — any token a caller captured earlier (e.g. from
+    the `demo` pytest fixture, which does its own separate reset+login
+    before a test body runs) is invalidated by the `reset_ok` above and
+    must not be reused. Callers that need an API token for this user should
+    read it from the returned dict, not from a `demo["tokens"][...]` lookup
+    made before this call.
+    """
     reset_ok(fixture)
     u = fixture["users"][index]
     ui_login(page, u["email"], u["password"])
-    return u
+    return {**u, "token": login_token(u["email"], u["password"])}

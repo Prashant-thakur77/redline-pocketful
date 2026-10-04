@@ -64,7 +64,7 @@ def test_split_form_testids_and_preview(page, demo):
     assert share_a.inner_text().strip() == "5.00 EUR"
     assert share_b.inner_text().strip() == "5.00 EUR"
 
-    token = demo["tokens"][user["handle"]]["token"]
+    token = user["token"]
     before = api_get("/requests", headers=auth(token), params={"direction": "outgoing"}).json()["requests"]
     page.click(tid("split-submit"))
     page.wait_for_timeout(500)

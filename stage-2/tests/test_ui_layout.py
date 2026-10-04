@@ -130,7 +130,7 @@ def test_refresh_button_updates_available_and_held(page, demo):
     """R-2-160"""
     user = ui_login_demo_user(page, demo["fixture"])
     bob = demo["fixture"]["users"][1]
-    token = demo["tokens"][user["handle"]]["token"]
+    token = user["token"]
     page.goto(url("/"), wait_until="load")
     before_available = page.locator(tid("wallet-available")).get_attribute("data-amount")
 
@@ -152,7 +152,7 @@ def test_latest_refresh_wins_even_out_of_order(page, demo):
     change) arrives first."""
     user = ui_login_demo_user(page, demo["fixture"])
     bob = demo["fixture"]["users"][1]
-    token = demo["tokens"][user["handle"]]["token"]
+    token = user["token"]
     page.goto(url("/"), wait_until="load")
 
     first_seen = {"count": 0}

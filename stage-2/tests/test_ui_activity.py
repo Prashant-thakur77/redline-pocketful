@@ -26,7 +26,7 @@ def test_activity_note_element_present_even_when_empty(page, demo):
     """R-2-131"""
     user = ui_login_demo_user(page, demo["fixture"])
     bob = demo["fixture"]["users"][1]
-    token = demo["tokens"][user["handle"]]["token"]
+    token = user["token"]
     r = api_post("/payments", json={"to_handle": bob["handle"], "amount": 50},
                  headers={**auth(token), **idem(unique("no-note"))})
     assert r.status_code == 201, r.text
@@ -55,7 +55,7 @@ def test_activity_newest_first_in_dom(page, demo):
     with a deliberate gap, never asserting on same-second ties."""
     user = ui_login_demo_user(page, demo["fixture"])
     bob = demo["fixture"]["users"][1]
-    token = demo["tokens"][user["handle"]]["token"]
+    token = user["token"]
     ids = []
     for i in range(3):
         r = api_post("/payments", json={"to_handle": bob["handle"], "amount": 1},
