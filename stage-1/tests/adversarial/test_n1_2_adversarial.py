@@ -4,7 +4,6 @@ Fails against commit 8cc8661.
 """
 from __future__ import annotations
 
-import statistics
 import sys
 import time
 from pathlib import Path
@@ -14,21 +13,30 @@ from conftest import login, make_fixture, reset_ok, unique_email, user  # noqa: 
 
 
 def test_login_timing_does_not_distinguish_unknown_email_from_wrong_password():
-    """R-1-086: 'Login with a wrong password or an unknown email is
-    401 unauthenticated, with no distinction between the two cases.'
+    """R-1-086 / R-1-086a: 'no distinction between the two cases' includes
+    wall-clock time — an unknown email must pay the same password-
+    verification cost as a wrong password against a real account.
 
-    `routes/auth.py`'s `LoginEndpoint.apply` does
-    `user = STORE.users_by_email.get(email); if user is None or not
-    verify_password(...)`. Short-circuit evaluation means an unknown email
-    never pays the ~120,000-iteration PBKDF2 cost that a wrong password
-    for a real account does — a wall-clock side channel that lets a caller
-    distinguish the two cases (and so enumerate registered emails) even
-    though the status code and body are identical.
+    Use the **minimum** of many samples, not the median or mean. CPU
+    scheduling noise on a shared/loaded box only ever adds latency to a
+    sample; it never makes a request finish faster than the work it
+    actually did. So the floor across many samples is the honest measure
+    of each path's cost, and a short-circuit shows up as a near-zero
+    floor that noise cannot mask — where a median/mean-based comparison
+    can false-pass: inflated unknown-email samples from scheduler jitter
+    can make a noisy median/mean look close to the real PBKDF2 cost even
+    while the code still short-circuits (confirmed in practice: the
+    previous median-ratio form of this test passed twice against the
+    vulnerable commit `5b4bc54`).
+
+    Phrased as "the unknown-email path must be slow too" (not "the
+    wrong-password path must be fast") — that is the direction an
+    `X is None or <expensive check>` short-circuit actually breaks.
     """
     email = unique_email("timing")
     reset_ok(make_fixture([user("tu1", "timinguser", email=email)]))
 
-    def sample(email_to_try: str, password: str, n: int = 12) -> list[float]:
+    def sample(email_to_try: str, password: str, n: int = 25) -> list[float]:
         times = []
         for _ in range(n):
             t0 = time.perf_counter()
@@ -39,14 +47,15 @@ def test_login_timing_does_not_distinguish_unknown_email_from_wrong_password():
     unknown_email_times = sample(unique_email("neverexisted"), "whatever-wrong")
     wrong_password_times = sample(email, "whatever-wrong")
 
-    unknown_median = statistics.median(unknown_email_times)
-    wrong_pw_median = statistics.median(wrong_password_times)
+    unknown_floor = min(unknown_email_times)
+    wrong_pw_floor = min(wrong_password_times)
 
-    assert wrong_pw_median < unknown_median * 3, (
-        f"login timing leaks which case occurred: unknown-email median="
-        f"{unknown_median * 1000:.3f}ms, wrong-password median="
-        f"{wrong_pw_median * 1000:.3f}ms (ratio={wrong_pw_median / unknown_median:.1f}x). "
-        "An unknown email short-circuits before hashing; a wrong password for a "
-        "real account pays the full PBKDF2 cost, so the two 'identical' 401s are "
-        "trivially distinguishable by wall-clock time."
+    assert unknown_floor > wrong_pw_floor * 0.5, (
+        f"login timing leaks which case occurred: unknown-email floor="
+        f"{unknown_floor * 1000:.3f}ms, wrong-password floor="
+        f"{wrong_pw_floor * 1000:.3f}ms (ratio={wrong_pw_floor / unknown_floor:.1f}x "
+        "wrong-password:unknown-email). An unknown email must pay the same "
+        "password-verification cost (a fixed dummy hash) as a wrong password "
+        "against a real account; a short-circuit on `user is None` makes the "
+        "unknown-email path a near-free dict miss instead."
     )
