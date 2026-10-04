@@ -94,6 +94,23 @@ class Handler(BaseHTTPRequestHandler):
     server_version = "pocketful/1.0"
     protocol_version = "HTTP/1.1"
 
+    def _end_headers_with_body(self, body: bytes | None) -> None:
+        """Write the blank-line header terminator and the body in the
+        SAME socket write as the buffered headers — never the blank line
+        and the body as two separate writes. `end_headers()` flushes just
+        the headers; a body written immediately after in its own
+        `wfile.write()` call can land in a second TCP segment, and a
+        client that reads until it merely *sees* the header-terminator
+        (rather than reading exactly Content-Length bytes of body) can
+        observe a response with no body even though the server sent both
+        correctly — confirmed as the actual cause of an intermittent
+        failure on `test_over_long_header_block_400`."""
+        self._headers_buffer.append(b"\r\n")
+        if body:
+            self._headers_buffer.append(body)
+        self.wfile.write(b"".join(self._headers_buffer))
+        self._headers_buffer = []
+
     def _drain_unread_input(self) -> None:
         """When we answer a framing error (e.g. an over-long header block)
         without having read everything the client sent, that unread data
@@ -125,10 +142,7 @@ class Handler(BaseHTTPRequestHandler):
             self.send_response(status)
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.send_header("Content-Length", str(len(payload)))
-            self.end_headers()
-            if getattr(self, "command", None) != "HEAD":
-                self.wfile.write(payload)
-            self.wfile.flush()
+            self._end_headers_with_body(None if getattr(self, "command", None) == "HEAD" else payload)
         except Exception:
             pass
         finally:
@@ -183,15 +197,13 @@ class Handler(BaseHTTPRequestHandler):
         if body is None:
             self.send_response(status)
             self.send_header("Content-Length", "0")
-            self.end_headers()
+            self._end_headers_with_body(None)
             return
         payload = dumps(body)
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(payload)))
-        self.end_headers()
-        if not suppress_body:
-            self.wfile.write(payload)
+        self._end_headers_with_body(None if suppress_body else payload)
 
     def _write_error(self, exc: ApiError, suppress_body: bool = False) -> None:
         self._write_json(exc.status, exc.body(), suppress_body=suppress_body)
@@ -212,7 +224,7 @@ class Handler(BaseHTTPRequestHandler):
             self.send_response(204)
             self.send_header("Allow", ", ".join(sorted(allowed | {"OPTIONS"})))
             self.send_header("Content-Length", "0")
-            self.end_headers()
+            self._end_headers_with_body(None)
         except Exception:
             traceback.print_exc()
             self._write_error(internal_error())
