@@ -41,8 +41,15 @@ def go_blockers(events, stage: int, node: str, commit: str | None) -> list[str]:
     latest = {e.payload.get("gate"): e for e in runs}
     problems = [f"gate {g} has no result for this item at this commit" for g in sorted(REQUIRED_FOR_GO - set(latest))]
     problems += [f"gate {g} last failed: {e.payload.get('detail', '')[:120]}" for g, e in sorted(latest.items())
-                 if not e.payload.get("passed")]
+                 if not e.payload.get("passed") and not only_deleted_tests(e)]
     return problems
+
+
+def only_deleted_tests(event) -> bool:
+    """A scope finding that only reports deleted tests does not block GO: a deletion can be a
+    one-for-one replacement, so the Verifier reads it and rules. Any other scope finding blocks."""
+    found = event.payload.get("violations") or []
+    return event.payload.get("gate") == "scope" and bool(found) and all(" deleted test " in v for v in found)
 
 
 def main(argv=None) -> int:
