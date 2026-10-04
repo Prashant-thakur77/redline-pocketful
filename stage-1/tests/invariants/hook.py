@@ -74,6 +74,7 @@ def setup(base_url: str) -> dict:
         "n": len(users),
         "lock": threading.Lock(),
         "split_receipts": [],
+        "paid_request_ids": set(),
     }
 
 
@@ -162,6 +163,9 @@ def operation(base_url: str, ctx: dict, i: int, rng) -> int:
         payer = next(u for u in users if u["id"] == req["payer_id"])
         r = _post(base_url, f"/requests/{req['id']}/pay", json={},
                   headers={**_auth(payer["token"]), "Idempotency-Key": key})
+        if r.status_code == 201:
+            with ctx["lock"]:
+                ctx["paid_request_ids"].add(req["id"])
         return r.status_code
 
     if kind == 3:
@@ -204,6 +208,11 @@ def invariant(base_url: str, ctx: dict) -> tuple[bool, str]:
         return False, f"sum of balances {total} != seeded total {ctx['seeded_total']}"
 
     valid_statuses = {"pending", "paid", "declined", "cancelled"}
+    # R-1-051: a seeded `paid` request has no seeded payment to link (the fixture
+    # format has no field for one), so it legitimately exposes payment_id: null.
+    # Only require a non-null payment_id for requests THIS storm paid through
+    # POST /requests/{id}/pay — those are genuine API-driven settlements.
+    paid_via_api = ctx["paid_request_ids"]
     # payment_id -> set of distinct request_ids that reference it: a single request
     # legitimately shows up once in its requester's list and once in its payer's
     # list (same request_id, counted once here), but one payment must never settle
@@ -217,9 +226,11 @@ def invariant(base_url: str, ctx: dict) -> tuple[bool, str]:
             if req["status"] not in valid_statuses:
                 return False, f"request {req['request_id']} has invalid status {req['status']}"
             if req["status"] == "paid":
-                if not req.get("payment_id"):
-                    return False, f"paid request {req['request_id']} has no payment_id"
-                payment_to_requests.setdefault(req["payment_id"], set()).add(req["request_id"])
+                payment_id = req.get("payment_id")
+                if req["request_id"] in paid_via_api and not payment_id:
+                    return False, f"request {req['request_id']} was paid via the API but has no payment_id"
+                if payment_id:
+                    payment_to_requests.setdefault(payment_id, set()).add(req["request_id"])
 
     for pid, request_ids in payment_to_requests.items():
         if len(request_ids) > 1:
