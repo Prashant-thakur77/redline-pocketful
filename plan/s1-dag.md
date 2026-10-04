@@ -13,7 +13,7 @@ them all before N1-1 is dispatched.
 | N1-3 | Auth: signup with derived handle, login, bearer tokens, password hashing | R-1-034…037, R-1-080…092 | N1-2 | builder |
 | N1-4 | Idempotency layer shared by all five write paths | R-1-100…111 | N1-3 | builder |
 | N1-5 | `GET /me`, `POST /payments`, `GET /activity` and the feed contract | R-1-001…004, R-1-007, R-1-120, R-1-130…140, R-1-190…195 | N1-4 | builder |
-| N1-6 | Requests: create, pay, decline, cancel, `GET /requests` | R-1-150…167 | N1-5 | builder |
+| N1-6 | Requests: create, pay, decline, cancel | R-1-150…162 (`GET /requests` R-1-163…167 landed early in N1-2) | N1-5 | builder |
 | N1-7 | Splits and the exact share arithmetic | R-1-170…180 | N1-6 | builder |
 | N1-8 | `POST /settlements`: operator permission, batch validation, net affordability, atomic commit | R-1-196, R-1-220…236 | N1-6 | builder |
 | N1-9 | `GET /_test/export` / `POST /_test/import` round-trip of every durable fact | R-1-200…210, R-1-235 | N1-7, N1-8 | builder |
