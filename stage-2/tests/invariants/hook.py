@@ -403,17 +403,17 @@ def populate(base_url: str) -> dict:
     fixture = ctx["fixture"]
     id_to_handle = {u["id"]: u["handle"] for u in users}
 
-    # Capability probe: gate 5 calls populate() against the OLD stage's
-    # binary as well as the new one when checking an upgrade (see
-    # factory/gates/g5_regression.py's upgrade()), so this cannot assume the
-    # target supports holds just because THIS stage's hook was extended for
-    # them. A stage-1 binary has no /authorizations endpoint and GET /me
-    # never carries "held" — R-2-170's whole premise is that such an export
-    # has no authorization data at all, so populate() must degrade cleanly
-    # rather than 404 on an endpoint the old binary was never meant to have.
-    probe = _get(base_url, "/me", headers=_auth(users[0]["token"]))
-    assert probe.status_code == 200, probe.text
-    supports_holds = "held" in probe.json()
+    # Capability probe, run ONCE here and recorded in _UPGRADE["holds"] for
+    # BOTH snapshot() calls to branch on — never re-probed per-url, since
+    # gate 5's upgrade() runs populate() and the first snapshot() against the
+    # OLD stage's binary and only the second snapshot() against the new one
+    # (factory/gates/g5_regression.py:22-37). If each side probed its own
+    # url, a stage-1 (no holds) vs stage-2 (holds) fingerprint would differ
+    # in SHAPE and before == after could never hold, even for a correct
+    # upgrade. One flag, recorded once, used twice.
+    probe = _get(base_url, "/authorizations", headers=_auth(users[0]["token"]))
+    supports_holds = probe.status_code == 200
+    assert probe.status_code in (200, 404), f"unexpected probe status: {probe.status_code} {probe.text}"
 
     # a completed direct payment, remembered by key+body for the retry-identity check
     payer, payee = users[0], users[1]
@@ -460,6 +460,8 @@ def populate(base_url: str) -> dict:
 
     _UPGRADE.clear()
     _UPGRADE.update({
+        "holds": supports_holds,
+        "populated_url": base_url,
         "tokens": {u["handle"]: u["token"] for u in users},
         "known_requests": known_requests,
         "known_authorizations": [],
@@ -566,10 +568,25 @@ def snapshot(base_url: str) -> dict:
     assert replay.status_code == 200, \
         f"replay of the remembered payment must stay a 200 replay: {replay.status_code} {replay.text}"
 
-    # Both empty/None when populate() ran against a binary with no holds
-    # support (see populate()'s capability probe), so the fingerprint
-    # compares equal on these fields for an old-stage-1 -> new-stage-2
-    # upgrade without ever calling an endpoint the old side doesn't have.
+    # Branch on the ONE flag populate() recorded — never re-probe this url,
+    # or a stage-1 (no holds) vs stage-2 (holds) fingerprint would differ in
+    # shape and before == after could never hold for a correct upgrade.
+    # known_authorizations/remembered_capture_key are already [] / None when
+    # holds is False, so the loop and the replay below degrade to no-ops on
+    # their own — but that silence is exactly the danger: if a REGRESSION
+    # ever made the NEW service start 404-ing GET /authorizations, this same
+    # silent degradation would hide it instead of failing gate 5. So on the
+    # side that is NOT the one populate() ran on (i.e. the new, upgraded
+    # side), assert the endpoint is alive even though nothing is fingerprinted
+    # from it — a downgrade is then loud, never silent.
+    if not _UPGRADE["holds"] and base_url != _UPGRADE["populated_url"]:
+        token = next(iter(tokens.values()))
+        liveness = _get(base_url, "/authorizations", headers=_auth(token))
+        assert liveness.status_code == 200, (
+            f"the upgraded (new) side must answer GET /authorizations with 200 even when the "
+            f"old side predates holds — got {liveness.status_code} {liveness.text}, which would "
+            f"be a silent regression if not checked here")
+
     auth_state = []
     for auth_id, viewer_handle in sorted(set(_UPGRADE["known_authorizations"])):
         token = tokens[viewer_handle]
