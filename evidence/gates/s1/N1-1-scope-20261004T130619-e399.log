@@ -1,0 +1,16 @@
+db83d897bc: planner edited stage-1/Dockerfile outside its scope
+db83d897bc: planner edited stage-1/RUN.md outside its scope
+db83d897bc: planner edited stage-1/main.py outside its scope
+db83d897bc: planner edited stage-1/service/__init__.py outside its scope
+db83d897bc: planner edited stage-1/service/auth.py outside its scope
+db83d897bc: planner edited stage-1/service/errors.py outside its scope
+db83d897bc: planner edited stage-1/service/idempotency.py outside its scope
+db83d897bc: planner edited stage-1/service/json_utils.py outside its scope
+db83d897bc: planner edited stage-1/service/pipeline.py outside its scope
+db83d897bc: planner edited stage-1/service/routes/__init__.py outside its scope
+db83d897bc: planner edited stage-1/service/routes/health.py outside its scope
+db83d897bc: planner edited stage-1/service/server.py outside its scope
+db83d897bc: planner edited stage-1/service/store.py outside its scope
+db83d897bc: planner edited stage-1/service/validation.py outside its scope
+
+RESULT: FAIL — db83d897bc: planner edited stage-1/Dockerfile outside its scope; db83d897bc: planner edited stage-1/RUN.md outside its scope; db83d897bc: planner edited stage-1/main.py outside its scope; db83d897bc: planner edited stage-1/service/__init__.py outside its scope; db83d897bc: planner edited stage-1/service/auth.py outside its scope
