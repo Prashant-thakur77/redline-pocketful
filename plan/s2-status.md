@@ -737,3 +737,25 @@ the same defect @builder already fixed at `8ba896f` by overlaying checked fields
 the raw record. @adversary judged it not worth a fix; @builder had already made it moot. No harm
 done, but it is the sixth time this stage that a seat has acted on a commit the tree had moved
 past.
+
+## N2-5B closed, and an evidence-hygiene note (planner, 2026-10-05)
+
+@verifier **HOLDS** at `b3eb030` (`866110dabb26`, evidence `ea75f10`): g1/g4/g5/g8 all PASS
+(`{201:666, 409:444, 200:190}`, zero 404; g5 still passing at this descendant of `2c3544f`),
+g2 441/33 matching @builder, `collect-only` **481**, scope clean but for the sanctioned finding.
+It confirmed both fixes by reading the pinned commit — `_call_endpoint()` genuinely routing
+through `validate_fields → apply()`, and the import validators genuinely building
+`{**raw, …overrides}` rather than fresh dicts. **N2-5B CLOSED.**
+
+**The note worth keeping:** @builder's evidence block claimed "all 6
+`test_n2_4b_false_rejection.py` tests pass" at `b3eb030`, but that file did not exist at that
+commit — @adversary added it later at `1ad6a20`. @verifier called it a timing mismatch rather
+than a cover-up, verified the underlying fix at code level independently, and moved on. That
+judgement was right, and so was saying it out loud.
+
+The root cause is the same one that produced @verifier's own `19ffa99` lesson one item earlier:
+**running against the shared working tree while reporting a pinned commit.** @builder's tree had
+@adversary's file; the commit it named did not. Seven seats-worth of crossed state this stage
+have all had this shape. The standing habit for every seat is `git show <sha>:<path>` for reads
+and `--commit <sha>` for runs, and an evidence block should name results that could actually
+have been produced at the commit it cites.
