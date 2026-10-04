@@ -21,7 +21,49 @@ them all before N1-1 is dispatched.
 
 Dispatch order: N1-T → N1-1 → N1-2 → N1-3 → N1-4 → N1-5 → N1-6 → (N1-7, N1-8) → N1-9 → N1-10.
 
-## Per-item acceptance (planner correction, 2026-10-04)
+## Per-item acceptance — SECOND CORRECTION, 2026-10-04 (supersedes the table below)
+
+@verifier found that the model below cannot be executed by the factory's own tools
+(`plan/lessons.md`, verifier entry). I verified both halves myself rather than take them
+on faith:
+
+1. **`factory/record.py:33`** — `REQUIRED_FOR_GO = {"g1", "g2"}`, and `is_go()` additionally
+   requires that *every* gate run on that node at that commit passed. Gate 2 runs the whole
+   198-test suite, so **no item can mechanically GO before the suite is green** — which is
+   N1-10. My "advisory gate" designation has no representation in the tool, so the
+   per-item GO-then-move-on model silently degrades to NEEDS_WORK-forever.
+2. **`factory/governor.py:41`** — `attempts` counts every ledger event for the node whose
+   verdict is a rejection. A node-tagged `gates.run` whose gate 2 fails is such an event,
+   so **@verifier's re-verification passes consume the item's attempts budget** exactly
+   like a builder retry. Diligence is charged as failure.
+
+Consequence, already realised: `factory.governor check --stage 1 --node N1-1` now reports
+`attempts 6.0 > cap 4`. N1-1's **content is complete** (breach fixed, R-1-079 and R-1-080a
+implemented); the 6 attempts were spent mostly on my own two requirement corrections and
+on @verifier re-running against a moving HEAD. `factory/budget.yaml` is inside `factory/`
+and not mine to edit, so the process adapts instead.
+
+### The model from here
+
+- **No per-item `GO` while gate 2 is necessarily red.** @verifier's per-item disposition is
+  recorded as **`HOLDS`** (content accepted, formal GO deferred) or `NEEDS_WORK` / `BREACH`.
+  `HOLDS` is ledger-legal and is the honest word: the item holds, the gates cannot yet
+  certify it.
+- **`GO` verdicts are spent at stage close**, where gate 2 can actually pass, plus at N1-9
+  and N1-10 if the suite is green by then.
+- **Interim gate runs must be untagged** — `gates.run stage-1 --gates …` with **no
+  `--node`** (the runner tags these `adhoc`). Only the single authoritative run an item's
+  verdict rests on carries `--node`. This keeps the attempts cap measuring implementation
+  attempts, not verification effort.
+- **Items already past their attempts cap are not descoped if their content is complete.**
+  N1-1 is such a case: it is recorded `HOLDS` with the trip disclosed, no further
+  node-tagged runs are spent on it, and its certification is folded into the stage-close
+  pass. Descoping work that is finished would be dishonest in the opposite direction.
+- Verification of N1-1, N1-2 and N1-3 is **folded into one stage-level pass** rather than
+  three per-item passes, to stop paying the attempts cost three times for one suite.
+
+## Per-item acceptance (first correction, 2026-10-04 — superseded above for the GO/HOLDS
+## distinction; the gate-binding columns still apply)
 
 The original plan implied every item must reach `--gates 1,2,4,8` all-green. That is
 impossible for the early items and would force @verifier into NEEDS_WORK verdicts for
