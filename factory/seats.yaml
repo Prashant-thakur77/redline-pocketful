@@ -1,0 +1,41 @@
+# One entry per BAND seat. The mandate header (Harness:/Model:) must match.
+# `edits` is where a seat may write, minus `forbid`, plus `also`; `[]` means read-only.
+# The verifier commits only what gate scripts write under evidence/.
+# `fallbacks` are tried in order when the model is rate-limited or unavailable.
+# `effort` trims usage on iterative seats; judgment seats keep the default (high).
+seats:
+  planner:
+    name: Planner
+    harness: Claude Code
+    model: claude-opus-5
+    fallbacks: [claude-sonnet-5]
+    edits: ["plan/**"]
+  redline:
+    name: Redline
+    harness: Claude Code
+    model: claude-sonnet-5
+    fallbacks: [claude-haiku-4-5-20251001]
+    edits: ["stage-*/tests/**"]
+    forbid: ["stage-*/tests/adversarial/**", "stage-*/tests/repro/**"]
+  builder:
+    name: Builder
+    harness: Claude Code
+    model: claude-sonnet-5
+    effort: medium
+    fallbacks: [claude-haiku-4-5-20251001]
+    edits: ["stage-*/**"]
+    forbid: ["stage-*/tests/**"]
+    also: ["stage-*/tests/repro/**"]
+  adversary:
+    name: Adversary
+    harness: Claude Code
+    model: claude-sonnet-5
+    effort: medium
+    fallbacks: [claude-haiku-4-5-20251001]
+    edits: ["stage-*/tests/adversarial/**"]
+  verifier:
+    name: Verifier
+    harness: Claude Code
+    model: claude-sonnet-5
+    fallbacks: [claude-haiku-4-5-20251001]
+    edits: []

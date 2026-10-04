@@ -1,0 +1,10 @@
+# Caps the governor enforces from ledger data. When one trips, the work item
+# returns to the planner with the evidence; it never comes to a human.
+node:
+  attempts: 4        # rejections (NEEDS_WORK / BLOCK / BREACH) before it returns to the planner
+  minutes: 90        # wall time since the item was dispatched
+  tokens: 600000
+  usd: 15
+stage:
+  minutes: 480
+  usd: 120
