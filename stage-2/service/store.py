@@ -31,6 +31,8 @@ class Store:
         self.settlements: dict[str, dict] = {}
         self.settlement_operator_ids: set[str] = set()
         self.tokens: dict[str, str] = {}  # token -> user_id
+        self.authorizations: dict[str, dict] = {}
+        self.authorization_ttl_seconds: int = 600
         self._next_seq = 0
 
     def next_seq(self) -> int:
@@ -57,6 +59,9 @@ class Store:
         for request in fields["requests"].values():
             request["created_at"] = seeded_at
             request["seq"] = self.next_seq()
+        for authorization in fields["authorizations"].values():
+            authorization["created_at"] = seeded_at
+            authorization["seq"] = self.next_seq()
 
         self.currency = fields["currency"]
         self.minor_units = fields["minor_units"]
@@ -69,6 +74,8 @@ class Store:
         self.settlement_operator_ids = fields["settlement_operator_ids"]
         self.settlements = {}
         self.tokens = {}
+        self.authorizations = fields["authorizations"]
+        self.authorization_ttl_seconds = fields["authorization_ttl_seconds"]
         # R-1-040: nothing from before this reset is visible afterwards,
         # including a key claimed or completed under the old fixture — a
         # replay must never resolve against a payment/request that no
@@ -95,6 +102,11 @@ class Store:
         self.settlement_operator_ids = fields["settlement_operator_ids"]
         self.settlements = fields["settlements"]
         self.tokens = fields["tokens"]
+        # Authorizations are not yet part of the export/import document
+        # (that extension is a later item); until then, import behaves
+        # like reset for holds — nothing carries across.
+        self.authorizations = {}
+        self.authorization_ttl_seconds = 600
         IDEMPOTENCY.restore(fields["idempotency_records"])
 
 

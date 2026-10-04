@@ -11,6 +11,7 @@ from __future__ import annotations
 import secrets
 
 from ..errors import forbidden, insufficient_funds, malformed_request, not_found, self_payment, validation_failed
+from ..holds import available_for
 from ..json_utils import now_rfc3339
 from ..pipeline import Endpoint, RequestCtx
 from ..store import STORE
@@ -84,10 +85,13 @@ class SettlementsEndpoint(Endpoint):
             net[t["from_user_id"]] = net.get(t["from_user_id"], 0) - t["amount"]
             net[t["to_user_id"]] = net.get(t["to_user_id"], 0) + t["amount"]
 
-        # R-1-227: check every wallet's post-settlement balance before
-        # touching any of them.
+        # R-1-227/R-2-002/R-2-017: check every wallet's post-settlement
+        # position before touching any of them. A net DEBIT is checked
+        # against available (held funds can't fund it even if total
+        # covers it); a net credit (or zero) never needs a funds check —
+        # receiving money can't drive a wallet negative.
         for user_id, delta in net.items():
-            if STORE.wallets.get(user_id, 0) + delta < 0:
+            if delta < 0 and available_for(STORE, user_id) + delta < 0:
                 raise insufficient_funds()
 
         for user_id, delta in net.items():
@@ -103,7 +107,7 @@ class SettlementsEndpoint(Endpoint):
             payment = {
                 "id": payment_id, "from_user_id": t["from_user_id"], "to_user_id": t["to_user_id"],
                 "amount": t["amount"], "note": t["note"], "visibility": t["visibility"],
-                "request_id": None, "settlement_id": settlement_id,
+                "request_id": None, "settlement_id": settlement_id, "authorization_id": None,
                 "created_at": committed_at, "seq": STORE.next_seq(),
             }
             STORE.payments[payment_id] = payment

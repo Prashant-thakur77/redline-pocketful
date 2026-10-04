@@ -16,6 +16,7 @@ import secrets
 
 from ..errors import (forbidden, insufficient_funds, malformed_request, not_found,
                        request_not_pending, self_request, validation_failed)
+from ..holds import available_for
 from ..json_utils import now_rfc3339
 from ..pipeline import Endpoint, RequestCtx
 from .payments import serialize_payment
@@ -102,9 +103,10 @@ class PayRequestEndpoint(Endpoint):
         requester = STORE.users_by_id.get(request["requester_id"])
         amount = request["amount"]
 
-        payer_balance = STORE.wallets.get(payer["id"], 0)
-        if payer_balance < amount:
+        # R-2-002/R-2-013: checked against available, not total.
+        if available_for(STORE, payer["id"]) < amount:
             raise insufficient_funds()
+        payer_balance = STORE.wallets.get(payer["id"], 0)
         requester_balance = STORE.wallets.get(requester["id"], 0)
 
         STORE.wallets[payer["id"]] = payer_balance - amount
@@ -114,7 +116,7 @@ class PayRequestEndpoint(Endpoint):
         payment = {
             "id": payment_id, "from_user_id": payer["id"], "to_user_id": requester["id"],
             "amount": amount, "note": request["note"], "visibility": fields["visibility"],
-            "request_id": request["id"], "settlement_id": None,
+            "request_id": request["id"], "settlement_id": None, "authorization_id": None,
             "created_at": now_rfc3339(), "seq": STORE.next_seq(),
         }
         STORE.payments[payment_id] = payment

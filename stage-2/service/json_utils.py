@@ -43,3 +43,23 @@ def dumps(obj) -> bytes:
 def now_rfc3339() -> str:
     """Current instant as RFC 3339 with an explicit numeric offset (R-1-021)."""
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+def parse_rfc3339(value: str) -> float:
+    """Parse an RFC 3339 timestamp (accepting a trailing `Z`) to epoch
+    seconds, for cheap `expires_at` comparisons (R-2-030). Raises
+    ValueError on anything unparseable — the caller decides the error
+    code, since the same parser serves both request fields (422) and
+    seeded fixture fields (422 from a different endpoint)."""
+    text = value[:-1] + "+00:00" if value.endswith("Z") else value
+    dt = datetime.fromisoformat(text)
+    if dt.tzinfo is None:
+        raise ValueError("timestamp must carry an explicit offset")
+    return dt.timestamp()
+
+
+def epoch_to_rfc3339(epoch_seconds: float) -> str:
+    """The inverse of `parse_rfc3339`, for echoing a stored `expires_at`
+    back out with the same explicit-offset convention as every other
+    timestamp (R-1-021)."""
+    return datetime.fromtimestamp(epoch_seconds, tz=timezone.utc).isoformat(timespec="seconds")

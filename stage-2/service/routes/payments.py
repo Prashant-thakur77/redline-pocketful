@@ -4,6 +4,7 @@ from __future__ import annotations
 import secrets
 
 from ..errors import insufficient_funds, malformed_request, not_found, self_payment, validation_failed
+from ..holds import available_for
 from ..json_utils import now_rfc3339
 from ..pipeline import Endpoint, RequestCtx
 from ..store import STORE
@@ -30,6 +31,7 @@ def serialize_payment(payment: dict) -> dict:
         "request_id": payment["request_id"],
         "created_at": payment["created_at"],
         "settlement_id": payment["settlement_id"],
+        "authorization_id": payment.get("authorization_id"),
     }
 
 
@@ -69,12 +71,15 @@ class PaymentsEndpoint(Endpoint):
         payer, payee = ctx.user, resource
         amount = fields["amount"]
 
+        # R-2-002/R-2-013: a direct payment is checked against available
+        # (total minus held), not total — held funds cannot fund a new
+        # payment even though the wallet's raw total covers it.
         # R-1-002/R-1-006: compute both sides before applying either, so
         # there is never a window where the sender is debited and the
         # receiver not yet credited, or vice versa.
-        payer_balance = STORE.wallets.get(payer["id"], 0)
-        if payer_balance < amount:
+        if available_for(STORE, payer["id"]) < amount:
             raise insufficient_funds()
+        payer_balance = STORE.wallets.get(payer["id"], 0)
         payee_balance = STORE.wallets.get(payee["id"], 0)
 
         STORE.wallets[payer["id"]] = payer_balance - amount
@@ -84,7 +89,7 @@ class PaymentsEndpoint(Endpoint):
         payment = {
             "id": payment_id, "from_user_id": payer["id"], "to_user_id": payee["id"],
             "amount": amount, "note": fields["note"], "visibility": fields["visibility"],
-            "request_id": None, "settlement_id": None,
+            "request_id": None, "settlement_id": None, "authorization_id": None,
             "created_at": now_rfc3339(), "seq": STORE.next_seq(),
         }
         STORE.payments[payment_id] = payment
