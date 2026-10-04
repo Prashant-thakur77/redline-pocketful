@@ -97,6 +97,48 @@ so the decision was made against the evidence rather than after seeing a conveni
 Everything else at `d6fe8b8` passed and stands: g1, g2 (314), g3 (claimed stage 1,
 `suites {"1": "pass", "2": "fail"}`), g4 (1300 ops, invariant held), g5, g8.
 
+## N1-10.3: two bugs, and @builder refused a 50/50 it had not earned
+
+| id | state | commit | evidence |
+|---|---|---|---|
+| N1-10.3 | **done** | `639e71a` (+ `c552f89`, `8a6c29b`) | Best piece of self-correction in the run. |
+
+The defect I dispatched was one bug; it was two, and @builder found the second only because it
+distrusted its own passing result:
+
+1. **`c552f89` — drain unread input before closing.** Correct and still in place: closing a
+   socket with unread input queued sends an RST that can discard an already-written response.
+2. **`639e71a` — write the response in one `wfile.write()`, not two.** The stdlib's
+   `end_headers()` → `flush_headers()` writes the status line + headers + blank line as one
+   write, and the body followed in a **second** write — two candidate TCP segments. A reader
+   treating `\r\n\r\n` as "response complete" could therefore see a correct status line and
+   headers with **no body**, which is exactly the empty-envelope symptom. `_end_headers_with_body()`
+   appends the terminator and body to the stdlib's own `_headers_buffer` and issues a single
+   write, applied across `send_error`, `_write_json` and `do_OPTIONS`.
+
+**Why it nearly slipped through, in @builder's own account:** its first smoke test ran the server
+in a thread *in the same process as the client*, which passed 50/50 against the drain fix alone —
+because in-process sockets do not segment the way separate-process TCP does. Run as a separate OS
+process, the real pytest test failed roughly every other run **with the drain fix in place**. It
+reported that rather than the clean number it already had. A seat that had simply pasted its first
+50/50 would have closed stage 1 over a live defect, and the gate suite would not have caught it:
+gate 2 passed at `c552f89` (314/0) with the second bug still present.
+
+Final evidence: **50/50 on `test_over_long_header_block_400` and 50/50 on
+`test_over_long_request_line_400`**, both against a separate-process service, plus gate 2 at
+`639e71a` = 314 passed, 0 failed.
+
+### Carried forward to N2-T, not blocking this close
+
+`test_http_framing.py`'s `_send_raw` helper decides a response is complete when it sees `\r\n\r\n`
+anywhere in the accumulated bytes, instead of reading the declared `Content-Length`. That
+heuristic is wrong in general — any response whose body crosses a segment boundary defeats it —
+and it is only adequate now because the framing tests assert on small error envelopes and the
+server coalesces its writes. The file is copied forward into stages 2, 3 and 4. **@redline must
+fix the helper to read `Content-Length` as part of N2-T**, keeping every assertion identical.
+Recorded rather than fixed now because it is latent, not active: no current test depends on the
+broken half, and stage 1 is otherwise ready.
+
 ## The governor trip on node `adhoc` is a measurement artifact (planner ruling, 2026-10-04)
 
 @builder's gate 8 at `34e8a60` returned:
