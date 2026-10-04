@@ -43,6 +43,14 @@ def idempotency_key_reuse(message: str = "Idempotency-Key was already used with 
     return ApiError(409, "idempotency_key_reuse", message)
 
 
+def email_taken(message: str = "email is already registered") -> ApiError:
+    return ApiError(409, "email_taken", message)
+
+
+def handle_taken(message: str = "derived handle is already taken") -> ApiError:
+    return ApiError(409, "handle_taken", message)
+
+
 def validation_failed(message: str = "validation failed") -> ApiError:
     return ApiError(422, "validation_failed", message)
 
