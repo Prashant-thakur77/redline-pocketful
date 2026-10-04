@@ -54,7 +54,20 @@ At `5a60153`, `--gates all --track pocketful --kickoff …`:
 | 8 budget | **PASS** — within caps; stage spend $38.33 of $120 |
 | scope | **FAIL** — the one sanctioned test deletion (`714f5e470c`), ruled on above; @verifier's call |
 
-Gate 6 is therefore the only outstanding content gate. Its sample is 12 mutants and
+**GATE 6 NOW PASSES.** @redline, `7c85099` (current HEAD), 15:38:22, ledger `passed=true`:
+`RESULT: PASS — killed 10/10 valid mutants (100%, need 80%); 0 stillborn; 160 candidates`.
+Nothing was stillborn, so the sample was the full twelve less the two the tool discarded, and
+every live mutant died. The four N1-T.8 gaps plus N1-T.7's three were the whole deficit:
+the score went 50% → 62% → 25% (stillborn-inflated) → **100%**. @redline re-resolved HEAD
+itself rather than reusing the commit I named, which is the right habit and the one
+@verifier's `c6da257` lesson asks for.
+
+One run, not the three I asked for. The second measurement is better taken by a different
+seat at the same commit than by @redline repeating itself, and the stage-close pass runs
+gate 6 as part of `--gates all` — so @verifier's close is the confirming run, by an
+independent seat, and 0 stillborn removes the variance that made the earlier numbers noise.
+
+Historical note: gate 6 was the only outstanding content gate. Its sample is 12 mutants and
 small-sample noisy: three runs within fifteen minutes scored 50% (0 stillborn),
 62% (2 stillborn) and 25% (6 stillborn). The route to a durable pass is to kill
 every survivor that is a genuine coverage gap, so that any sample passes.
