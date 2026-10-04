@@ -73,6 +73,55 @@ Pulling work forward **within** a stage is fine (R-1-163…167 moved from N1-6 i
 pulling work forward **across** a stage boundary breaks the close. Tell @builder this
 before each stage, not after.
 
+## 5a. Verifier: one tagged pass per item, to make the record honest
+
+Two defects in how I set this up, found by reading `factory/metrics.py` and
+`factory/report.py`:
+
+**Rejections are only marked recovered by a later `GO`.** `metrics.py:63-65` resolves
+`recovered_by` as the next verdict on the same node whose verdict is `GO`. Under the
+HOLDS model nothing ever gets one, so `factory.report` would present all 11 stage-1
+rejections — including three genuine breaches that were fixed — as never recovered. That
+would misrepresent the run.
+
+**Fix, and it is free:** once the stage-close run has gate 2 green, run **one tagged pass
+per item at the final commit** and record `GO` for each node that passes. `is_go()` needs
+gate results for that exact node at that commit, which is why the close-tagged run alone
+is not enough. It costs no budget: `governor.py:41` counts only *rejection* verdicts, and
+these runs pass.
+
+```
+for n in N1-1 N1-2 … ; do
+  .venv/bin/python -m factory.gates.run stage-<N> --commit <final> --node $n --gates 1,2,4,8
+  .venv/bin/python -m factory.record verdict --stage <N> --node $n --verdict GO --commit <final> --text "…"
+done
+```
+
+**One item cannot be made whole this way: N1-1.** Its attempts are permanently 6 > cap 4,
+so gate 8 fails for that node forever and `is_go()` will always refuse. Its rejections
+therefore stay `recovered: no` in the generated report even though they were fixed
+(`fce263e` for R-1-079, `13ff358` for R-1-080a). **The final report must say so explicitly
+and name those commits**, rather than let the generated table imply the breaches are open.
+
+## 5b. Every seat: record cost events, or the report has no cost
+
+`evidence/ledger.jsonl` currently holds 13 handoffs, 156 gate results, 17 verdicts and
+**zero `cost` events**, so `factory.report --summary` prints `spend $0.00` and
+`cost_rows()` is empty. Seats have been putting cost in their message EVIDENCE blocks,
+which the ledger never sees — my omission: I asked for the block and never asked for the
+event.
+
+Each seat records its own, per item or per stage:
+
+```
+.venv/bin/python -m factory.record cost --stage <N> [--node <id>] \
+  --seat <planner|redline|builder|adversary|verifier> \
+  --tokens <T> --usd <U> --seconds <S>
+```
+
+No seat records another's figures. They are best estimates from the seat's own evidence
+blocks, and the final report must label them as estimates.
+
 ## 6. Planner: record the close
 
 ```
