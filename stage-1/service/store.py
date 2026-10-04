@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import threading
 
+from .idempotency import IDEMPOTENCY
 from .json_utils import now_rfc3339
 
 
@@ -68,6 +69,12 @@ class Store:
         self.settlement_operator_ids = fields["settlement_operator_ids"]
         self.settlements = {}
         self.tokens = {}
+        # R-1-040: nothing from before this reset is visible afterwards,
+        # including a key claimed or completed under the old fixture — a
+        # replay must never resolve against a payment/request that no
+        # longer exists (R-1-244: the clear is part of this same atomic
+        # swap, under the write lock already held).
+        IDEMPOTENCY.clear()
 
 
 STORE = Store()
