@@ -9,12 +9,13 @@ from __future__ import annotations
 
 import secrets
 
-from ..handles import derive_handle
+from ..errors import ApiError
 from ..json_utils import dumps
-from ..passwords import DUMMY_PASSWORD_HASH, hash_password, verify_password
+from ..passwords import DUMMY_PASSWORD_HASH, verify_password
 from ..store import STORE
 from . import assets
 from .layout import esc, render_shell
+from ..routes.auth import create_user
 
 _HTML_HEADERS = [("Content-Type", "text/html; charset=utf-8")]
 _MIN_PASSWORD_LEN = 8
@@ -191,14 +192,18 @@ def _handle_login(form: dict):
     return _redirect("/", set_cookie=_session_cookie(token))
 
 
-def _validate_signup(email: str, password: str, display_name: str) -> str | None:
+def _validate_signup_format(email: str, password: str, display_name: str) -> str | None:
+    """Format-only checks — never uniqueness. R-1-088's exactly-one-winner
+    guarantee can only be enforced inside the write lock, by `create_user`
+    itself; checking `email in STORE.users_by_email` out here (as this
+    function used to) is exactly the race adversary found, since two
+    concurrent submissions can both read "not taken" before either
+    writes."""
     if "@" not in email:
         return "Enter a valid email address."
     local, _, domain = email.partition("@")
     if not local or not domain:
         return "Enter a valid email address."
-    if email in STORE.users_by_email:
-        return "That email is already registered."
     if len(password) < _MIN_PASSWORD_LEN:
         return f"Password must be at least {_MIN_PASSWORD_LEN} characters."
     if not display_name:
@@ -210,29 +215,23 @@ def _handle_signup(form: dict):
     email = form.get("email", "")
     password = form.get("password", "")
     display_name = form.get("display_name", "")
-    error = _validate_signup(email, password, display_name)
-    if error is None:
-        handle = derive_handle(email)
-        if handle in STORE.users_by_handle:
-            error = "That email is already registered."
+    error = _validate_signup_format(email, password, display_name)
     if error is not None:
         html_bytes = render_shell(title="Sign up", user=None, active_path="/signup",
                                    body=_signup_body(error))
         return 200, _HTML_HEADERS, html_bytes
 
-    handle = derive_handle(email)
-    user_id = secrets.token_urlsafe(16)
-    user = {
-        "id": user_id, "email": email, "password_hash": hash_password(password),
-        "display_name": display_name, "handle": handle, "balance": 0,
-    }
-    STORE.users_by_id[user_id] = user
-    STORE.users_by_handle[handle] = user_id
-    STORE.users_by_email[email] = user
-    STORE.wallets[user_id] = 0
-
-    token = secrets.token_urlsafe(32)
-    STORE.tokens[token] = user_id
+    # R-1-088: the check-then-insert must be one atomic step, same as the
+    # JSON /auth/signup path — `create_user` is the single place that
+    # does it, under the store's one write lock, so the two paths can
+    # never drift apart on this guarantee again.
+    try:
+        with STORE.write_lock():
+            user_id, token = create_user(email, password, display_name)
+    except ApiError:
+        html_bytes = render_shell(title="Sign up", user=None, active_path="/signup",
+                                   body=_signup_body("That email is already registered."))
+        return 200, _HTML_HEADERS, html_bytes
     return _redirect("/", set_cookie=_session_cookie(token))
 
 

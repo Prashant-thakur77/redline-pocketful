@@ -34,12 +34,50 @@ _NEGOTIATED_PAGES = {"/requests", "/authorizations"}
 _POST_PAGES = {"/login", "/signup", "/logout"}
 
 
+def _parse_accept(accept: str) -> list[tuple[str, float]]:
+    entries = []
+    for part in accept.split(","):
+        part = part.strip()
+        if not part:
+            continue
+        pieces = part.split(";")
+        media_type = pieces[0].strip().lower()
+        q = 1.0
+        for param in pieces[1:]:
+            param = param.strip()
+            if param.startswith("q="):
+                try:
+                    q = float(param[2:])
+                except ValueError:
+                    q = 1.0
+        entries.append((media_type, q))
+    return entries
+
+
 def _wants_html(headers: dict) -> bool:
-    """R-2-091: match on "text/html" appearing in Accept, never on the
-    absence of "application/json" — a browser sends
-    "text/html,application/xhtml+xml,...", curl's default "*/*" and a bare
-    missing header must both keep returning JSON."""
-    return "text/html" in headers.get("accept", "")
+    """R-2-091: a real Accept parse, not a substring search — a naive
+    `"text/html" in accept` both matches values that merely contain the
+    substring without being the media type at all (`text/htmlx`,
+    `application/text/html`) and ignores q-values entirely, wrongly
+    diverting a client that lists `text/html` only as a near-zero-
+    priority fallback behind `application/json` (adversary's second
+    N2-5 breach). The exact token `text/html` must be present with a
+    q-value at least as high as every other listed type's; curl's
+    default `*/*`, a bare missing header, and an explicit
+    `application/json` must all still mean JSON."""
+    accept = headers.get("accept", "")
+    if not accept:
+        return False
+    html_q = None
+    best_other_q = 0.0
+    for media_type, q in _parse_accept(accept):
+        if media_type == "text/html":
+            html_q = q if html_q is None else max(html_q, q)
+        else:
+            best_other_q = max(best_other_q, q)
+    if html_q is None or html_q <= 0:
+        return False
+    return html_q >= best_other_q
 
 
 def _parse_cookies(headers: dict) -> dict:

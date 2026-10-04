@@ -72,35 +72,45 @@ class SignupEndpoint(Endpoint):
         return {"email": email, "password": password, "display_name": display_name}
 
     def apply(self, ctx: RequestCtx, resource, fields: dict):
-        email = fields["email"]
-        # R-1-088: email_taken before handle_taken, and both checked in the
-        # same write-lock critical section as the insert so two concurrent
-        # signups racing on the same email or derived handle still produce
-        # exactly one 201 and one 409 (never two 201s).
-        if email in STORE.users_by_email:
-            raise email_taken()
-
-        handle = derive_handle(email)  # non-empty: local is non-empty (checked above)
-        if handle in STORE.users_by_handle:
-            raise handle_taken()
-
-        user_id = secrets.token_urlsafe(16)
-        user = {
-            "id": user_id,
-            "email": email,
-            "password_hash": hash_password(fields["password"]),
-            "display_name": fields["display_name"],
-            "handle": handle,
-            "balance": 0,
-        }
-        STORE.users_by_id[user_id] = user
-        STORE.users_by_handle[handle] = user_id
-        STORE.users_by_email[email] = user
-        STORE.wallets[user_id] = 0
-
-        token = secrets.token_urlsafe(32)
-        STORE.tokens[token] = user_id
+        user_id, token = create_user(fields["email"], fields["password"], fields["display_name"])
+        user = STORE.users_by_id[user_id]
         return 201, {"user_id": user_id, "display_name": user["display_name"], "token": token}
+
+
+def create_user(email: str, password: str, display_name: str) -> tuple[str, str]:
+    """The check-then-insert every signup path needs, factored out so the
+    UI's `POST /signup` form (`service/ui/pages.py`) can share it instead
+    of reimplementing it — a second copy is exactly how R-1-088's
+    exactly-one-winner guarantee drifted out from under the form path
+    (adversary's BREACH on N2-5). Must be called with `STORE.write_lock()`
+    already held: R-1-088 requires email_taken-then-handle_taken-then-
+    insert to run as one atomic step, or two concurrent signups racing on
+    the same email/derived handle can both read "not taken" before either
+    writes, producing two 201s instead of one 201 and one 409."""
+    if email in STORE.users_by_email:
+        raise email_taken()
+
+    handle = derive_handle(email)  # non-empty: caller validates local-part non-empty first
+    if handle in STORE.users_by_handle:
+        raise handle_taken()
+
+    user_id = secrets.token_urlsafe(16)
+    user = {
+        "id": user_id,
+        "email": email,
+        "password_hash": hash_password(password),
+        "display_name": display_name,
+        "handle": handle,
+        "balance": 0,
+    }
+    STORE.users_by_id[user_id] = user
+    STORE.users_by_handle[handle] = user_id
+    STORE.users_by_email[email] = user
+    STORE.wallets[user_id] = 0
+
+    token = secrets.token_urlsafe(32)
+    STORE.tokens[token] = user_id
+    return user_id, token
 
 
 def register(router) -> None:
