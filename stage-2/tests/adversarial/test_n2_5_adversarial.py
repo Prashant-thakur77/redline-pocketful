@@ -120,3 +120,81 @@ def test_display_name_with_markup_renders_escaped_not_raw():
     r2 = httpx.get(BASE_URL + "/", headers={"Cookie": cookie_val}, timeout=10.0)
     assert "<script>alert(1)</script>" not in r2.text, "display_name must never render unescaped"
     assert "&lt;script&gt;" in r2.text
+
+
+def test_api_client_preferring_json_is_unaffected_by_a_low_priority_html_accept():
+    """BREACH: `ui._wants_html` is a naive substring check
+    (`"text/html" in headers.get("accept", "")`), not a real Accept
+    header parse. R-2-091 promises "existing API clients ... are
+    unaffected" — a real client that primarily wants JSON but lists
+    text/html as a near-zero-priority fallback (`Accept: application/
+    json, text/html;q=0.01`, a realistic compound header) is exactly
+    such a client, and it gets served the HTML page instead of JSON."""
+    email = f"{unique('negjson')}@example.com"
+    r = _signup_form(email)
+    assert r.status_code == 302, r.text
+    cookie_val = r.headers.get("set-cookie", "").split(";")[0]
+
+    r2 = httpx.get(BASE_URL + "/requests", headers={
+        "Cookie": cookie_val, "Accept": "application/json, text/html;q=0.01",
+    }, timeout=10.0)
+    assert "application/json" in r2.headers.get("content-type", ""), (
+        f"a client that only nominally lists text/html at q=0.01 must still get JSON: "
+        f"status={r2.status_code} content-type={r2.headers.get('content-type')}"
+    )
+
+
+def test_accept_header_substring_collision_does_not_falsely_trigger_html():
+    """BREACH, same root cause: `"text/html" in accept` also matches
+    Accept values that are not the `text/html` media type at all —
+    `text/htmlx` and `application/text/html` both contain the
+    substring without being it. Both wrongly divert to the UI."""
+    email = f"{unique('negcollide')}@example.com"
+    r = _signup_form(email)
+    assert r.status_code == 302, r.text
+    cookie_val = r.headers.get("set-cookie", "").split(";")[0]
+
+    for bad_accept in ("text/htmlx", "application/text/html"):
+        r2 = httpx.get(BASE_URL + "/requests", headers={"Cookie": cookie_val, "Accept": bad_accept}, timeout=10.0)
+        assert "application/json" in r2.headers.get("content-type", ""), (
+            f"Accept={bad_accept!r} is not text/html and must get JSON: "
+            f"status={r2.status_code} content-type={r2.headers.get('content-type')}"
+        )
+
+
+def test_non_get_never_diverts_to_html_even_with_html_accept():
+    """Non-GET requests must stay on the JSON API regardless of Accept
+    (R-2-091 only negotiates GET)."""
+    email = f"{unique('postneg')}@example.com"
+    r = _signup_form(email)
+    assert r.status_code == 302, r.text
+    cookie_val = r.headers.get("set-cookie", "").split(";")[0]
+
+    r2 = httpx.post(BASE_URL + "/requests", json={"payer_handle": "nobody", "amount": 1},
+                     headers={"Cookie": cookie_val, "Accept": "text/html"}, timeout=10.0)
+    assert "application/json" in r2.headers.get("content-type", "")
+    r3 = httpx.post(BASE_URL + "/authorizations", json={"to_handle": "nobody", "amount": 1},
+                     headers={"Cookie": cookie_val, "Accept": "text/html"}, timeout=10.0)
+    assert "application/json" in r3.headers.get("content-type", "")
+
+
+def test_cookie_invalidated_by_reset_degrades_to_clean_login_redirect():
+    """A session cookie whose token was wiped by POST /_test/reset must
+    redirect every authed route to /login, never 500 (R-1-005)."""
+    email = f"{unique('staleafter')}@example.com"
+    r = _signup_form(email)
+    assert r.status_code == 302, r.text
+    stale_cookie = r.headers.get("set-cookie", "").split(";")[0]
+
+    reset_body = {"currency": "EUR", "minor_units": 2, "users": [
+        {"id": unique("u"), "handle": unique("h"), "balance": 0,
+         "email": f"{unique('fresh')}@example.com", "password": "password123", "display_name": "Fresh"},
+    ]}
+    rr = httpx.post(BASE_URL + "/_test/reset", json=reset_body, timeout=10.0)
+    assert rr.status_code == 204, rr.text
+
+    for path in ("/", "/split", "/requests", "/authorizations"):
+        rp = httpx.get(BASE_URL + path, headers={"Cookie": stale_cookie, "Accept": "text/html"},
+                        follow_redirects=False, timeout=10.0)
+        assert rp.status_code != 500, f"{path} must never 500 on a cookie killed by reset: {rp.status_code}"
+        assert rp.status_code == 302 and rp.headers.get("location") == "/login", (path, rp.status_code)
