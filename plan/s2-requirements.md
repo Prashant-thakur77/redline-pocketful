@@ -199,6 +199,13 @@ R-1-120 (`GET /me` gains fields), R-1-133 / R-1-158 / R-1-227 (funds checks now 
 | R-2-185 | **PLANNER DECISION.** No UI route handler may reimplement a write that the JSON API already implements. Every browser form that moves money, creates a request, a split, an authorization, a capture, a void or an account must execute through the **same endpoint object** the JSON API uses, so lock discipline, validation, error precedence and idempotency cannot drift between the two paths. A UI handler may translate form encoding to the endpoint's request shape and translate the response to a redirect or a rendered error; it may not touch the store directly. | derived from R-1-006, R-1-088, R-1-100, R-2-016 | invariant |
 | R-2-186 | **PLANNER DECISION.** Every concurrency and precedence guarantee stated for a JSON endpoint holds identically when the same operation is driven through its browser form, including under concurrent submissions. | derived from R-1-006, R-2-180 | invariant |
 
+## M3. Content negotiation and logout (planner decisions, 2026-10-05)
+
+| id | requirement | spec | kind |
+|---|---|---|---|
+| R-2-187 | **PLANNER DECISION.** `Accept` must be parsed as a comma-separated list of media ranges with parameters, not substring-matched. Serve HTML **iff** `text/html` appears as an **explicit** media type (exact `type/subtype`, never matched via `text/*` or `*/*`) with `q > 0`, **and** no explicit `application/json` entry carries a strictly higher `q`. Therefore: `text/html` → HTML; a browser's `text/html,application/xhtml+xml,…,*/*;q=0.8` → HTML; `application/json, text/html;q=0.01` → **JSON**; `application/json` → JSON; `*/*` → JSON; absent → JSON; `text/htmlx` and `application/text/html` → JSON; `text/html;q=0` → JSON. This is the reading that makes R-2-091's "existing API clients are unaffected" true for a client doing honest content negotiation. | derived from R-2-091 | behaviour |
+| R-2-188 | **PLANNER DECISION.** `logout-button` clears the browser session (the cookie) and **must not invalidate any bearer token server-side**. R-1-090 states tokens never expire and one account may hold many valid tokens used concurrently; no endpoint in any stage is granted the power to revoke one, and R-1-205 requires export/import to preserve existing tokens. A logout that revoked its token would break a concurrently running API client holding the same token. | derived from R-1-090, R-1-205, R-2-125 | behaviour |
+
 ## N. Concurrency
 
 | id | requirement | spec | kind |
