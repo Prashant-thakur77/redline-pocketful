@@ -1,6 +1,8 @@
 """Atomic net settlements: R-1-220..236."""
 from __future__ import annotations
 
+import pytest
+
 from conftest import (api_get, api_post, assert_error, auth, idem, login_token, make_fixture,
                        reset_ok, unique, unique_handle, user)
 
@@ -93,6 +95,78 @@ def test_settlement_per_entry_errors():
                                                               "amount": 10, "visibility": "nope"}]},
                         headers={**auth(tokens[0]), **idem(unique("k"))})
     assert_error(bad_vis, 422, "validation_failed")
+
+
+def _assert_entry_rejected_unchanged(fixture, handles, tokens, entry, status, code):
+    before = [api_get("/me", headers=auth(tokens[i])).json()["balance"] for i in range(len(handles))]
+    r = api_post("/settlements", json={"transfers": [entry]}, headers={**auth(tokens[0]), **idem(unique("k"))})
+    assert_error(r, status, code)
+    after = [api_get("/me", headers=auth(tokens[i])).json()["balance"] for i in range(len(handles))]
+    assert before == after, f"a rejected entry must change no balance: {before} -> {after}"
+
+
+def test_settlement_entry_missing_from_handle_422():
+    """R-1-225a: an entry missing only from_handle is validation_failed, a
+    valid to_handle and amount do not excuse it."""
+    fixture, ids, handles, tokens = _setup(n=2)
+    _assert_entry_rejected_unchanged(fixture, handles, tokens, {"to_handle": handles[1], "amount": 100},
+                                      422, "validation_failed")
+
+
+def test_settlement_entry_missing_to_handle_422():
+    """R-1-225a: an entry missing only to_handle is validation_failed, a
+    valid from_handle and amount do not excuse it."""
+    fixture, ids, handles, tokens = _setup(n=2)
+    _assert_entry_rejected_unchanged(fixture, handles, tokens, {"from_handle": handles[0], "amount": 100},
+                                      422, "validation_failed")
+
+
+def test_settlement_entry_missing_amount_422():
+    """R-1-225a: an entry missing only amount is validation_failed, valid
+    handles on both sides do not excuse it."""
+    fixture, ids, handles, tokens = _setup(n=2)
+    _assert_entry_rejected_unchanged(fixture, handles, tokens, {"from_handle": handles[0], "to_handle": handles[1]},
+                                      422, "validation_failed")
+
+
+def test_settlement_entry_from_handle_non_string_400():
+    """R-1-225a: a non-string from_handle is malformed_request even though
+    to_handle and amount are both valid."""
+    fixture, ids, handles, tokens = _setup(n=2)
+    _assert_entry_rejected_unchanged(fixture, handles, tokens,
+                                      {"from_handle": 123, "to_handle": handles[1], "amount": 100},
+                                      400, "malformed_request")
+
+
+def test_settlement_entry_to_handle_non_string_400():
+    """R-1-225a: a non-string to_handle is malformed_request even though
+    from_handle and amount are both valid."""
+    fixture, ids, handles, tokens = _setup(n=2)
+    _assert_entry_rejected_unchanged(fixture, handles, tokens,
+                                      {"from_handle": handles[0], "to_handle": ["bob"], "amount": 100},
+                                      400, "malformed_request")
+
+
+@pytest.mark.parametrize("bad_handle", ["Ada", "a b", "ada!", "a" * 21])
+def test_settlement_entry_from_handle_bad_syntax_422_not_404(bad_handle):
+    """R-1-225a, R-1-077: a syntactically invalid from_handle is
+    validation_failed, never not_found — syntax is checked before any
+    lookup, even though to_handle is a valid, existing handle."""
+    fixture, ids, handles, tokens = _setup(n=2)
+    _assert_entry_rejected_unchanged(fixture, handles, tokens,
+                                      {"from_handle": bad_handle, "to_handle": handles[1], "amount": 100},
+                                      422, "validation_failed")
+
+
+@pytest.mark.parametrize("bad_handle", ["Ada", "a b", "ada!", "a" * 21])
+def test_settlement_entry_to_handle_bad_syntax_422_not_404(bad_handle):
+    """R-1-225a, R-1-077: a syntactically invalid to_handle is
+    validation_failed, never not_found — syntax is checked before any
+    lookup, even though from_handle is a valid, existing handle."""
+    fixture, ids, handles, tokens = _setup(n=2)
+    _assert_entry_rejected_unchanged(fixture, handles, tokens,
+                                      {"from_handle": handles[0], "to_handle": bad_handle, "amount": 100},
+                                      422, "validation_failed")
 
 
 def test_entry_errors_precede_insufficient_funds_in_input_order():

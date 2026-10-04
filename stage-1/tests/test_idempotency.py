@@ -307,3 +307,96 @@ def test_replay_returns_stored_body_verbatim():
     r2 = api_post("/payments", json=body, headers={**auth(token_a), **idem(key)})
     assert r2.status_code == 200, r2.text
     assert r2.json() == r1.json(), "a replay must return the stored response verbatim"
+
+
+def test_r_1_108_concurrent_losers_get_winner_body_payments():
+    """R-1-108, stated strictly: for N concurrent identical requests with an
+    unused key, exactly one returns 201 and the REST return 200 with the
+    IDENTICAL body — not merely "one 201 and the rest aren't 201". A
+    service that gave up waiting on the in-flight winner and answered a
+    loser with a timeout, a 409, a 503 or an empty body would violate this
+    and a looser assertion (checking only the 201 count) would miss it."""
+    fixture, token_a, _ = _two_user_fixture(balance_a=10_000)
+    b_handle = fixture["users"][1]["handle"]
+    key = unique("concurrent-strict")
+    body = {"to_handle": b_handle, "amount": 37, "note": "strict-108"}
+    n = 8
+    results = [None] * n
+    lock = threading.Lock()
+
+    def go(i):
+        r = api_post("/payments", json=body, headers={**auth(token_a), **idem(key)})
+        with lock:
+            results[i] = r
+
+    threads = [threading.Thread(target=go, args=(i,)) for i in range(n)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+    statuses = Counter(r.status_code for r in results)
+    assert statuses == Counter({201: 1, 200: n - 1}), \
+        f"expected exactly {{201: 1, 200: {n - 1}}}, got {dict(statuses)}"
+
+    winner_body = next(r.json() for r in results if r.status_code == 201)
+    for r in results:
+        assert r.json() == winner_body, f"every response must carry the identical body: {r.json()} vs {winner_body}"
+
+    balance_a = api_get("/me", headers=auth(token_a)).json()["balance"]
+    balance_b = api_get("/me", headers=auth(login_token(fixture["users"][1]["email"]))).json()["balance"]
+    assert balance_a == 10_000 - 37
+    assert balance_b == 37
+
+    payment_id = winner_body["payment_id"]
+    feed = api_get("/activity", headers=auth(token_a)).json()["payments"]
+    matching = [p for p in feed if p["payment_id"] == payment_id]
+    assert len(matching) == 1, f"the feed must contain exactly one payment for this operation: {matching}"
+
+
+def test_r_1_108_concurrent_losers_get_winner_body_settlements():
+    """R-1-108 on the slowest write path, where the wait for the in-flight
+    winner is longest and most likely to be cut short by an impatient
+    implementation."""
+    a_id, b_id, op_id = unique("u"), unique("u"), unique("u")
+    a_handle, b_handle, op_handle = unique_handle("a"), unique_handle("b"), unique_handle("op")
+    fixture = make_fixture(
+        [user(a_id, a_handle, balance=10_000), user(b_id, b_handle, balance=0), user(op_id, op_handle, balance=0)],
+        settlement_operator_ids=[op_id],
+    )
+    reset_ok(fixture)
+    token_op = login_token(fixture["users"][2]["email"])
+    key = unique("concurrent-settlement-strict")
+    body = {"transfers": [{"from_handle": a_handle, "to_handle": b_handle, "amount": 41}]}
+    n = 8
+    results = [None] * n
+    lock = threading.Lock()
+
+    def go(i):
+        r = api_post("/settlements", json=body, headers={**auth(token_op), **idem(key)})
+        with lock:
+            results[i] = r
+
+    threads = [threading.Thread(target=go, args=(i,)) for i in range(n)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+    statuses = Counter(r.status_code for r in results)
+    assert statuses == Counter({201: 1, 200: n - 1}), \
+        f"expected exactly {{201: 1, 200: {n - 1}}}, got {dict(statuses)}"
+
+    winner_body = next(r.json() for r in results if r.status_code == 201)
+    for r in results:
+        assert r.json() == winner_body, f"every response must carry the identical body: {r.json()} vs {winner_body}"
+
+    balance_a = api_get("/me", headers=auth(login_token(fixture["users"][0]["email"]))).json()["balance"]
+    balance_b = api_get("/me", headers=auth(login_token(fixture["users"][1]["email"]))).json()["balance"]
+    assert balance_a == 10_000 - 41
+    assert balance_b == 41
+
+    settlement_id = winner_body["settlement_id"]
+    feed = api_get("/activity", headers=auth(login_token(fixture["users"][0]["email"]))).json()["payments"]
+    matching = [p for p in feed if p.get("settlement_id") == settlement_id]
+    assert len(matching) == 1, f"the feed must contain exactly one payment for this settlement: {matching}"

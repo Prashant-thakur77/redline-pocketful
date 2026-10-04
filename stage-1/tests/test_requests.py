@@ -1,6 +1,8 @@
 """Requests: R-1-150..167."""
 from __future__ import annotations
 
+import pytest
+
 from conftest import (api_get, api_post, assert_error, auth, idem, login_token, make_fixture,
                        reset_ok, two_user_fixture as _two_user_fixture, unique, unique_handle, user)
 
@@ -370,3 +372,60 @@ def test_get_requests_pagination_defaults_and_has_more():
     past_end = api_get("/requests", headers=auth(token_a), params={"limit": 2, "offset": 1000})
     assert past_end.json()["requests"] == []
     assert past_end.json()["has_more"] is False
+
+
+@pytest.mark.parametrize("action,caller_is_payer,expected_status", [
+    ("decline", True, "declined"),
+    ("cancel", False, "cancelled"),
+])
+def test_malformed_body_on_decline_and_cancel(action, caller_is_payer, expected_status):
+    """R-1-061a: decline/cancel read a body even though they require no
+    field, so a malformed one must still be 400 malformed_request and leave
+    the request pending (nothing consumed); a well-formed body with unknown
+    fields — including one that LOOKS like it tries to set status — must be
+    ignored (R-1-022), never rejected and never honoured."""
+    fixture, token_a, token_b = _two_user_fixture()
+    b_handle = fixture["users"][1]["handle"]
+    caller_token = token_b if caller_is_payer else token_a
+
+    def fresh_request():
+        r = api_post("/requests", json={"payer_handle": b_handle, "amount": 10},
+                     headers={**auth(token_a), **idem(unique("k"))})
+        assert r.status_code == 201, r.text
+        return r.json()["request_id"]
+
+    def status_of(req_id):
+        items = api_get("/requests", headers=auth(token_a)).json()["requests"]
+        return next(x for x in items if x["request_id"] == req_id)["status"]
+
+    # 1: raw, unparseable bytes -> 400, request still pending
+    req_a = fresh_request()
+    bad_json = api_post(f"/requests/{req_a}/{action}", content=b"not json at all",
+                        headers={**auth(caller_token), "Content-Type": "application/json"})
+    assert_error(bad_json, 400, "malformed_request")
+    assert status_of(req_a) == "pending"
+
+    # 2: valid JSON, but a non-object top level -> 400, request still pending
+    for bad_body in ([], "a string", 7):
+        r = api_post(f"/requests/{req_a}/{action}", json=bad_body, headers=auth(caller_token))
+        assert_error(r, 400, "malformed_request")
+    assert status_of(req_a) == "pending"
+
+    # 5: the rejected calls above consumed no state transition — the real
+    # action on the SAME request still succeeds afterward.
+    legit = api_post(f"/requests/{req_a}/{action}", json={}, headers=auth(caller_token))
+    assert legit.status_code == 200, legit.text
+    assert legit.json()["status"] == expected_status
+
+    # 3: no body at all is treated as {}, not an error
+    req_b = fresh_request()
+    no_body = api_post(f"/requests/{req_b}/{action}", content=b"", headers=auth(caller_token))
+    assert no_body.status_code == 200, no_body.text
+    assert no_body.json()["status"] == expected_status
+
+    # 4: unknown fields (including a fake "status") are ignored, not honoured
+    req_c = fresh_request()
+    unknown_fields = api_post(f"/requests/{req_c}/{action}", json={"nonsense": 1, "status": "paid"},
+                              headers=auth(caller_token))
+    assert unknown_fields.status_code == 200, unknown_fields.text
+    assert unknown_fields.json()["status"] == expected_status
