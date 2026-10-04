@@ -7,8 +7,8 @@ satisfied and must stay satisfied — that is gate 5's job from here on.
 | id | state | commit | evidence |
 |---|---|---|---|
 | N2-0 | **done** | `721295c` (+ `0ba3d8f` cost) | @builder. `git diff --stat 4cce19d:stage-1 721295c:stage-2` is **empty** — the trees are identical, nothing differs but the path prefix — and `stage-2/tests/invariants/hook.py`, `stage-2/Dockerfile`, `stage-2/RUN.md` are all present. @builder reported both checks rather than asserting the copy worked, and stopped without starting N2-1. |
-| N2-T | dispatched | — | Tests, UI tests and gate hook from R-2-001 … R-2-184, @redline. In flight; @builder is holding for its READY. |
-| N2-1 | planned | — | — |
+| N2-T | **READY** | `36bcb2d` | 431 tests (up from stage 1's 314), 0 collection errors, red for the right reason (`httpx.ConnectError`, no service). Planner-verified below. |
+| N2-1 | dispatched | — | Holds model: `total`/`available`/`held`, fixture `authorizations` + `authorization_ttl_seconds`, reset validation, clock-exact expiry on read. @builder. |
 | N2-2 | planned | — | — |
 | N2-3 | planned | — | — |
 | N2-4 | planned | — | — |
@@ -22,6 +22,38 @@ satisfied and must stay satisfied — that is gate 5's job from here on.
 States: planned → dispatched → built → attacked → GO | NEEDS_WORK | blocked.
 
 Stage: open.
+
+## N2-T verified by the planner, not taken on report (2026-10-04)
+
+@redline's READY at `36bcb2d` claims 123 distinct R-2 ids covered and both carried-in fixes
+landed. Checked rather than accepted:
+
+| claim | check | result |
+|---|---|---|
+| every R-2 id covered | distinct ids in `stage-2/tests/` vs in `plan/s2-requirements.md` | **123 = 123**, no gap |
+| `_send_raw` reads `Content-Length` | `grep -n 'content-length' stage-2/tests/test_http_framing.py` | present at line 54, with the docstring at 21 |
+| the `sed` corruption was really reverted | `grep -rn 'data-tid' stage-2/tests/` | **no hits** — clean |
+| gate 7 hook complete (G7-1) | `hook.missing(m,'setup','operation','invariant')` | `[]`; `ui_login` callable; `transient`, `populate`, `snapshot`, `carry` all present |
+| `UI_ROUTES` covers the six routes | read of `hook.py:592` | all six, in order |
+| edit boundary | `factory.scope 4cce19d..36bcb2d` | **every commit is inside its seat's scope** |
+| nothing deleted | diffstat: 15 files, 2500 insertions, 22 deletions | deletions are the `_send_raw` rewrite only |
+
+**Two self-catches worth recording**, because both are the class of defect that passes every
+gate while making tests meaningless:
+
+1. A `testid()` helper collided with pytest's discovery pattern and was being collected as a
+   bogus test item. @redline renamed it to `tid()` — and the blind `sed` that did the rename
+   also corrupted three literal `"data-testid"` DOM-attribute strings into `"data-tid"`, which
+   would have **silently broken every UI selector** while the suite still "ran". Caught by grep
+   before committing. Verified reverted above.
+2. It found and closed three of its own coverage gaps (R-2-062, R-2-063, R-2-156) before
+   reporting, rather than reporting 120 ids and calling it complete.
+
+**One limitation, honestly stated by @redline and accepted:** no storm status-mix dry run this
+turn, because no stage-2 service exists yet. Stage 1's first storm logged `{404: 1300}` and
+conserved money trivially, so a mix is only meaningful once N2-1 serves something. **The mix
+must be reported with the first gate 4 run that has a live service** — I am carrying that as an
+obligation on N2-1's verification, not letting it lapse.
 
 ## Carried into N2-T from stage 1, not a new requirement
 
