@@ -1,0 +1,117 @@
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /home/prashant/projects/band-work/result/stage-1/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s1/adhoc-g2-20261004T141020-8849.junit.xml  (exit 1)
+ test_import_is_replacement_not_merge_idempotent():
+        """R-1-203"""
+        kept_id = unique("u")
+        kept_handle = unique_handle("keep")
+        fixture = make_fixture([user(kept_id, kept_handle, balance=300)])
+        reset_ok(fixture)
+        document = api_get("/_test/export").json()
+    
+        other_id = unique("u")
+        other_handle = unique_handle("other")
+        reset_ok(make_fixture([user(other_id, other_handle, balance=1)]))
+    
+        api_post("/_test/import", json=document)
+        api_post("/_test/import", json=document)  # repeat import
+    
+>       token = login_token(fixture["users"][0]["email"])
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+stage-1/tests/test_export_import.py:66: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+email = 'keep31d93e01658@example.com', password = 'password123'
+
+    def login_token(email: str, password: str = "password123") -> str:
+        r = login(email, password)
+>       assert r.status_code == 200, f"login failed: {r.status_code} {r.text}"
+E       AssertionError: login failed: 401 {"error": {"code": "unauthenticated", "message": "missing or unknown bearer token"}}
+E       assert 401 == 200
+E        +  where 401 = <Response [401 Unauthorized]>.status_code
+
+stage-1/tests/conftest.py:110: AssertionError
+____________________ test_import_malformed_and_invalid_body ____________________
+
+    def test_import_malformed_and_invalid_body():
+        """R-1-204"""
+        fixture = make_fixture([user(unique("u"), unique_handle("a"), balance=42)])
+        reset_ok(fixture)
+        token = login_token(fixture["users"][0]["email"])
+    
+        bad_json = httpx.post(url("/_test/import"), content=b"{{{not json", headers={"Content-Type": "application/json"})
+>       assert_error(bad_json, 400, "malformed_request")
+
+stage-1/tests/test_export_import.py:80: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+resp = <Response [404 Not Found]>, status = 400, code = 'malformed_request'
+
+    def assert_error(resp: httpx.Response, status: int, code: str):
+>       assert resp.status_code == status, f"expected {status} got {resp.status_code}: {resp.text}"
+E       AssertionError: expected 400 got 404: {"error": {"code": "not_found", "message": "no such endpoint: POST /_test/import"}}
+E       assert 404 == 400
+E        +  where 404 = <Response [404 Not Found]>.status_code
+
+stage-1/tests/conftest.py:165: AssertionError
+________ test_export_import_preserves_accounts_tokens_balances_requests ________
+
+    def test_export_import_preserves_accounts_tokens_balances_requests():
+        """R-1-205"""
+        a_id, b_id = unique("u"), unique("u")
+        a_handle, b_handle = unique_handle("a"), unique_handle("b")
+        op_id = unique("u")
+        op_handle = unique_handle("op")
+        fixture = make_fixture(
+            [user(a_id, a_handle, balance=1000), user(b_id, b_handle, balance=0), user(op_id, op_handle, balance=0)],
+            settlement_operator_ids=[op_id],
+        )
+        reset_ok(fixture)
+        token_a = login_token(fixture["users"][0]["email"])
+        pay = api_post("/payments", json={"to_handle": b_handle, "amount": 100},
+                       headers={**auth(token_a), **idem(unique("k"))})
+        assert pay.status_code == 201
+    
+        document = api_get("/_test/export").json()
+        r = api_post("/_test/import", json=document)
+>       assert r.status_code == 204
+E       assert 404 == 204
+E        +  where 404 = <Response [404 Not Found]>.status_code
+
+stage-1/tests/test_export_import.py:118: AssertionError
+___________________ test_export_is_atomic_readonly_snapshot ____________________
+
+    def test_export_is_atomic_readonly_snapshot():
+        """R-1-207, R-1-208"""
+        fixture = make_fixture([user(unique("u"), unique_handle("a"), balance=1000),
+                                 user(unique("u"), unique_handle("b"), balance=0)])
+        reset_ok(fixture)
+        token = login_token(fixture["users"][0]["email"])
+        b_handle = fixture["users"][1]["handle"]
+    
+        document = api_get("/_test/export").json()
+    
+        # writes after export must not retroactively change the already-returned document
+        api_post("/payments", json={"to_handle": b_handle, "amount": 50}, headers={**auth(token), **idem(unique("k"))})
+        second_export = api_get("/_test/export").json()
+>       assert document != second_export, "a write after export must not be reflected in the earlier snapshot"
+E       AssertionError: a write after export must not be reflected in the earlier snapshot
+E       assert {'error': {'code': 'not_found', 'message': 'no such endpoint: GET /_test/export'}} != {'error': {'code': 'not_found', 'message': 'no such endpoint: GET /_test/export'}}
+
+stage-1/tests/test_export_import.py:175: AssertionError
+=========================== short test summary info ============================
+FAILED stage-1/tests/adversarial/test_n1_6_adversarial.py::test_unrelated_third_party_pay_is_403_not_404
+FAILED stage-1/tests/adversarial/test_n1_6_adversarial.py::test_unrelated_third_party_decline_is_403_not_404
+FAILED stage-1/tests/adversarial/test_n1_6_adversarial.py::test_unrelated_third_party_cancel_is_403_not_404
+FAILED stage-1/tests/test_auth.py::test_password_not_stored_in_plaintext_via_export
+FAILED stage-1/tests/test_export_import.py::test_export_shape_unauthenticated
+FAILED stage-1/tests/test_export_import.py::test_import_unauthenticated_and_full_replace
+FAILED stage-1/tests/test_export_import.py::test_import_accepts_unmodified_export_regardless_of_origin
+FAILED stage-1/tests/test_export_import.py::test_import_is_replacement_not_merge_idempotent
+FAILED stage-1/tests/test_export_import.py::test_import_malformed_and_invalid_body
+FAILED stage-1/tests/test_export_import.py::test_export_import_preserves_accounts_tokens_balances_requests
+FAILED stage-1/tests/test_export_import.py::test_export_is_atomic_readonly_snapshot
+11 failed, 239 passed in 26.20s
+
+
+
+RESULT: FAIL — 239 passed, 11 failed, 0 errors, 0 skipped
