@@ -6,6 +6,7 @@ what any page puts in its `body` — that stays in `pages.py`.
 from __future__ import annotations
 
 import html
+import json
 
 NAV_LINKS = [
     ("/", "Home"),
@@ -53,7 +54,25 @@ def _user_chip_html(user: dict | None) -> str:
     </div>"""
 
 
-def render_shell(*, title: str, user: dict | None, active_path: str, body: str) -> bytes:
+def _session_script_html(session: dict | None) -> str:
+    """Embeds the caller's own bearer token (the exact value the session
+    cookie already carries, HttpOnly, never readable by JS) into the page
+    itself, so the client-side fetch layer can attach the ordinary
+    `Authorization: Bearer ...` header a JSON caller would — R-2-154's
+    sequencing and R-2-157's uncertain-retry both need real `fetch()`
+    calls, and they must authenticate the exact way the JSON API already
+    does (never via the cookie: R-1-089 is about the cookie, not about a
+    page revealing its own session to its own script)."""
+    if session is None:
+        return ""
+    # JSON can contain "</script>"; escaping the slash keeps this inert
+    # even though every value here is server-controlled, not user text.
+    payload = json.dumps(session).replace("</", "<\\/")
+    return f'<script id="pocketful-session" type="application/json">{payload}</script>'
+
+
+def render_shell(*, title: str, user: dict | None, active_path: str, body: str,
+                  session: dict | None = None) -> bytes:
     page = f"""<!doctype html>
 <html lang="en">
 <head>
@@ -71,6 +90,7 @@ def render_shell(*, title: str, user: dict | None, active_path: str, body: str) 
 <main class="app-main">
 {body}
 </main>
+{_session_script_html(session)}
 <script src="/static/app.js"></script>
 </body>
 </html>"""

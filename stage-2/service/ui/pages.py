@@ -13,6 +13,7 @@ from ..pipeline import RequestCtx
 from ..routes.auth import LoginEndpoint, SignupEndpoint
 from ..store import STORE
 from . import assets
+from . import home
 from .layout import esc, render_shell
 
 _HTML_HEADERS = [("Content-Type", "text/html; charset=utf-8")]
@@ -121,15 +122,6 @@ def render_public_page(path: str, user: dict | None):
 # authed-only pages: /, /split, /requests, /authorizations
 # ---------------------------------------------------------------------------
 
-def _home_body() -> str:
-    # No wallet/pay/activity content exists in this item yet (N2-6's
-    # scope) — this really is an empty view, not a stand-in for one.
-    return """<section class="placeholder-card" data-state="empty">
-  <h1>Welcome back</h1>
-  <p class="muted">Your balance, pay and request tools are coming soon.</p>
-</section>"""
-
-
 def _split_body() -> str:
     return """<section class="placeholder-card" data-state="empty">
   <h1>Split a bill</h1>
@@ -166,18 +158,22 @@ def _authorizations_body(user: dict) -> str:
 
 
 _AUTHED_PAGE_BODY = {
-    "/": lambda user: (_home_body(), "Home"),
-    "/split": lambda user: (_split_body(), "Split"),
-    "/requests": lambda user: (_requests_body(user), "Requests"),
-    "/authorizations": lambda user: (_authorizations_body(user), "Authorizations"),
+    "/split": lambda user, token: (_split_body(), "Split"),
+    "/requests": lambda user, token: (_requests_body(user), "Requests"),
+    "/authorizations": lambda user, token: (_authorizations_body(user), "Authorizations"),
 }
 
 
-def render_authed_page(path: str, user: dict | None):
+def render_authed_page(path: str, user: dict | None, token: str | None = None):
     if user is None:
         return _redirect("/login")
-    body, title = _AUTHED_PAGE_BODY[path](user)
-    html_bytes = render_shell(title=title, user=user, active_path=path, body=body)
+    if path == "/":
+        body, title = home.render_home_body(token), "Home"
+        session = home.session_payload(user, token)
+    else:
+        body, title = _AUTHED_PAGE_BODY[path](user, token)
+        session = None
+    html_bytes = render_shell(title=title, user=user, active_path=path, body=body, session=session)
     return 200, _HTML_HEADERS, html_bytes
 
 

@@ -62,3 +62,259 @@
     hideError: hideError
   };
 })();
+
+/* The `/` screen's interactive layer (R-2-150..160): one fetch wrapper,
+ * one idempotency-key policy and one out-of-order-response guard, used
+ * by every write form on this page instead of each form inventing its
+ * own — R-2-186 applies to the UI's own internals here just as much as
+ * to the JSON/form split, so pay/request/authorize can't drift from
+ * each other either.
+ */
+(function () {
+  "use strict";
+
+  var sessionEl = document.getElementById("pocketful-session");
+  if (!sessionEl) {
+    return; // not an authed page (or no session) — nothing to wire up
+  }
+  var SESSION = JSON.parse(sessionEl.textContent);
+
+  function escHtml(s) {
+    var div = document.createElement("div");
+    div.textContent = s == null ? "" : String(s);
+    return div.innerHTML;
+  }
+
+  function randomKey() {
+    return "k-" + Date.now() + "-" + Math.random().toString(36).slice(2);
+  }
+
+  function authHeaders(extra) {
+    var headers = {Authorization: "Bearer " + SESSION.token};
+    for (var k in extra) {
+      headers[k] = extra[k];
+    }
+    return headers;
+  }
+
+  function slotEl(prefix) {
+    return document.querySelector('[data-testid="' + prefix + '-error-slot"]');
+  }
+
+  function clearSlot(prefix) {
+    var slot = slotEl(prefix);
+    if (slot) {
+      slot.innerHTML = "";
+    }
+  }
+
+  function showSlot(prefix, kind, message) {
+    var slot = slotEl(prefix);
+    if (!slot) {
+      return;
+    }
+    slot.innerHTML = "";
+    var el = document.createElement("p");
+    el.setAttribute("data-testid", prefix + "-" + kind);
+    el.setAttribute("data-state", kind === "uncertain" ? "uncertain" : "error");
+    el.className = kind === "uncertain" ? "form-uncertain" : "form-error";
+    el.textContent = message;
+    slot.appendChild(el);
+  }
+
+  // ---- wallet + activity refresh, each with its own sequence guard so a
+  // slow earlier response can never clobber a faster later one (R-2-154) ----
+
+  var meSeq = 0, meApplied = 0;
+
+  function refreshWallet() {
+    var seq = ++meSeq;
+    fetch("/me", {headers: authHeaders()})
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (seq < meApplied) {
+          return; // a later refresh already applied; this one is stale
+        }
+        meApplied = seq;
+        applyWallet(data);
+      });
+  }
+
+  function setAmountEl(testid, amount, currency, minorUnits) {
+    var el = document.querySelector('[data-testid="' + testid + '"]');
+    if (!el) {
+      return;
+    }
+    el.setAttribute("data-amount", String(amount));
+    el.textContent = Pocketful.formatAmount(amount, currency, minorUnits);
+  }
+
+  function applyWallet(data) {
+    setAmountEl("wallet-balance", data.total, data.currency, data.minor_units);
+    setAmountEl("wallet-available", data.available, data.currency, data.minor_units);
+    var heldEl = document.querySelector('[data-testid="wallet-held"]');
+    if (data.held > 0) {
+      if (!heldEl) {
+        heldEl = document.createElement("p");
+        heldEl.setAttribute("data-testid", "wallet-held");
+        heldEl.className = "wallet-amount wallet-held";
+        var refreshBtn = document.querySelector('[data-testid="wallet-refresh"]');
+        if (refreshBtn) {
+          refreshBtn.parentNode.insertBefore(heldEl, refreshBtn);
+        }
+      }
+      setAmountEl("wallet-held", data.held, data.currency, data.minor_units);
+    } else if (heldEl) {
+      heldEl.parentNode.removeChild(heldEl);
+    }
+  }
+
+  var activitySeq = 0, activityApplied = 0;
+
+  function refreshActivity() {
+    var seq = ++activitySeq;
+    fetch("/activity?limit=50", {headers: authHeaders()})
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (seq < activityApplied) {
+          return;
+        }
+        activityApplied = seq;
+        renderActivity(data.payments);
+      });
+  }
+
+  function renderActivityItem(p) {
+    var amountText = escHtml(Pocketful.formatAmount(p.amount, p.currency, SESSION.minor_units));
+    return (
+      '<article data-testid="activity-item-' + escHtml(p.payment_id) + '" data-visibility="' +
+      escHtml(p.visibility) + '" class="activity-item">' +
+      '<p data-testid="activity-parties-' + escHtml(p.payment_id) + '" class="activity-parties">' +
+      escHtml(p.from_handle || "?") + " → " + escHtml(p.to_handle || "?") + "</p>" +
+      '<p data-testid="activity-amount-' + escHtml(p.payment_id) + '" class="activity-amount">' +
+      amountText + "</p>" +
+      '<p data-testid="activity-note-' + escHtml(p.payment_id) + '" class="activity-note">' +
+      escHtml(p.note) + "</p></article>"
+    );
+  }
+
+  function renderActivity(payments) {
+    var host = document.querySelector('[data-testid="activity-host"]');
+    if (!host) {
+      return;
+    }
+    var mount = host.querySelector(".activity-mount") || host;
+    if (!payments.length) {
+      mount.innerHTML = '<p data-testid="empty-activity" class="empty-state">No activity yet.</p>';
+      return;
+    }
+    mount.innerHTML = '<div data-testid="activity-list">' + payments.map(renderActivityItem).join("") + "</div>";
+  }
+
+  function refreshAll() {
+    refreshWallet();
+    refreshActivity();
+  }
+
+  var refreshButton = document.querySelector('[data-testid="wallet-refresh"]');
+  if (refreshButton) {
+    refreshButton.addEventListener("click", refreshAll);
+  }
+
+  // ---- the write forms: pay, request, authorize — one generic binder ----
+
+  var FORMS = [
+    {
+      prefix: "pay", path: "/payments", fields: ["handle", "amount", "note", "visibility"], uncertain: true,
+      buildBody: function (v) {
+        return {to_handle: v.handle, amount: v.amount, note: v.note, visibility: v.visibility};
+      }
+    },
+    {
+      prefix: "request", path: "/requests", fields: ["handle", "amount", "note"], uncertain: false,
+      buildBody: function (v) {
+        return {payer_handle: v.handle, amount: v.amount, note: v.note};
+      }
+    },
+    {
+      prefix: "authorize", path: "/authorizations", fields: ["handle", "amount", "note", "visibility"],
+      uncertain: false,
+      buildBody: function (v) {
+        return {to_handle: v.handle, amount: v.amount, note: v.note, visibility: v.visibility};
+      }
+    }
+  ];
+
+  function bindForm(cfg) {
+    var form = document.querySelector('[data-testid="' + cfg.prefix + '-form"]');
+    if (!form) {
+      return;
+    }
+    var fieldEls = {};
+    cfg.fields.forEach(function (f) {
+      fieldEls[f] = document.querySelector('[data-testid="' + cfg.prefix + "-" + f + '"]');
+    });
+    // R-2-151/152: the key is stable across resubmits of an UNCHANGED
+    // form (so a resubmit is an ordinary §7 replay) and only regenerates
+    // when a field's value actually changes — never on every click.
+    var key = randomKey();
+    cfg.fields.forEach(function (f) {
+      if (fieldEls[f]) {
+        fieldEls[f].addEventListener("input", function () { key = randomKey(); });
+      }
+    });
+
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      clearSlot(cfg.prefix);
+      var values = {};
+      for (var f in fieldEls) {
+        if (fieldEls[f]) {
+          values[f] = fieldEls[f].value;
+        }
+      }
+      var amountMinor = Pocketful.parseAmountToMinorUnits(values.amount, SESSION.minor_units);
+      if (amountMinor === null) {
+        form.dataset.state = "error";
+        showSlot(cfg.prefix, "error", "Enter a valid amount.");
+        return; // R-2-102: never sent
+      }
+      values.amount = amountMinor;
+
+      form.dataset.state = "loading";
+      fetch(cfg.path, {
+        method: "POST",
+        headers: authHeaders({"Idempotency-Key": key, "Content-Type": "application/json"}),
+        body: JSON.stringify(cfg.buildBody(values))
+      }).then(function (resp) {
+        return resp.json().then(function (data) { return {status: resp.status, body: data}; });
+      }).then(function (result) {
+        if (result.status >= 200 && result.status < 300) {
+          form.dataset.state = "idle";
+          clearSlot(cfg.prefix);
+          // R-2-150: form values are never cleared on success.
+          refreshAll(); // R-2-153: reflects the action with no manual reload
+        } else {
+          form.dataset.state = "error";
+          var message = (result.body && result.body.error && result.body.error.message) || "Something went wrong.";
+          showSlot(cfg.prefix, "error", message);
+        }
+      }).catch(function () {
+        // R-2-157/158: the browser never saw a response — this is NOT a
+        // refusal, so it must never render as `-error`. The key and the
+        // body are untouched, so the next click (still-unchanged fields)
+        // is the ordinary same-key-same-body replay, moving money once.
+        if (cfg.uncertain) {
+          form.dataset.state = "uncertain";
+          showSlot(cfg.prefix, "uncertain",
+                    "We couldn't confirm this went through. It's safe to try again.");
+        } else {
+          form.dataset.state = "error";
+          showSlot(cfg.prefix, "error", "Something went wrong. Please try again.");
+        }
+      });
+    });
+  }
+
+  FORMS.forEach(bindForm);
+})();

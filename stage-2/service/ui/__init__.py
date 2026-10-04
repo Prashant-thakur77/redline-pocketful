@@ -101,19 +101,29 @@ def _user_for_token(token: str | None) -> dict | None:
     return STORE.users_by_id.get(user_id)
 
 
-def current_user(headers: dict) -> dict | None:
+def resolve_session(headers: dict) -> tuple[dict | None, str | None]:
     """Cookie first (the real browser-navigation case — a `page.goto` never
     carries an `Authorization` header), falling back to a bearer token for
     the negotiated paths: R-2-091's own test drives `/requests` with
     `Accept: text/html` *and* `Authorization: Bearer ...` directly, as an
-    API client would, with no cookie at all."""
-    user = _user_for_token(_parse_cookies(headers).get(SESSION_COOKIE))
+    API client would, with no cookie at all. Returns `(user, token)` — the
+    token is the home page's own session value, embedded (not the cookie
+    itself, which stays HttpOnly) so client-side JS can attach the exact
+    same `Authorization: Bearer ...` header a JSON caller would, for the
+    interactive fetch layer N2-6 adds."""
+    cookie_token = _parse_cookies(headers).get(SESSION_COOKIE)
+    user = _user_for_token(cookie_token)
     if user is not None:
-        return user
+        return user, cookie_token
     auth_header = headers.get("authorization", "")
     if auth_header.startswith("Bearer "):
-        return _user_for_token(auth_header[len("Bearer "):])
-    return None
+        bearer_token = auth_header[len("Bearer "):]
+        return _user_for_token(bearer_token), bearer_token
+    return None, None
+
+
+def current_user(headers: dict) -> dict | None:
+    return resolve_session(headers)[0]
 
 
 def try_handle(method: str, path: str, headers: dict, raw_body: bytes, query: dict):
@@ -127,7 +137,8 @@ def try_handle(method: str, path: str, headers: dict, raw_body: bytes, query: di
         if path in _PUBLIC_PAGES:
             return pages.render_public_page(path, current_user(headers))
         if path in _AUTHED_ONLY_PAGES or (path in _NEGOTIATED_PAGES and _wants_html(headers)):
-            return pages.render_authed_page(path, current_user(headers))
+            user, token = resolve_session(headers)
+            return pages.render_authed_page(path, user, token)
         return None
 
     if method == "POST" and path in _POST_PAGES:
