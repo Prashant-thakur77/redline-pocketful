@@ -59,6 +59,32 @@ small-sample noisy: three runs within fifteen minutes scored 50% (0 stillborn),
 62% (2 stillborn) and 25% (6 stillborn). The route to a durable pass is to kill
 every survivor that is a genuine coverage gap, so that any sample passes.
 
+### Gate 7 never ran at stage 1 — @verifier's finding, 2026-10-04
+
+Zero `g7` events in the ledger, zero `g7` logs in `evidence/gates/s1/`, and no skip record:
+gate 7 is simply absent from every stage-1 gates dict, including the `--gates all` close run.
+
+**Correct for stage 1, and my own doing:** I instructed @redline to omit `UI_ROUTES` from the
+stage-1 hook because there is no browser product before stage 2, and `g7_ui --help` gives its
+route default as "hook `UI_ROUTES` or `/`" — a stage-1 service serves no HTML. Not a defect
+here, and not a stage-1 close blocker.
+
+**It is load-bearing from stage 2**, where R-2-090 … R-2-141 are almost entirely gate 7's to
+enforce, and where a gate that records nothing is indistinguishable from one that passed.
+Four rules now in `plan/s2-dag.md` (G7-1 … G7-4), the load-bearing one being: **a missing or
+empty gate 7 record at stage-2 close is a close failure, not a pass.**
+
+### Scope disposition settled (@verifier, 2026-10-04)
+
+@verifier independently verified the sanctioned test deletion (`714f5e470c`) rather than taking
+my word: it read both deleted tests and both replacements, confirmed
+`test_bool_and_int_bodies_are_not_the_same_json_value_r_1_106` →
+`test_idempotency_bool_vs_number_conflict_over_http` and
+`test_concurrent_claims_same_key_same_body_exactly_one_runs` →
+`test_concurrent_identical_payment_exactly_one_201` are 1-for-1 white-box → black-box
+replacements covering the same requirements, with suite size up and no coverage lost.
+**Ruling: legitimate, does not BLOCK.** That disposition is now closed and is @verifier's, not mine.
+
 ### Gate 6 survivors, classified (planner, 2026-10-04)
 
 Real coverage gaps, dispatched as N1-T.8:

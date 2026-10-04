@@ -22,3 +22,31 @@ Dispatch order: N2-T → N2-1 → N2-2 → N2-3 → (N2-4, N2-5) → N2-6 → (N
 
 Gates per item: `--gates 1,2,4,8`; items touching the browser also need gate 7, so
 N2-5 … N2-9 run `--gates 1,2,4,7,8`.
+
+## Gate 7 must be proven non-vacuous at stage 2 (planner, 2026-10-04)
+
+@verifier found that **gate 7 has never run, in any stage-1 pass**: zero `g7` events in
+`evidence/ledger.jsonl`, zero `g7` logs in `evidence/gates/s1/`, and no skip record
+either — it is simply absent from the gates dict, including in the `--gates all` close run.
+
+For stage 1 that is the correct outcome and my own doing: I told @redline to omit
+`UI_ROUTES` from the stage-1 hook because there is no browser product before stage 2, and
+`g7_ui --help` documents its route default as "hook `UI_ROUTES` or `/`". A stage-1 service
+serves no HTML, so a gate 7 run there would either be skipped or fail on a screen that is
+not supposed to exist.
+
+**At stage 2 this becomes the most dangerous gate in the set**, because a gate that records
+nothing is indistinguishable from a gate that passed, and R-2-090 … R-2-141 are almost
+entirely gate 7's to enforce. Therefore:
+
+- **G7-1.** The stage-2 hook must define `UI_ROUTES` covering every required route — `/`,
+  `/requests`, `/split`, `/signup`, `/login`, `/authorizations` — and `ui_login(page, base_url)`,
+  so gate 7 visits signed-in screens rather than a login wall at every route.
+- **G7-2.** Gate 7 must be run explicitly, not inferred from `--gates all`. It must emit a
+  log under `evidence/gates/s2/` and a `g7` event in the ledger.
+- **G7-3.** **A missing or empty gate 7 record at stage-2 close is a close failure, not a
+  pass.** @verifier must check the `g7` event exists and names the routes it visited before
+  issuing any stage-2 GO. A vacuous pass here would let every UI requirement through
+  unchecked, which is the exact failure mode this factory exists to prevent.
+- **G7-4.** The first stage-2 item that renders a screen (N2-5) must not get a GO until a
+  gate 7 run has actually produced screenshots in `evidence/ui/`.
