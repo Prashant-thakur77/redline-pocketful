@@ -235,3 +235,67 @@ def test_idempotency_key_empty_is_missing():
     r = api_post("/payments", json={"to_handle": b_handle, "amount": 10},
                  headers={**auth(token_a), "Idempotency-Key": ""})
     assert_error(r, 400, "missing_idempotency_key")
+
+
+# ---------------------------------------------------------------------------
+# N1-T.4: R-1-106 / R-1-112 — body-equality edge cases for idempotency
+# ---------------------------------------------------------------------------
+
+def test_body_equality_number_vs_boolean_are_different():
+    """R-1-106: 1 and true are different JSON values even though the first
+    use's amount happens to be numerically truthy — a type difference makes
+    the body different, so the second call is a reuse conflict, not a replay."""
+    fixture, token_a, _ = _two_user_fixture()
+    b_handle = fixture["users"][1]["handle"]
+    key = unique("k")
+    first = api_post("/payments", json={"to_handle": b_handle, "amount": 1}, headers={**auth(token_a), **idem(key)})
+    assert first.status_code == 201, first.text
+    second = api_post("/payments", json={"to_handle": b_handle, "amount": True}, headers={**auth(token_a), **idem(key)})
+    assert_error(second, 409, "idempotency_key_reuse")
+
+
+def test_body_equality_unknown_fields_count_toward_equality():
+    """R-1-106: unknown fields are ignored for validation (R-1-022) but they
+    ARE part of the body for idempotency equality — adding one changes the
+    body even though it changes nothing about what gets validated."""
+    fixture, token_a, token_b = _two_user_fixture()
+    b_handle = fixture["users"][1]["handle"]
+    key = unique("k")
+    first = api_post("/requests", json={"payer_handle": b_handle, "amount": 1},
+                     headers={**auth(token_a), **idem(key)})
+    assert first.status_code == 201, first.text
+    second = api_post("/requests", json={"payer_handle": b_handle, "amount": 1, "zz": 2},
+                      headers={**auth(token_a), **idem(key)})
+    assert_error(second, 409, "idempotency_key_reuse")
+
+
+def test_body_equality_array_order_matters():
+    """R-1-106: unlike object key order, array element order DOES matter —
+    two participant lists in a different order are different bodies.
+    (/splits is not routed until N1-7, so this is expected red until then.)"""
+    a_id, b_id = unique("u"), unique("u")
+    a_handle, b_handle = unique_handle("a"), unique_handle("b")
+    fixture = make_fixture([user(a_id, a_handle, balance=0), user(b_id, b_handle, balance=0)])
+    reset_ok(fixture)
+    token_a = login_token(fixture["users"][0]["email"])
+    key = unique("k")
+    first = api_post("/splits", json={"amount": 10, "participant_handles": [a_handle, b_handle]},
+                     headers={**auth(token_a), **idem(key)})
+    assert first.status_code == 201, first.text
+    second = api_post("/splits", json={"amount": 10, "participant_handles": [b_handle, a_handle]},
+                      headers={**auth(token_a), **idem(key)})
+    assert_error(second, 409, "idempotency_key_reuse")
+
+
+def test_replay_returns_stored_body_verbatim():
+    """R-1-112: a replay returns the stored response body verbatim, never
+    re-rendered from the current resource state."""
+    fixture, token_a, _ = _two_user_fixture()
+    b_handle = fixture["users"][1]["handle"]
+    key = unique("k")
+    body = {"to_handle": b_handle, "amount": 10, "note": "original note"}
+    r1 = api_post("/payments", json=body, headers={**auth(token_a), **idem(key)})
+    assert r1.status_code == 201, r1.text
+    r2 = api_post("/payments", json=body, headers={**auth(token_a), **idem(key)})
+    assert r2.status_code == 200, r2.text
+    assert r2.json() == r1.json(), "a replay must return the stored response verbatim"

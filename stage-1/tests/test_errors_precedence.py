@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import httpx
+import pytest
 
 from conftest import (api_get, api_post, assert_error, auth, idem, login_token, make_fixture,
                        reset_ok, unique, unique_handle, url, user)
@@ -277,3 +278,117 @@ def test_4xx_never_leaks_invisible_resource():
     assert not_party.json() == nonexistent.json() or (
         not_party.json()["error"]["code"] == nonexistent.json()["error"]["code"]
     )
+
+
+# ---------------------------------------------------------------------------
+# N1-T.4: the planner's ambiguity rulings, pinned as explicit pairs/combinations
+# ---------------------------------------------------------------------------
+
+def test_precedence_pair_missing_key_and_bad_amount():
+    """R-1-075: no Idempotency-Key AND an invalid amount -> 400
+    missing_idempotency_key wins (step 4 precedes step 7)."""
+    fixture, token_a, _ = _two_user_fixture()
+    b_handle = fixture["users"][1]["handle"]
+    r = api_post("/payments", json={"to_handle": b_handle, "amount": -999}, headers=auth(token_a))
+    assert_error(r, 400, "missing_idempotency_key")
+
+
+def test_precedence_pair_unauthenticated_and_malformed_body():
+    """R-1-075: no auth AND an unparseable body -> 401 (step 1 precedes step 3)."""
+    r = httpx.post(url("/payments"), content=b"{not json at all")
+    assert_error(r, 401, "unauthenticated")
+
+
+def test_precedence_pair_claimed_key_and_invalid_body():
+    """R-1-075, R-1-110: a claimed key replayed with an invalid body ->
+    409 idempotency_key_reuse, never 422 (step 6 precedes step 7)."""
+    fixture, token_a, _ = _two_user_fixture()
+    b_handle = fixture["users"][1]["handle"]
+    key = unique("k")
+    first = api_post("/payments", json={"to_handle": b_handle, "amount": 10}, headers={**auth(token_a), **idem(key)})
+    assert first.status_code == 201, first.text
+    r = api_post("/payments", json={"to_handle": b_handle, "amount": "not-a-number"},
+                 headers={**auth(token_a), **idem(key)})
+    assert_error(r, 409, "idempotency_key_reuse")
+
+
+def test_field_validation_order_amount_before_note_length():
+    """R-1-076: amount range is checked before note length. Both violations
+    share the one code (422 validation_failed), so this pins the resulting
+    code rather than which sub-rule fired (message wording is free, R-1-060)."""
+    fixture, token_a, _ = _two_user_fixture()
+    b_handle = fixture["users"][1]["handle"]
+    r = api_post("/payments", json={"to_handle": b_handle, "amount": 0, "note": "x" * 300},
+                 headers={**auth(token_a), **idem(unique("k"))})
+    assert_error(r, 422, "validation_failed")
+
+
+def test_field_validation_order_amount_before_self_payment():
+    """R-1-076: amount range/integrality is checked before the self-reference
+    rule, so a self-payment with amount: 0 is validation_failed, never
+    self_payment — these two violations map to DIFFERENT codes, so unlike the
+    note-length pair above, this one actually proves the ordering."""
+    fixture, token_a, _ = _two_user_fixture()
+    own_handle = fixture["users"][0]["handle"]
+    r = api_post("/payments", json={"to_handle": own_handle, "amount": 0},
+                 headers={**auth(token_a), **idem(unique("k"))})
+    assert_error(r, 422, "validation_failed")
+
+
+def test_field_validation_order_amount_before_self_request():
+    """R-1-076: same ordering, on /requests: amount: 0 AND payer_handle ==
+    the caller's own handle -> validation_failed, never self_request."""
+    fixture, token_a, _ = _two_user_fixture()
+    own_handle = fixture["users"][0]["handle"]
+    r = api_post("/requests", json={"payer_handle": own_handle, "amount": 0},
+                 headers={**auth(token_a), **idem(unique("k"))})
+    assert_error(r, 422, "validation_failed")
+
+
+@pytest.mark.parametrize("bad_handle", ["UPPERCASE", "a" * 21, "has-hyphen", ""])
+def test_to_handle_syntax_variants_422(bad_handle):
+    """R-1-077: a string to_handle failing ^[a-z0-9_]{1,20}$ (uppercase,
+    21 chars, a hyphen, empty) is validation_failed."""
+    fixture, token_a, _ = _two_user_fixture()
+    r = api_post("/payments", json={"to_handle": bad_handle, "amount": 1},
+                 headers={**auth(token_a), **idem(unique("k"))})
+    assert_error(r, 422, "validation_failed")
+
+
+def test_to_handle_well_formed_no_owner_404():
+    """R-1-077: a well-formed handle with no owner is 404, not 422."""
+    fixture, token_a, _ = _two_user_fixture()
+    r = api_post("/payments", json={"to_handle": unique_handle("nobody"), "amount": 1},
+                 headers={**auth(token_a), **idem(unique("k"))})
+    assert_error(r, 404, "not_found")
+
+
+def test_to_handle_non_string_400():
+    """R-1-077: a non-string handle is malformed_request, not validation_failed."""
+    fixture, token_a, _ = _two_user_fixture()
+    for bad in (12345, True, [], {}):
+        r = api_post("/payments", json={"to_handle": bad, "amount": 1},
+                     headers={**auth(token_a), **idem(unique("k"))})
+        assert_error(r, 400, "malformed_request")
+
+
+def test_malformed_inputs_never_5xx():
+    """R-1-080a, R-1-005: a client-caused input is never reported as 500 —
+    only a genuine, unexpected server defect may be, and this sweep of
+    edge/malformed inputs across several endpoints must observe none."""
+    fixture, token_a, _ = _two_user_fixture()
+    b_handle = fixture["users"][1]["handle"]
+    attempts = [
+        lambda: api_post("/payments", json={"amount": "nope"}, headers={**auth(token_a), **idem(unique("k"))}),
+        lambda: api_post("/payments", json={"to_handle": None, "amount": 1},
+                         headers={**auth(token_a), **idem(unique("k"))}),
+        lambda: api_get("/requests", headers=auth(token_a), params={"limit": "not-a-number"}),
+        lambda: api_post("/_test/reset", json={"users": "not-an-array"}),
+        lambda: api_get("/me", headers={"Authorization": "Bearer " + "x" * 5000}),
+        lambda: api_post("/requests/does-not-exist/pay", json={}, headers={**auth(token_a), **idem(unique("k"))}),
+        lambda: api_post("/payments", json={"to_handle": b_handle, "amount": 2**62},
+                         headers={**auth(token_a), **idem(unique("k"))}),
+    ]
+    for attempt in attempts:
+        r = attempt()
+        assert r.status_code < 500, f"client-caused input must never be reported as 500: {r.status_code} {r.text}"

@@ -173,3 +173,28 @@ def test_authorization_header_unknown_token():
     """R-1-063"""
     r = api_get("/me", headers={"Authorization": "Bearer totally-made-up-token-value"})
     assert_error(r, 401, "unauthenticated")
+
+
+def test_signup_handle_collision_via_different_special_chars_409():
+    """R-1-088: two different emails whose local parts normalize to the same
+    handle (a dot and an underscore both fold to '_') must collide, even
+    though the raw emails and the characters that triggered the fold differ."""
+    tag = unique("")
+    first_email = f"a_b_{tag}@x.com"
+    second_email = f"a.b_{tag}@x.com"
+    signup_ok(first_email, "password123", "First")
+    r = signup(second_email, "password123", "Second")
+    assert_error(r, 409, "handle_taken")
+
+
+def test_login_unknown_email_and_wrong_password_identical_response():
+    """R-1-086a: the observable contract — both cases are 401 unauthenticated
+    with an IDENTICAL response body; no field distinguishes an unknown email
+    from a wrong password (the timing side of this is @adversary's)."""
+    known_email = unique_email("knownuser")
+    signup_ok(known_email, "password123", "Known User")
+    wrong_password = login(known_email, "definitely-the-wrong-password")
+    unknown_email = login(unique_email("neverexisted"), "whatever-password-123")
+    assert wrong_password.status_code == 401
+    assert unknown_email.status_code == 401
+    assert wrong_password.json() == unknown_email.json()

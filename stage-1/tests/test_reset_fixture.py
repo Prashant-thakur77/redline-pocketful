@@ -314,6 +314,39 @@ def test_seeded_pending_request_is_payable_non_pending_is_not():
     assert_error(pay_declined, 409, "request_not_pending")
 
 
+def test_seeded_paid_request_exposes_null_payment_id_and_no_synthesized_payment():
+    """R-1-051: the fixture format has no field to name the payment that
+    settled a seeded request, so a seeded `paid` request must expose
+    `payment_id: null` — and the service must not invent a payment for it:
+    no such payment may appear in either party's `GET /activity`."""
+    a_id, b_id = unique("u"), unique("u")
+    a_handle, b_handle = unique_handle("a"), unique_handle("b")
+    paid_id = unique("r")
+    fixture = make_fixture(
+        [user(a_id, a_handle, balance=100), user(b_id, b_handle, balance=100)],
+        requests=[{"id": paid_id, "requester_id": a_id, "payer_id": b_id, "amount": 10,
+                   "note": "", "status": "paid"}],
+    )
+    reset_ok(fixture)
+    token_a = login_token(fixture["users"][0]["email"])
+    token_b = login_token(fixture["users"][1]["email"])
+
+    requests_a = api_get("/requests", headers=auth(token_a)).json()["requests"]
+    matching = [x for x in requests_a if x["request_id"] == paid_id]
+    assert matching, "the seeded paid request must still be visible"
+    assert matching[0]["status"] == "paid"
+    assert matching[0]["payment_id"] is None
+
+    requests_b = api_get("/requests", headers=auth(token_b)).json()["requests"]
+    matching_b = [x for x in requests_b if x["request_id"] == paid_id]
+    assert matching_b and matching_b[0]["payment_id"] is None
+
+    feed_a = api_get("/activity", headers=auth(token_a)).json()["payments"]
+    feed_b = api_get("/activity", headers=auth(token_b)).json()["payments"]
+    assert feed_a == [], "no payment may be synthesized for a seeded paid request"
+    assert feed_b == []
+
+
 def test_no_admin_balance_endpoint():
     """R-1-050"""
     a_id = unique("u")
