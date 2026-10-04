@@ -72,7 +72,12 @@ class Handler(BaseHTTPRequestHandler):
             return
         self._write_json(status, body)
 
-    def _write_json(self, status: int, body: dict) -> None:
+    def _write_json(self, status: int, body: dict | None) -> None:
+        if body is None:
+            self.send_response(status)
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+            return
         payload = dumps(body)
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
