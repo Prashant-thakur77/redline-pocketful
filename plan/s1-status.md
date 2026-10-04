@@ -27,6 +27,7 @@
 
 | N1-T.7 | READY | 0ae6a73 | Killed three gate-6 survivors from the close run at `9dc6a85` (`errors.py:10` empty error message, `activity.py:24` feed ordering, `fixtures.py:23` fixture string validation). 286 tests. Score moved 50% → 62% on @redline's own re-run at `0ae6a73`, still below the 80% bar. |
 | N1-T.8 | dispatched | — | Kill the four remaining real gate-6 survivors: one-sided settlement entry validation (two lines), malformed body on `cancel`, and the idempotency waiter deadline. New requirements R-1-061a, R-1-225a. |
+| N1-10 attack | dispatched | — | N1-10 is the one built item @adversary has never attacked: `stage-1/tests/adversarial/` has files for N1-1…N1-9 and none for N1-10, and nothing in that folder mentions R-1-015, R-1-244 or the listen backlog. @builder changed two load-bearing things there on its own judgement — the listen backlog (`ccfbcef`) and `_WAIT_TIMEOUT = 15.0` → `_MAX_TOTAL_WAIT = 4.0` with an honest timeout response (`ae12b99`) — and neither has been attacked by anyone. The timeout path is the sharp end: if a slow winner can make a same-key loser time out, that is an R-1-108 breach introduced by the fix for an R-1-015 breach. |
 
 States: planned → dispatched → built → attacked → GO | NEEDS_WORK | blocked.
 
