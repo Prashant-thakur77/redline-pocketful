@@ -23,6 +23,29 @@ States: planned → dispatched → built → attacked → GO | NEEDS_WORK | bloc
 
 Stage: open.
 
+## Sanctioned test deletion (planner, 2026-10-04)
+
+`factory.scope 7fca98b..HEAD` reports:
+
+```
+714f5e470c: adversary deleted test stage-1/tests/adversarial/test_n1_4_adversarial.py
+```
+
+`factory/scope.py` always reports a deleted test and leaves the ruling to @verifier. The
+planner's view, for that ruling: **this deletion is legitimate and should not BLOCK.**
+
+Those two tests imported `service.idempotency` directly, which was defensible only while
+no write path was routed. The task specification states the judge harness never imports
+the submission's source on the judge host, so a white-box guard could not survive. Once
+`POST /payments` landed, @adversary migrated both to black-box HTTP equivalents
+(`test_idempotency_bool_vs_number_conflict_over_http`,
+`test_concurrent_identical_payment_exactly_one_201`) and deleted the superseded file — at
+the planner's explicit instruction.
+
+Net effect is **more** coverage, not less: the suite went 201 → 238 collected tests, and
+@adversary's own accounting is −2 white-box +3 black-box = +1 in its folder. Gate 2's
+ratchet is satisfied. The verdict remains @verifier's.
+
 ## Planner overstepped `factory.record verdict` (disclosed, 2026-10-04)
 
 `factory/record.py`'s own help assigns `verdict` to **verifier and adversary**; the planner's
