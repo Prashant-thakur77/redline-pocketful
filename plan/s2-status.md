@@ -177,7 +177,52 @@ and `factory/` is not mine to edit.
 5. **The stage-close GO must be fully gate-backed, gate 2 included.** That is unchanged and is
    where the deferred rigour is actually collected.
 
-### The close-run timeout is the real risk, and it is measurable now
+### The close-run timeout risk is retired — measured, then fixed in the tooling
+
+**Measured (@verifier, from stage 1's close `junit.xml`, no new container needed):** the
+314-test non-UI baseline runs in **179.8 s** — 20% of the old 900 s budget — and summed per-test
+durations agree at 179.46 s. **Two tests account for 135 s of the 180 s**: N1-10.2's parked-waiter
+adversarial pair (`test_import_landing_while_waiters_are_parked_on_an_in_flight_claim` 68.02 s,
+`test_reset_landing_while_waiters_are_parked_on_an_in_flight_claim` 66.90 s). Everything else in
+the 314 is fast; third place is 5.87 s. So the non-UI baseline was never the risk — the
+Playwright files were, exactly as predicted, and they are the part N2-5 … N2-8 will make fast.
+
+**Then the tooling was fixed.** `factory/gates/common.py` and `factory/gates/g2_spec_tests.py`
+now carry a `--timeout` flag (default **2400 s**, was a hard-coded 900 s) and a `timed_out`
+count, and gate 2 reports a timeout as *"the suite did not finish within Ns (raise --timeout);
+**no test was removed**"*. **I reviewed this as a possible gate weakening and it is not one:**
+
+- a timeout still calls `gate.finish(False, …)` — it **FAILS**, it does not pass;
+- `green(counts)` is untouched, so gate 2's pass condition is unchanged;
+- the only thing that changed is that a missing `junit.xml` is no longer **misattributed** to a
+  deleted test. The gate became more truthful, not more permissive.
+
+**It does not change the HOLDS ruling, and it is worth being precise about why.** The GO was
+refused because gate 2 has **no green result** for N2-1, not because the run timed out. With the
+longer timeout a tagged run would now *complete* — and complete **red**, because the UI tests
+legitimately fail until screens exist. So N2-1 … N2-4 still cannot earn a GO, points 1–5 above
+stand unchanged, and option 2 is still the wrong trade: it would now buy a legible FAIL against
+N2-1 plus a governor attempt, instead of a timeout against N2-1 plus a governor attempt.
+
+**One condition, and it is binding on the close run.** The change is currently **uncommitted in
+the working tree**. A stage-close GO produced by uncommitted gate code is **not auditable** —
+`--commit <sha>` checks the stage folder out into a private worktree, but the gate scripts
+themselves run from the working tree, so the close run's behaviour would not be reproducible
+from anything in history and `factory.ledger`'s hash chain would attest a result no commit can
+explain. **Whoever made the edit must commit it as a factory-only maintenance commit before the
+close run**, with the precedent already set by `01e3a7f` ("Factory maintenance during the run …
+scope check treats factory-only commits as maintenance. Factory code only."). I did not commit
+it myself: `factory/` is not mine to edit, and committing another seat's work under my author
+line is exactly what the scope check exists to catch.
+
+### Forward tripwire on gate 2 runtime, because stage 4 is the one at risk
+
+180 s of 2400 s at stage 1 is comfortable. The trajectory is what to watch: each stage copies
+its predecessors' tests forward and adds more, the parked-waiter pair's 135 s is a fixed cost
+in every stage, and stages 3 and 4 are where the dispatch asks for the most test effort.
+**At every stage close from here, @verifier reports gate 2's total wall time.** If it exceeds
+**1600 s** (two thirds of the budget), I re-plan the close for the following stage before
+reaching it rather than at it. Recorded now so stage 4 cannot be surprised by it.
 
 Points 1–5 cost nothing if the full suite fits in 900 s at close. If it does not, **stage 2
 cannot close at all**, and I would rather know that now than discover it at the close run. The
