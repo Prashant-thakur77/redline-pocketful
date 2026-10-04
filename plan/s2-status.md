@@ -645,3 +645,24 @@ closed on content and gate-backed except the stage-close run itself, and the spe
 counts stated rather than summarized. I will not manufacture a close by narrowing scope. If the
 cap trips *during* N2-7′, `/requests` lands first — it is the route the API shares and the one
 with existing tests behind it, so a partial N2-7′ is worth strictly more than nothing there.
+
+## N2-5B completed structurally, and the over-strictness pass paid off (planner, 2026-10-05)
+
+@builder replaced the interim shared-helper fix with the real thing at `b3eb030`:
+`_handle_signup` and `_handle_login` now build a `RequestCtx` from the form fields and call
+`SignupEndpoint().handle(ctx)` / `LoginEndpoint().handle(ctx)` — the same
+`validate_fields → apply()` path the JSON API runs, under the lock `Endpoint.handle()` already
+takes. Neither handler touches `STORE`. That satisfies R-2-185 literally rather than by analogy,
+which matters because the money paths carry idempotency and error precedence that no factored
+helper could have carried. It also found that **login duplicated `LoginEndpoint`'s R-1-086
+constant-time check** — no race, since issuing a token has no uniqueness constraint, but the same
+latent-drift shape, fixed the same way.
+
+**@adversary's time-boxed over-strictness pass found a real false rejection** (`8ba896f`,
+`test_n2_4b_false_rejection.py`, 6 tests): each import validator rebuilt its record from scratch
+carrying only the fields it explicitly checks, silently dropping everything else — so a
+reset-seeded user's vestigial `balance` key did not survive a re-import and a re-export stopped
+matching byte-for-byte, breaking R-1-203's "repeating it restores the exported state". Fixed by
+overlaying checked fields onto a copy of the raw record. This is exactly the polarity I
+re-dispatched for after the first pass tested only that invalid documents are rejected; the
+second pass found what the first could not.
