@@ -30,10 +30,17 @@ released, so this call becomes the new first use" (R-1-107).
 from __future__ import annotations
 
 import threading
+import time
 
 from .errors import idempotency_key_reuse
 
-_WAIT_TIMEOUT = 15.0  # generous relative to R-1-015's 5s/10s request budgets
+# R-1-015 gives every non-test-control request a 5s budget; a waiter
+# blocked on a slow winner must not itself breach that, so the total time
+# this call may spend waiting (across possibly several wakeups — a
+# release makes the waiter loop and become the new first use, which can
+# itself have to wait again) is capped below it, with headroom for the
+# rest of the request's own work.
+_MAX_TOTAL_WAIT = 4.0
 
 
 def json_equal(a, b) -> bool:
@@ -76,6 +83,7 @@ class IdempotencyStore:
         as-is. Raises `idempotency_key_reuse` for a same-key, different-
         body conflict once the conflicting record is known to be complete."""
         composite = (user_id, method, path, key)
+        deadline = time.monotonic() + _MAX_TOTAL_WAIT
         while True:
             with self._lock:
                 entry = self._entries.get(composite)
@@ -90,7 +98,17 @@ class IdempotencyStore:
             # in flight (by this body or a different one): wait for the
             # winner to commit or release, then re-check from scratch —
             # a release means this call becomes the new first use.
-            event.wait(_WAIT_TIMEOUT)
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                # Every real operation here is in-memory and sub-millisecond,
+                # so hitting this is itself the defect — a winner that has
+                # held a claim this long is stuck, not slow. R-1-080a: say
+                # so loudly (500 internal_error via the generic exception
+                # handler), never silently relabel it as the caller's fault.
+                raise RuntimeError(
+                    f"timed out after {_MAX_TOTAL_WAIT}s waiting for an in-flight "
+                    f"request on key {key!r} to complete")
+            event.wait(remaining)
 
     def commit(self, composite: tuple, status: int, body) -> None:
         """R-1-111/R-1-112: store the response verbatim — never a reference
