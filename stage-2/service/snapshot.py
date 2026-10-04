@@ -10,15 +10,15 @@ from __future__ import annotations
 import time
 
 from .errors import validation_failed
-from .fixtures import VALID_AUTHORIZATION_STATUSES
+from .fixtures import VALID_AUTHORIZATION_STATUSES, VALID_REQUEST_STATUSES, _require_id, _require_str
 from .idempotency import IDEMPOTENCY
 from .invariants import check_holds_within_balance, check_nonnegative_balances
-from .validation import parse_amount, validate_note, validate_visibility
+from .validation import HANDLE_RE, parse_amount, validate_note, validate_visibility
 
 TRACK = "pocketful"
 FORMAT_VERSION = 1
-_MIN_AUTHORIZATION_AMOUNT = 1
-_MAX_AUTHORIZATION_AMOUNT = 1_000_000_000
+_MIN_AMOUNT = 1
+_MAX_AMOUNT = 1_000_000_000
 
 
 def export_state(store) -> dict:
@@ -57,6 +57,147 @@ def _require(obj: dict, key: str, context: str):
     return obj[key]
 
 
+def _require_int(obj: dict, key: str, context: str) -> int:
+    value = _require(obj, key, context)
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise validation_failed(f"{context}.{key} must be an integer")
+    return value
+
+
+def _require_optional_str(obj: dict, key: str, context: str) -> str | None:
+    value = obj.get(key)
+    if value is not None and not isinstance(value, str):
+        raise validation_failed(f"{context}.{key} must be a string or null")
+    return value
+
+
+def _validate_user(raw, seen_ids: set, seen_handles: set, seen_emails: set) -> dict:
+    if not isinstance(raw, dict):
+        raise validation_failed("each user must be an object")
+    uid = _require_id(raw, "id", "user")
+    if uid in seen_ids:
+        raise validation_failed("duplicate user id")
+    email = _require_str(raw, "email", "user")
+    if email in seen_emails:
+        raise validation_failed("duplicate user email")
+    # password_hash is never user-typed input (no fixture ever carries a
+    # plaintext password across export/import), but it IS read again the
+    # next time this user logs in — `verify_password` only swallows a
+    # malformed *string* hash (ValueError from a bad "$"-split); a
+    # non-string here reaches `.split` directly and raises AttributeError,
+    # an uncaught 500 on a login that happens long after this import
+    # returned 204.
+    password_hash = _require_str(raw, "password_hash", "user")
+    display_name = _require_str(raw, "display_name", "user")
+    handle = _require_str(raw, "handle", "user")
+    if not HANDLE_RE.match(handle):
+        raise validation_failed("user handle has invalid syntax")
+    if handle in seen_handles:
+        raise validation_failed("duplicate user handle")
+    return {"id": uid, "email": email, "password_hash": password_hash,
+            "display_name": display_name, "handle": handle}
+
+
+def _validate_payment(raw, users: dict, seen_ids: set) -> dict:
+    if not isinstance(raw, dict):
+        raise validation_failed("each payment must be an object")
+    pid = _require_id(raw, "id", "payment")
+    if pid in seen_ids:
+        raise validation_failed("duplicate payment id")
+    from_user_id = _require_str(raw, "from_user_id", "payment")
+    to_user_id = _require_str(raw, "to_user_id", "payment")
+    if from_user_id not in users or to_user_id not in users:
+        raise validation_failed("payment references an unknown user")
+    amount = parse_amount(raw.get("amount"), min_value=_MIN_AMOUNT, max_value=_MAX_AMOUNT)
+    note = validate_note(raw)
+    visibility = validate_visibility(raw)
+    request_id = _require_optional_str(raw, "request_id", "payment")
+    settlement_id = _require_optional_str(raw, "settlement_id", "payment")
+    authorization_id = _require_optional_str(raw, "authorization_id", "payment")
+    created_at = _require_str(raw, "created_at", "payment")
+    seq = _require_int(raw, "seq", "payment")
+    return {
+        "id": pid, "from_user_id": from_user_id, "to_user_id": to_user_id, "amount": amount,
+        "note": note, "visibility": visibility, "request_id": request_id,
+        "settlement_id": settlement_id, "authorization_id": authorization_id,
+        "created_at": created_at, "seq": seq,
+    }
+
+
+def _validate_request_record(raw, users: dict, payments: dict, seen_ids: set) -> dict:
+    """Mirrors `_validate_payment`, plus the one field that's actually
+    load-bearing for a crash: `amount` feeds straight into
+    `PayRequestEndpoint.apply`'s wallet arithmetic the moment someone pays
+    this request post-import — a non-numeric amount reaches `-` there
+    uncaught, the same shape adversary found in `remaining_amount`."""
+    if not isinstance(raw, dict):
+        raise validation_failed("each request must be an object")
+    rid = _require_id(raw, "id", "request")
+    if rid in seen_ids:
+        raise validation_failed("duplicate request id")
+    requester_id = _require_str(raw, "requester_id", "request")
+    payer_id = _require_str(raw, "payer_id", "request")
+    if requester_id not in users or payer_id not in users:
+        raise validation_failed("request references an unknown user")
+    amount = parse_amount(raw.get("amount"), min_value=_MIN_AMOUNT, max_value=_MAX_AMOUNT)
+    note = validate_note(raw)
+    status = raw.get("status", "pending")
+    if status not in VALID_REQUEST_STATUSES:
+        raise validation_failed("request status is invalid")
+    payment_id = _require_optional_str(raw, "payment_id", "request")
+    if payment_id is not None and payment_id not in payments:
+        raise validation_failed("request.payment_id must reference a known payment")
+    created_at = _require_str(raw, "created_at", "request")
+    seq = _require_int(raw, "seq", "request")
+    return {
+        "id": rid, "requester_id": requester_id, "payer_id": payer_id, "amount": amount,
+        "note": note, "status": status, "payment_id": payment_id,
+        "created_at": created_at, "seq": seq,
+    }
+
+
+def _validate_settlement(raw, payments: dict, seen_ids: set) -> dict:
+    if not isinstance(raw, dict):
+        raise validation_failed("each settlement must be an object")
+    sid = _require_id(raw, "id", "settlement")
+    if sid in seen_ids:
+        raise validation_failed("duplicate settlement id")
+    committed_at = _require_str(raw, "committed_at", "settlement")
+    payment_ids = raw.get("payment_ids", [])
+    if not isinstance(payment_ids, list) or not all(isinstance(p, str) for p in payment_ids):
+        raise validation_failed("settlement.payment_ids must be a list of strings")
+    if not all(p in payments for p in payment_ids):
+        raise validation_failed("settlement.payment_ids must reference known payments")
+    return {"id": sid, "committed_at": committed_at, "payment_ids": list(payment_ids)}
+
+
+def _validate_idempotency_record(raw) -> dict:
+    """`IDEMPOTENCY.restore()` indexes these fields directly (no `.get()`)
+    and runs inside `Store.apply_import`, i.e. *after* every other
+    collection has already been swapped in — a crash here, uniquely among
+    everything this module parses, would leave the destination
+    half-replaced (exactly what R-1-204's "unchanged on any failure"
+    forbids). Validating the shape here, before `apply()` ever runs,
+    is what keeps that swap atomic."""
+    if not isinstance(raw, dict):
+        raise validation_failed("each idempotency record must be an object")
+    for key in ("user_id", "method", "path", "key"):
+        if not isinstance(raw.get(key), str):
+            raise validation_failed(f"idempotency.{key} must be a string")
+    if "request_body" not in raw:
+        raise validation_failed("idempotency.request_body is required")
+    response_status = raw.get("response_status")
+    if isinstance(response_status, bool) or not isinstance(response_status, int):
+        raise validation_failed("idempotency.response_status must be an integer")
+    if "response_body" not in raw:
+        raise validation_failed("idempotency.response_body is required")
+    return {
+        "user_id": raw["user_id"], "method": raw["method"], "path": raw["path"], "key": raw["key"],
+        "request_body": raw["request_body"], "response_status": response_status,
+        "response_body": raw["response_body"],
+    }
+
+
 def _validate_authorization(raw, users: dict, seen_ids: set) -> dict:
     """Per-field validation for one imported authorization — the same
     discipline `fixtures.validate_fixture` already applies to a seeded
@@ -79,8 +220,7 @@ def _validate_authorization(raw, users: dict, seen_ids: set) -> dict:
     if from_user_id == to_user_id:
         raise validation_failed("authorization cannot reference the same user as both sides")
 
-    amount = parse_amount(raw.get("amount"), min_value=_MIN_AUTHORIZATION_AMOUNT,
-                           max_value=_MAX_AUTHORIZATION_AMOUNT)
+    amount = parse_amount(raw.get("amount"), min_value=_MIN_AMOUNT, max_value=_MAX_AMOUNT)
     note = validate_note(raw)
     visibility = validate_visibility(raw)
     status = raw.get("status", "open")
@@ -138,33 +278,93 @@ def validate_import_document(body: dict) -> dict:
     if not isinstance(state, dict):
         raise validation_failed("state must be an object")
 
+    # Every collection below is validated field-by-field, the same
+    # discipline `fixtures.validate_fixture` already applies to the reset
+    # path (R-1-204a: import must not be laxer than reset) — not just
+    # structurally unpacked and trusted. Order matters: later collections
+    # reference earlier ones (payments reference users, requests
+    # reference both users and payments, settlements reference payments),
+    # so each one's referential checks can only run once its dependency
+    # is already a validated dict.
     try:
-        users = {u["id"]: dict(u) for u in state["users"]}
-        wallets = {uid: int(balance) for uid, balance in state["wallets"].items()}
-        payments = {p["id"]: dict(p) for p in state["payments"]}
-        requests = {r["id"]: dict(r) for r in state["requests"]}
-        settlement_operator_ids = set(state["settlement_operator_ids"])
-        settlements = {s["id"]: dict(s) for s in state["settlements"]}
-        tokens = dict(state["tokens"])
-        next_seq = int(state["next_seq"])
-        idempotency_records = list(state["idempotency"])
-        currency = state["currency"]
-        minor_units = state["minor_units"]
-        users_by_handle = {u["handle"]: u["id"] for u in users.values()}
+        if not isinstance(state["users"], list):
+            raise validation_failed("users must be a list")
+        users: dict[str, dict] = {}
+        users_by_handle: dict[str, str] = {}
+        seen_emails: set = set()
+        for raw in state["users"]:
+            validated = _validate_user(raw, set(users), set(users_by_handle), seen_emails)
+            users[validated["id"]] = validated
+            users_by_handle[validated["handle"]] = validated["id"]
+            seen_emails.add(validated["email"])
         users_by_email = {u["email"]: u for u in users.values()}
+
+        if not isinstance(state["wallets"], dict):
+            raise validation_failed("wallets must be an object")
+        wallets: dict[str, int] = {}
+        for uid, balance in state["wallets"].items():
+            if uid not in users:
+                raise validation_failed("wallets references an unknown user")
+            if isinstance(balance, bool) or not isinstance(balance, int):
+                raise validation_failed("wallet balance must be an integer")
+            wallets[uid] = balance
+
+        if not isinstance(state["payments"], list):
+            raise validation_failed("payments must be a list")
+        payments: dict[str, dict] = {}
+        for raw in state["payments"]:
+            validated = _validate_payment(raw, users, set(payments))
+            payments[validated["id"]] = validated
+
+        if not isinstance(state["requests"], list):
+            raise validation_failed("requests must be a list")
+        requests: dict[str, dict] = {}
+        for raw in state["requests"]:
+            validated = _validate_request_record(raw, users, payments, set(requests))
+            requests[validated["id"]] = validated
+
+        if not isinstance(state["settlement_operator_ids"], list):
+            raise validation_failed("settlement_operator_ids must be a list")
+        settlement_operator_ids: set = set()
+        for raw in state["settlement_operator_ids"]:
+            if not isinstance(raw, str) or raw not in users:
+                raise validation_failed("settlement_operator_ids must reference known users")
+            settlement_operator_ids.add(raw)
+
+        if not isinstance(state["settlements"], list):
+            raise validation_failed("settlements must be a list")
+        settlements: dict[str, dict] = {}
+        for raw in state["settlements"]:
+            validated = _validate_settlement(raw, payments, set(settlements))
+            settlements[validated["id"]] = validated
+
+        if not isinstance(state["tokens"], dict):
+            raise validation_failed("tokens must be an object")
+        tokens: dict[str, str] = {}
+        for token, uid in state["tokens"].items():
+            if not isinstance(token, str) or not isinstance(uid, str) or uid not in users:
+                raise validation_failed("tokens must map strings to known user ids")
+            tokens[token] = uid
+
+        next_seq = _require_int(state, "next_seq", "state")
+
+        if not isinstance(state["idempotency"], list):
+            raise validation_failed("idempotency must be a list")
+        idempotency_records = [_validate_idempotency_record(raw) for raw in state["idempotency"]]
+
+        currency = _require_str(state, "currency", "state")
+        minor_units = _require(state, "minor_units", "state")
         authorization_ttl_seconds = int(state.get("authorization_ttl_seconds", 600))
+
+        # R-2-170: a stage-1 export has no "authorizations" key at all —
+        # absent means empty, the same rule R-2-021 already applies to an
+        # omitted `authorizations` array on a fixture.
+        authorizations: dict[str, dict] = {}
+        for raw in state.get("authorizations") or []:
+            validated = _validate_authorization(raw, users, set(authorizations))
+            authorizations[validated["id"]] = validated
     except (KeyError, TypeError, AttributeError, ValueError) as exc:
         raise validation_failed(f"state is malformed: {exc}")
-
-    # R-2-170: a stage-1 export has no "authorizations" key at all — absent
-    # means empty, the same rule R-2-021 already applies to an omitted
-    # `authorizations` array on a fixture. Each present one is validated
-    # field-by-field below (never copied verbatim) before anything —
-    # including `check_holds_within_balance` below — reads it.
-    authorizations: dict[str, dict] = {}
-    for raw in state.get("authorizations") or []:
-        validated = _validate_authorization(raw, users, set(authorizations))
-        authorizations[validated["id"]] = validated
 
     # R-1-204a: import enforces the same stated invariants reset does for
     # a fixture, not merely its own envelope/shape checks — the same fact
