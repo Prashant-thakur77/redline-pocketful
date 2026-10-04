@@ -7,10 +7,18 @@ from datetime import datetime, timezone
 from .errors import malformed_request
 
 
+def _reject_non_finite(token: str):
+    raise ValueError(f"non-finite number literal {token!r} is not valid JSON")
+
+
 def parse_json_object(raw: bytes) -> dict:
     """Decode a request body as UTF-8 JSON and require a top-level object.
 
     Raises malformed_request (400) for anything else, per R-1-061.
+    `NaN`/`Infinity`/`-Infinity` are a Python json extension, not strict
+    JSON, and would make stored-body equality non-reflexive (NaN != NaN)
+    for idempotency (R-1-106) — rejected here so one never enters a
+    stored body in the first place.
     """
     if raw is None or raw == b"":
         return {}
@@ -19,8 +27,8 @@ def parse_json_object(raw: bytes) -> dict:
     except UnicodeDecodeError:
         raise malformed_request("request body is not valid UTF-8")
     try:
-        parsed = json.loads(text)
-    except json.JSONDecodeError:
+        parsed = json.loads(text, parse_constant=_reject_non_finite)
+    except (json.JSONDecodeError, ValueError):
         raise malformed_request("request body is not valid JSON")
     if not isinstance(parsed, dict):
         raise malformed_request("request body must be a JSON object")
