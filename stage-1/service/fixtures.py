@@ -8,6 +8,7 @@ succeeded (R-1-045, R-1-047: a rejected reset changes nothing).
 from __future__ import annotations
 
 from .errors import validation_failed
+from .invariants import check_nonnegative_balances
 from .passwords import hash_password
 from .validation import HANDLE_RE, parse_amount, validate_note, validate_visibility
 
@@ -67,8 +68,6 @@ def validate_fixture(body: dict) -> dict:
         if "balance" not in raw:
             raise validation_failed("user.balance is required")
         balance = parse_amount(raw["balance"])
-        if balance < 0:
-            raise validation_failed("user balance must not be negative")
         users[uid] = {
             "id": uid,
             "email": email,
@@ -131,12 +130,17 @@ def validate_fixture(body: dict) -> dict:
             raise validation_failed("settlement_operator_ids must be a list of user ids")
         operator_ids.add(raw)
 
+    wallets = {uid: u["balance"] for uid, u in users.items()}
+    # R-1-204a: the same invariant checks reset and import both enforce,
+    # not merely this endpoint's own fixture-shape rules.
+    check_nonnegative_balances(wallets)
+
     return {
         "currency": currency,
         "minor_units": minor_units,
         "users": users,
         "users_by_handle": users_by_handle,
-        "wallets": {uid: u["balance"] for uid, u in users.items()},
+        "wallets": wallets,
         "payments": payments,
         "requests": requests,
         "settlement_operator_ids": operator_ids,

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from .errors import validation_failed
 from .idempotency import IDEMPOTENCY
+from .invariants import check_nonnegative_balances
 
 TRACK = "pocketful"
 FORMAT_VERSION = 1
@@ -62,13 +63,6 @@ def validate_import_document(body: dict) -> dict:
     try:
         users = {u["id"]: dict(u) for u in state["users"]}
         wallets = {uid: int(balance) for uid, balance in state["wallets"].items()}
-        # R-1-002: no wallet balance is ever negative, not even transiently
-        # — import is unauthenticated and need not have come from this
-        # service's own export, so this is a real input to validate, the
-        # same way validate_fixture rejects a negative seeded balance.
-        for uid, balance in wallets.items():
-            if balance < 0:
-                raise validation_failed(f"wallet balance for {uid} must not be negative")
         payments = {p["id"]: dict(p) for p in state["payments"]}
         requests = {r["id"]: dict(r) for r in state["requests"]}
         settlement_operator_ids = set(state["settlement_operator_ids"])
@@ -82,6 +76,12 @@ def validate_import_document(body: dict) -> dict:
         users_by_email = {u["email"]: u for u in users.values()}
     except (KeyError, TypeError, AttributeError, ValueError) as exc:
         raise validation_failed(f"state is malformed: {exc}")
+
+    # R-1-204a: import enforces the same stated invariants reset does for
+    # a fixture, not merely its own envelope/shape checks — the same fact
+    # (a negative balance) cannot be illegal through one door and legal
+    # through the other.
+    check_nonnegative_balances(wallets)
 
     return {
         "currency": currency, "minor_units": minor_units,
