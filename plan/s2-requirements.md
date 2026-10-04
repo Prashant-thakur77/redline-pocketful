@@ -192,6 +192,13 @@ R-1-120 (`GET /me` gains fields), R-1-133 / R-1-158 / R-1-227 (funds checks now 
 | R-2-174 | These upgrade requirements apply when the import completes **between** browser requests; migration during an in-flight request is not required. No page reload is required and the pay form and the pending retry identity survive the upgrade. | s2 §Existing clients | behaviour |
 | R-2-175 | A stage-2 export round-trips authorizations, their statuses, `captured_amount`, `payment_ids`, `expires_at`, `closed_at` and `authorization_ttl_seconds`, in addition to everything R-1-205/R-1-206 require. | s2 §Model, §10 | behaviour |
 
+## M2. The browser must not reimplement a write path (planner decision, 2026-10-05)
+
+| id | requirement | spec | kind |
+|---|---|---|---|
+| R-2-185 | **PLANNER DECISION.** No UI route handler may reimplement a write that the JSON API already implements. Every browser form that moves money, creates a request, a split, an authorization, a capture, a void or an account must execute through the **same endpoint object** the JSON API uses, so lock discipline, validation, error precedence and idempotency cannot drift between the two paths. A UI handler may translate form encoding to the endpoint's request shape and translate the response to a redirect or a rendered error; it may not touch the store directly. | derived from R-1-006, R-1-088, R-1-100, R-2-016 | invariant |
+| R-2-186 | **PLANNER DECISION.** Every concurrency and precedence guarantee stated for a JSON endpoint holds identically when the same operation is driven through its browser form, including under concurrent submissions. | derived from R-1-006, R-2-180 | invariant |
+
 ## N. Concurrency
 
 | id | requirement | spec | kind |
