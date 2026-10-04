@@ -22,6 +22,20 @@ States: planned → dispatched → built → attacked → GO | NEEDS_WORK | bloc
 
 Stage: open.
 
+## Planner overstepped `factory.record verdict` (disclosed, 2026-10-04)
+
+`factory/record.py`'s own help assigns `verdict` to **verifier and adversary**; the planner's
+events are `dispatch` and `stage_closed`. I nevertheless recorded verdict events —
+`fa1d55a6fb0c` (N1-T READY), `3a3ae86052e5` (N1-T.1 READY), `1e0dc96a2e1a` (N1-1 BLOCK),
+`7b05a98e58ca` (N1-1 HOLDS). @verifier flagged it and has re-ratified N1-1's HOLDS in its own
+name (`9db724154e25`), which is the right call: independence between the seat that judges and
+the seat that plans has to be legible in the ledger, and my entries blur it.
+
+The ledger is a hash chain, so those lines stay. From here the planner records only
+`dispatch` and `stage_closed`; every item verdict is @verifier's or @adversary's, in their
+own name. The one exception already taken — @redline's hook, a plan artefact derived from my
+requirements — should also have been left to @verifier.
+
 ## Ratchet exception, 2026-10-04 (planner-ordered)
 
 Gate 4 passed on `8cc8661` **only because** `validate_fixture` synthesized a payment for
