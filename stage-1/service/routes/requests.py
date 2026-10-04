@@ -85,14 +85,12 @@ class PayRequestEndpoint(Endpoint):
         return request
 
     def check_resource_permission(self, ctx: RequestCtx, resource, fields: dict) -> None:
-        # R-1-078: a request this caller is not party to at all is reported
-        # exactly like a nonexistent one; only a participant acting in the
-        # wrong role (the requester trying to pay their own request) is a
-        # real 403.
-        user_id = ctx.user["id"]
-        if user_id not in (resource["requester_id"], resource["payer_id"]):
-            raise not_found("no such request")
-        if resource["payer_id"] != user_id:
+        # R-1-158 names 403 explicitly for "a caller who is not the
+        # request's payer, including a third party" — one of R-1-078's own
+        # named exceptions to the general hide-as-404 rule, so a stranger
+        # gets the same 403 as a wrong-role participant (e.g. the
+        # requester trying to pay their own request).
+        if resource["payer_id"] != ctx.user["id"]:
             raise forbidden("only the payer may pay this request")
 
     def apply(self, ctx: RequestCtx, resource, fields: dict):
@@ -135,10 +133,8 @@ class DeclineRequestEndpoint(Endpoint):
         return request
 
     def check_resource_permission(self, ctx: RequestCtx, resource, fields: dict) -> None:
-        user_id = ctx.user["id"]
-        if user_id not in (resource["requester_id"], resource["payer_id"]):
-            raise not_found("no such request")
-        if resource["payer_id"] != user_id:
+        # R-1-160 names 403 for "a non-payer", the same named exception as pay.
+        if resource["payer_id"] != ctx.user["id"]:
             raise forbidden("only the payer may decline this request")
 
     def apply(self, ctx: RequestCtx, resource, fields: dict):
@@ -161,10 +157,8 @@ class CancelRequestEndpoint(Endpoint):
         return request
 
     def check_resource_permission(self, ctx: RequestCtx, resource, fields: dict) -> None:
-        user_id = ctx.user["id"]
-        if user_id not in (resource["requester_id"], resource["payer_id"]):
-            raise not_found("no such request")
-        if resource["requester_id"] != user_id:
+        # R-1-161 names 403 for "a non-requester", the same named exception as pay/decline.
+        if resource["requester_id"] != ctx.user["id"]:
             raise forbidden("only the requester may cancel this request")
 
     def apply(self, ctx: RequestCtx, resource, fields: dict):
