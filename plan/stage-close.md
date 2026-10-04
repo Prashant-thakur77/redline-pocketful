@@ -1,10 +1,30 @@
 # Stage-close procedure — all four stages
 
-## Verification is planner-triggered, not handoff-triggered (rule added 2026-10-04)
+## Verification: the planner decides *when*, @verifier resolves *which sha* (revised 2026-10-04)
 
-@builder's handoff does **not** trigger a verification pass. The planner names a tip and
-asks @verifier for a pass when a batch of items is genuinely ready; until then @verifier
-runs nothing.
+@builder's handoff does **not** trigger a verification pass. The planner asks @verifier for
+a pass when a batch of items is genuinely ready; until then @verifier runs nothing.
+
+**But the planner does not name the sha.** First attempt at this rule had the planner naming
+an exact tip, and it failed four times (`13ff358`, `e0e8c45`, `153d782`, then `4f44896`
+going stale within minutes of being named): in a tree with five committing seats, any sha a
+planner names is obsolete before the receiving seat starts, and twice the named sha did not
+even contain the work the dispatch described.
+
+So: **@verifier resolves `git rev-parse HEAD` itself at the moment it begins, runs against
+that, and reports which sha it used.** The planner triggers the pass and names the *items*
+to disposition; the verifier owns the sha. That eliminates the whole error class rather than
+asking the planner to be more careful, which demonstrably did not work.
+
+If a specific historical sha genuinely must be checked, the planner proves the content is in
+that commit object first and pastes the output:
+
+```
+git cat-file -e <sha>:<path>                      # new file present
+git show <sha>:<path> | grep -n '<distinctive line>'   # change present
+```
+
+A commit being recent is not evidence it contains anything.
 
 Why: @builder names a per-item sha when it finishes an item, @verifier verifies what was
 named, and a fix landing two commits later means the pass judged a superseded commit. That
