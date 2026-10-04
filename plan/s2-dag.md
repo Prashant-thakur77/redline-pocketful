@@ -7,6 +7,7 @@ already satisfied on arrival and must stay satisfied (gate 5).
 | id | title | requirements | depends on | seat |
 |---|---|---|---|---|
 | N2-T | Tests, UI tests and gate hook (incl. `UI_ROUTES`, `ui_login`) from the requirements | all R-2-*, carried R-1-* | — | redline |
+| N2-T2 | Make the gate-5 hook cross-version: `populate`/`snapshot` must feature-probe the OLD binary they run against | R-2-170, R-1-203…209 (harness, not service) | N2-T | redline |
 | N2-1 | Holds model: `total`/`available`/`held`, fixture `authorizations` + `authorization_ttl_seconds`, reset validation, clock-exact expiry on read | R-2-001…005, R-2-010, R-2-011, R-2-020…028, R-2-030…034 | N2-T | builder |
 | N2-2 | `POST /authorizations`, `GET /authorizations`, available-funds checks on every stage-1 funds path | R-2-012…018, R-2-040…046, R-2-080…084 | N2-1 | builder |
 | N2-3 | Capture: partial, extended (`final: false`), closing, error precedence; void | R-2-050…066, R-2-070…075 | N2-2 | builder |
