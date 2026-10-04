@@ -54,6 +54,23 @@ before N1-5 as a load/liveness smoke test only.
 | N1-9 | PASS | **PASS** | PASS | PASS | + `test_export_import.py` |
 | N1-10 | PASS | PASS | PASS | PASS | + `test_concurrency.py`, all 195 |
 
+### Reading gate 4's status mix, not just its verdict
+
+Gate 4's PASS is only as strong as the storm's status distribution. At N1-1.2 the log read
+`statuses {405: 204, 404: 1096}` — nothing moved money, so `invariant: True` was
+conservation over an empty set. **At each of these items the mix must change, and the
+planner checks it at stage close:**
+
+| after | these storm ops must stop being 404/405 and become | because |
+|---|---|---|
+| N1-5 | `201`/`409 insufficient_funds` on `POST /payments` | first real money movement |
+| N1-6 | `201`/`409` on `POST /requests` and `/requests/{id}/pay` | 405s at N1-2 were "path exists for GET only" |
+| N1-7 | `201`/`422` on `POST /splits` | share arithmetic enters the storm |
+| N1-8 | `201`/`409` on `POST /settlements` | net affordability enters the storm |
+
+A green gate 4 whose mix has not moved means the endpoint was never registered and the
+invariant is still trivially true. That failure mode is silent, so it is checked by hand.
+
 "advisory" = @verifier records the count as evidence and it does not block the item,
 but the ratchet applies: a test green on item N must stay green on item N+1.
 Gate 4 is binding from N1-2 because the storm hook only needs reset plus whichever
