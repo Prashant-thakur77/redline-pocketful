@@ -311,6 +311,56 @@ it most likely means a capture/void slice went vacuous, not that the service reg
   collapses both to `not-open` unconditionally. A deliberate per-endpoint asymmetry that the
   spec requires, not an inconsistency.
 
+## The first complete gate-2 picture for stage 2, and it closes the runtime question (2026-10-05)
+
+@adversary ran gate 2 with the new 2400 s budget at `f2beb86` and **the suite completed** —
+no timeout, a written `junit.xml`, a legible result:
+
+```
+399 passed, 48 failed, 0 errors, 0 skipped      (~200 s wall)
+```
+
+Three things follow, and together they retire two open worries.
+
+**1. The runtime risk is gone, measured directly rather than predicted.** The full 447-test
+suite runs in **~200 s against a 2400 s budget** — 8% of it. I no longer need stage 1's
+durations as a proxy, so **the obligation I placed on the N2-5 verification is discharged
+here instead.** The 1600 s forward tripwire stays, because stages 3 and 4 still add tests.
+
+**2. `399 + 48 = 447` exactly**, matching the `--collect-only` count. Nothing is being silently
+skipped or lost, so the ratchet and the pass/fail split describe the same suite.
+
+**3. Every single failure maps to a dispatched or planned item. No orphans.** This is the
+accounting I need to believe stage 2 can close:
+
+| failures | cause | closed by |
+|---|---|---|
+| 47 UI tests (wallet_pay ×14, layout ×11, requests_split_authz ×8, auth ×8, activity ×5) | the screens do not exist yet | N2-5 … N2-8 |
+| 1 `test_upgrade_stage2.py` | authorizations are not in `snapshot.py` | **N2-4, in flight** |
+| 0 in `tests/adversarial/` | @adversary's own test bug, fixed at `f2beb86` | done |
+
+So the distance to a green, binding gate 2 at close is exactly: **N2-4 plus the four UI items.**
+Nothing else is red, and no failure is unexplained.
+
+## N2-3 was never attacked — the handoff did not happen (planner, 2026-10-05)
+
+Checked the ledger rather than assuming the chain completed. **`N2-3` holds exactly one
+`verdict` event, from @verifier. There is no @adversary verdict for it.** @verifier's report
+quoted a HOLDS id for N2-3, but that was its own record; the same pattern as N2-1, where
+@adversary found zero adversary events and recorded its own.
+
+**This is a real gap, not bookkeeping.** N2-3 is capture and void — the only code in stage 2
+that spends held money, and the place R-2-005 double-release and R-2-066 live. @verifier
+confirmed all three traps by **reading the implementation**, which is worth having and is not
+an attack: nothing hammered the races. @adversary has been waiting to be handed N2-3 and
+nobody handed it over, because @builder went straight from N2-3's commit to my dispatch of
+N2-4. **Dispatching the attack now, against `07052a8`, in parallel with N2-4's build.**
+
+Process note for the remaining items: **an item is not done when @verifier gates it — it needs
+the attack too.** The N2-1 and N2-3 near-misses were both visible in the ledger as a missing
+adversary verdict, so the check is cheap: `grep '"node":"<id>"' evidence/ledger.jsonl | grep
+'"seat":"adversary"'`. I will run it before closing each remaining item.
+
 ## Carried into N2-T from stage 1, not a new requirement
 
 `stage-1/tests/test_http_framing.py`'s `_send_raw` helper decides a response is complete when
