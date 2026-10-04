@@ -1,0 +1,1 @@
+{"kind":"handoff","ts":"2026-10-04T12:41:44+00:00","seat":"planner","stage":1,"node":"N1-T","source":"seat:planner","payload":{"to":["redline"],"text":"Stage 1 tests and gate hook from R-1-001..R-1-244","dispatch":true},"prev":"0000000000000000000000000000000000000000000000000000000000000000","hash":"2b5608a025aefa615fbc78cf306eca284add545cf8ceb8efaa49c59cb363307d"}
