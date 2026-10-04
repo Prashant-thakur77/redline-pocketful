@@ -89,6 +89,25 @@ def test_amount_boundaries_accepted():
     assert r.status_code == 201, r.text
 
 
+def test_payment_funds_boundary_exact_balance_succeeds_one_over_fails():
+    """R-1-133, R-1-002: pins the `<` vs `<=` boundary in the funds check
+    (a gate-6 mutation risk) — paying exactly the caller's balance succeeds
+    and drains it to zero; one minor unit more than the balance is 409,
+    on an otherwise-identical fresh fixture so the two cases can't interact."""
+    fixture, token_a, _ = _two_user_fixture(balance_a=777, balance_b=0)
+    b_handle = fixture["users"][1]["handle"]
+    exact = api_post("/payments", json={"to_handle": b_handle, "amount": 777},
+                      headers={**auth(token_a), **idem(unique("k"))})
+    assert exact.status_code == 201, exact.text
+    assert api_get("/me", headers=auth(token_a)).json()["balance"] == 0
+
+    fixture2, token_a2, _ = _two_user_fixture(balance_a=777, balance_b=0)
+    b2_handle = fixture2["users"][1]["handle"]
+    over = api_post("/payments", json={"to_handle": b2_handle, "amount": 778},
+                     headers={**auth(token_a2), **idem(unique("k"))})
+    assert_error(over, 409, "insufficient_funds")
+
+
 def test_self_payment_422():
     """R-1-135"""
     fixture, token_a, _ = _two_user_fixture()

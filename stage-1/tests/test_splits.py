@@ -62,6 +62,12 @@ def test_shares_sum_exactly_to_amount():
     (10, 3, [4, 3, 3]),
     (999, 3, [333, 333, 333]),
     (5, 5, [1, 1, 1, 1, 1]),
+    (17, 5, [4, 4, 3, 3, 3]),  # rem=2: pins the boundary between the 2nd and
+                               # 3rd participant (every rem=1 case above only
+                               # exercises a single `i < rem` boundary; this
+                               # one needs two consecutive indices to get the
+                               # extra unit and the third not to, so an
+                               # off-by-one in the comparison can't hide)
 ])
 def test_share_arithmetic_matches_spec_examples(amount, n, expected):
     """R-1-173, R-1-174"""

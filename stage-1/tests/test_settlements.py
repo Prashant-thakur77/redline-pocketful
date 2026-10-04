@@ -135,6 +135,24 @@ def test_unaffordable_net_batch_rejected_and_changes_nothing():
     assert api_get("/me", headers=auth(tokens[1])).json()["balance"] == 50
 
 
+def test_settlement_funds_boundary_exact_balance_succeeds_one_over_fails():
+    """R-1-227: pins the `<` vs `<=` boundary in settlement net-affordability
+    specifically (a separate code path from a direct payment's funds check,
+    so each needs its own boundary test) — a single-leg transfer for
+    exactly the sender's balance succeeds, draining it to zero; one minor
+    unit more is 409, on a fresh fixture so the two cases can't interact."""
+    fixture, ids, handles, tokens = _setup(n=2, balance=500)
+    exact = api_post("/settlements", json={"transfers": [{"from_handle": handles[0], "to_handle": handles[1], "amount": 500}]},
+                      headers={**auth(tokens[0]), **idem(unique("k1"))})
+    assert exact.status_code == 201, exact.text
+    assert api_get("/me", headers=auth(tokens[0])).json()["balance"] == 0
+
+    fixture2, ids2, handles2, tokens2 = _setup(n=2, balance=500)
+    over = api_post("/settlements", json={"transfers": [{"from_handle": handles2[0], "to_handle": handles2[1], "amount": 501}]},
+                    headers={**auth(tokens2[0]), **idem(unique("k2"))})
+    assert_error(over, 409, "insufficient_funds")
+
+
 def _chain_fixture():
     """ada (100) -> bob (0) -> cy (0): bob's own starting balance cannot
     cover his outgoing leg, and only nets to zero because of ada's earlier
