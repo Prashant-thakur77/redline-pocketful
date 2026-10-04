@@ -8,8 +8,8 @@ satisfied and must stay satisfied — that is gate 5's job from here on.
 |---|---|---|---|
 | N2-0 | **done** | `721295c` (+ `0ba3d8f` cost) | @builder. `git diff --stat 4cce19d:stage-1 721295c:stage-2` is **empty** — the trees are identical, nothing differs but the path prefix — and `stage-2/tests/invariants/hook.py`, `stage-2/Dockerfile`, `stage-2/RUN.md` are all present. @builder reported both checks rather than asserting the copy worked, and stopped without starting N2-1. |
 | N2-T | **READY** | `36bcb2d` | 431 tests (up from stage 1's 314), 0 collection errors, red for the right reason (`httpx.ConnectError`, no service). Planner-verified below. |
-| N2-1 | dispatched | — | Holds model: `total`/`available`/`held`, fixture `authorizations` + `authorization_ttl_seconds`, reset validation, clock-exact expiry on read. @builder. |
-| N2-2 | planned | — | — |
+| N2-1 | **built, attacked, gates re-run** | `15b99f5` (+ `f8c6462` code, `e3f81bb`/`5b6df67` attack) | Holds model. @adversary **HOLDS** (`a5a39df7c0a0`, 15 attacks). @verifier re-ran tagged: **g1 PASS, g4 PASS, g8 PASS**; scope clean but for the already-ruled sanctioned finding; collection ratchet **447 ≥ 431**. Awaiting the formal GO token — see the two findings below. |
+| N2-2 | dispatched | — | `POST /authorizations`, `GET /authorizations`, R-2-014/015/016/018 + R-2-040…046 + R-2-080…084 (R-2-012/013/017 already landed in N2-1). @builder. |
 | N2-3 | planned | — | — |
 | N2-4 | planned | — | — |
 | N2-5 | planned | — | — |
@@ -88,6 +88,58 @@ turn, because no stage-2 service exists yet. Stage 1's first storm logged `{404:
 conserved money trivially, so a mix is only meaningful once N2-1 serves something. **The mix
 must be reported with the first gate 4 run that has a live service** — I am carrying that as an
 obligation on N2-1's verification, not letting it lapse.
+
+## N2-1 verification: the storm-mix obligation is discharged (2026-10-04)
+
+The obligation I carried onto N2-1 — report the gate 4 status mix once a live service exists —
+is met. @verifier's tagged g4 run logged `{404: 149, 201: 600, 409: 300, 405: 79, 200: 172}`,
+close to @builder's own figures. Read against stage 1's first storm (`{404: 1300}`, which
+conserved money trivially because nothing moved), this mix is **load-bearing**: 600 creations,
+300 refusals and 172 replays means R-2-002 and R-1-001 were actually exercised.
+
+**One number in it is a pre-condition, not a defect, and must disappear:** the `405: 79` is the
+hook calling `/authorizations` and `/authorizations/{id}/capture`, which do not exist until N2-2
+and N2-3. **If any `405` survives in the gate 4 mix after N2-3 closes, that is a defect** — it
+means a write path the hook storms is unrouted. Carried as an obligation on N2-3's verification.
+
+## Two findings on N2-1's verification, and how they are ruled (planner, 2026-10-05)
+
+@verifier reported both of these against its own interest rather than rounding them off, which
+is the behaviour I want and the reason I can close on its report.
+
+**1. Gate 2's `"a test was removed"` message is a false signal here. Do not act on it.**
+The full `--gates 2` run hit the tool's **900 s timeout** at ~83%, so `junit.xml` was never
+written and the wrapper's fallback mis-reported a missing file as a deleted test. The cause is
+@redline's ~11 Playwright files retrying against screens that do not exist until N2-5. The
+ratchet itself is intact and was measured the right way: `--collect-only` collects **447**
+tests against stage 2's 431 and stage 1's 314.
+
+**Ruling.** Until gate 7 has real screens to visit, the binding ratchet measure is the
+`--collect-only` count, not gate 2's removal message. **This does not relax the ratchet** — 447
+≥ 431 ≥ 314 is checked every item, by a method that actually measures it. Two consequences I am
+recording now so they cannot be discovered at close: the same 900 s timeout will hit the
+**stage-close** gate 2 run, where gate 2 is binding and a timeout is not a pass; and under
+G7-4 an empty record is a close failure. So **at close, gate 2 must produce a written
+`junit.xml`** — if the full suite cannot finish inside the tool's timeout, @verifier reports
+that as a BLOCK on the close run, and I re-plan the close rather than accept a truncated run.
+
+**2. The 336/49 item-scoped split is corroborated, not independently re-derived. Accepted.**
+@verifier could not reproduce @builder's split directly: serving a container via
+`factory.gates.serve` and then invoking `pytest` against it was refused by the sandbox's own
+permission policy. It fell back to the dot/F sequence of the timed-out run: **325 passed / 67
+failed of the 392 seen before cutoff**, with the same *clustered* shape @builder described —
+whole files failing on N2-2/N2-3-dependent calls, not failures scattered through passing files.
+
+**Ruling: this is enough to close N2-1, and the gap is closed by N2-2 rather than argued about.**
+The cluster shape is the load-bearing part of the claim — scattered failures would mean the
+holds model broke working behaviour, clusters mean tests are red for the one legitimate reason
+(their endpoints do not exist yet). The three gates that *are* fully independent (g1, g4, g8)
+all pass, and g4 is the one that would catch a real holds defect. So I accept the corroboration
+and take @verifier's own recommendation: **the 49 files are the spot-check for N2-2.** They
+cover R-2-040…046 and R-2-080…084, so if the attribution was honest they flip green when N2-2
+lands, and if it was not, they do not. That turns a gap in evidence into a prediction N2-2 must
+satisfy — recorded as an obligation on N2-2's verification, with the number to beat written
+down in advance: **at N2-2, the item-scoped set is green and the collected count is ≥ 447.**
 
 ## Carried into N2-T from stage 1, not a new requirement
 
