@@ -71,6 +71,18 @@ def request_not_pending(message: str = "request is not pending") -> ApiError:
     return ApiError(409, "request_not_pending", message)
 
 
+def authorization_expired(message: str = "authorization has expired") -> ApiError:
+    return ApiError(409, "authorization_expired", message)
+
+
+def authorization_not_open(message: str = "authorization is not open") -> ApiError:
+    return ApiError(409, "authorization_not_open", message)
+
+
+def capture_exceeds_authorization(message: str = "capture amount exceeds the remaining authorized amount") -> ApiError:
+    return ApiError(422, "capture_exceeds_authorization", message)
+
+
 def internal_error(message: str = "unexpected server error") -> ApiError:
     """R-1-080a: a genuine uncaught exception is a server defect, not the
     caller's fault — it must answer loudly, not hide behind a 4xx."""
