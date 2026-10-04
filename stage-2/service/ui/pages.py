@@ -211,9 +211,12 @@ def _handle_signup(form: dict):
 
 
 def _handle_logout(cookies: dict):
-    token = cookies.get("pocketful_session")
-    if token:
-        STORE.tokens.pop(token, None)
+    # R-2-188 (planner's ruling): logout clears the browser's own cookie
+    # and revokes nothing server-side. R-1-090 promises tokens never
+    # expire and one account may hold several concurrently valid ones, and
+    # no endpoint in any stage is granted revocation — popping the token
+    # from STORE.tokens here would break a concurrently running API
+    # client using the exact same bearer token this session cookie holds.
     return _redirect("/login", set_cookie=_clear_session_cookie())
 
 

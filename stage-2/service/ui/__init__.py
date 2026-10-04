@@ -55,29 +55,28 @@ def _parse_accept(accept: str) -> list[tuple[str, float]]:
 
 
 def _wants_html(headers: dict) -> bool:
-    """R-2-091: a real Accept parse, not a substring search — a naive
-    `"text/html" in accept` both matches values that merely contain the
-    substring without being the media type at all (`text/htmlx`,
-    `application/text/html`) and ignores q-values entirely, wrongly
-    diverting a client that lists `text/html` only as a near-zero-
-    priority fallback behind `application/json` (adversary's second
-    N2-5 breach). The exact token `text/html` must be present with a
-    q-value at least as high as every other listed type's; curl's
-    default `*/*`, a bare missing header, and an explicit
-    `application/json` must all still mean JSON."""
+    """R-2-187, the exact rule: serve HTML iff `text/html` appears as an
+    EXPLICIT media type (never via `text/*` or `*/*`) with q > 0, and no
+    explicit `application/json` entry carries a strictly higher q. Only
+    `application/json` is ever compared against — a high-q third type
+    (`image/png`, `application/xml`, ...) must never tip the result to
+    JSON the way an earlier, cruder "highest q wins outright" draft of
+    this function did. A malformed `q` parameter is treated as absent
+    (q=1), never raised (R-1-005: a hostile Accept header must not be
+    able to produce a 5xx)."""
     accept = headers.get("accept", "")
     if not accept:
         return False
     html_q = None
-    best_other_q = 0.0
+    json_q = 0.0
     for media_type, q in _parse_accept(accept):
         if media_type == "text/html":
             html_q = q if html_q is None else max(html_q, q)
-        else:
-            best_other_q = max(best_other_q, q)
+        elif media_type == "application/json":
+            json_q = max(json_q, q)
     if html_q is None or html_q <= 0:
         return False
-    return html_q >= best_other_q
+    return not (json_q > html_q)
 
 
 def _parse_cookies(headers: dict) -> dict:
