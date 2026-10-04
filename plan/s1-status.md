@@ -31,10 +31,31 @@
 | N1-10.2 | dispatched | — | **Residual gap in the N1-10 HOLDS, found by reading its commit message against R-1-112a.** Target 2 reset under load with 50 threads on `POST /payments`, but each thread used its **own** idempotency key, so no thread was ever *parked as a waiter on a key another thread held* at the moment the reset landed. That is exactly the N1-10.1 path: `clear()`/`restore()` dropping a claimed-but-incomplete entry out from under a waiter. N1-10's HOLDS therefore does **not** cover it; the path is still unproven by test rather than disproven. Dispatched to @adversary to park a waiter and reset mid-wait. |
 | ~~N1-10 attack (original dispatch)~~ | superseded by the row above | — | N1-10 was the one built item @adversary had never attacked: `stage-1/tests/adversarial/` has files for N1-1…N1-9 and none for N1-10, and nothing in that folder mentions R-1-015, R-1-244 or the listen backlog. @builder changed two load-bearing things there on its own judgement — the listen backlog (`ccfbcef`) and `_WAIT_TIMEOUT = 15.0` → `_MAX_TOTAL_WAIT = 4.0` with an honest timeout response (`ae12b99`) — and neither has been attacked by anyone. The timeout path is the sharp end: if a slow winner can make a same-key loser time out, that is an R-1-108 breach introduced by the fix for an R-1-015 breach. |
 
-| N1-10.1 | **done** | 8d818c1 | Fix landed and verified by planner read: `clear()` and `restore()` both signal every incomplete entry's waiters before dropping it, and `grep -c "_MAX_TOTAL_WAIT\|RuntimeError"` on `idempotency.py` returns `0` — the wall-clock deadline and its `500` are gone. @adversary's N1-10 target 1 independently showed the deadline was never reached under the heaviest legal load (500 concurrent requests, 10 winners on one global write lock), so the removed `500` was dead code rather than a live breach; N1-10.2 covers the one interleaving that did reach it. Baseline green at `cd66b40`: gate 2 = 312 passed, 0 failed. Original dispatch text follows. |
+| N1-10.1 | **done** | 8d818c1 | @builder answered the three proof obligations rather than asserting them. **Exit-path audit:** grepped every `_entries` mutation site — four paths remove or replace a claimed-but-incomplete entry (`commit`, `release` including `pipeline.py`'s `except Exception`, `clear`, `restore`), all four now signal, no fifth exists. **Lost wakeup:** verified empirically, not by reasoning — `event.set()` called before `event.wait()` ever runs returns in ~2 µs, because `threading.Event` latches, so a `set()` landing in the gap between releasing the store lock and calling `wait()` does not need the waiter already parked. **The race itself:** a thread claims and never commits or releases (stuck winner), a second parks on the same key, `clear()` fires while it is parked — the waiter wakes and returns `"claimed"`, never hangs. That is the defect I found by code reading, reproduced and closed. Planner-read confirmation below. |
+| ~~N1-10.1 (planner read)~~ | same commit | 8d818c1 | Fix landed and verified by planner read: `clear()` and `restore()` both signal every incomplete entry's waiters before dropping it, and `grep -c "_MAX_TOTAL_WAIT\|RuntimeError"` on `idempotency.py` returns `0` — the wall-clock deadline and its `500` are gone. @adversary's N1-10 target 1 independently showed the deadline was never reached under the heaviest legal load (500 concurrent requests, 10 winners on one global write lock), so the removed `500` was dead code rather than a live breach; N1-10.2 covers the one interleaving that did reach it. Baseline green at `cd66b40`: gate 2 = 312 passed, 0 failed. Original dispatch text follows. |
 | ~~N1-10.1 (original dispatch)~~ | superseded by the row above | — | **Planner-found defect, two coupled halves, from @builder's own N1-10 report.** (a) The idempotency wait deadline raises `RuntimeError` on expiry, which the last-resort handler turns into `500 internal_error`. @builder cited R-1-080a, but R-1-080a covers a genuinely *unexpected* exception; a deadline expiry under load is an *anticipated* condition, and R-1-005 forbids any 5xx under 50 in flight — exactly the conditions the storm creates. → **R-1-080b.** (b) The reason the deadline is reachable at all: `clear()` and `restore()` drop claimed-but-incomplete entries **without setting their events**, so a waiter whose winner is wiped by a concurrent `POST /_test/reset` or `POST /_test/import` is never woken and only escapes via that deadline — i.e. the 4 s timer is *masking* a reset-under-load defect, and the mask itself breaches R-1-005. Removing the timer alone would convert the 500 into a hang, so both halves must land together. → **R-1-112a.** |
 
 States: planned → dispatched → built → attacked → GO | NEEDS_WORK | blocked.
+
+## Suite flakiness observed, not yet acted on (planner, 2026-10-04)
+
+Two independent reports of tests passing and failing without a code change between runs:
+
+- @builder, during N1-10.1: `test_r_1_108_timing_maximum_global_lock_contention` and
+  `test_over_long_header_block_400` failed once, then passed on re-run with no edit from it.
+- @adversary's two N1-10.2 tests passed three times under `--base-url` against a served
+  session and then failed in the full suite — **order dependence**, ruled a test defect and
+  dispatched back (the service is correct: a user absent from post-wipe state cannot log in,
+  R-1-040/R-1-041/R-1-209).
+
+The timing test is the one that matters for the close: it asserts all 500 responses inside
+R-1-015's 5 s budget, and on a box where another seat is running `docker build` that can fail
+for reasons unrelated to the service. **Deliberately not weakening it.** R-1-015 is a real
+requirement and softening an assertion to make a close pass is the exact instinct this factory
+exists to prevent. The mitigation is process, already in force: gate runs are serialized
+(`plan/lessons.md`, `7c85099`), so the close measures a quiet box. If it fails there, with no
+other seat building, that is a genuine R-1-015 signal and gets investigated as one rather than
+retried away.
 
 Stage: open — one gate short of close.
 
