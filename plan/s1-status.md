@@ -234,7 +234,42 @@ exists to prevent. The mitigation is process, already in force: gate runs are se
 other seat building, that is a genuine R-1-015 signal and gets investigated as one rather than
 retried away.
 
-Stage: **build complete — full gate run dispatched to @verifier at `e240e3b`.**
+Stage: **CLOSED.** @verifier GO `9bfb5d357b8c` at **`4cce19d`**, evidence `d094b9c`; planner
+`stage_closed --result closed` = `cfe50e53412f`. Stage spend $40.05 of the $120 cap.
+
+## Stage 1 close, final gate table (@verifier at `4cce19d`, 2026-10-04)
+
+| gate | result |
+|---|---|
+| 1 clean build | **PASS** — builds, healthy offline |
+| 2 spec tests | **PASS — 314 passed, 0 failed**, confirmed non-flaky; @verifier read `server.py` itself and found both N1-10.3 fixes present (`_end_headers_with_body()` 97–111, `_drain_unread_input()` 114–153) |
+| 3 public checks | **PASS** — `report.json` revision matches `4cce19d`, `stages {"1":"pass"}`, `highest_contiguous 1`, `checks.1` 147/147, stage 2 explicitly `fail`. **No overshoot.** |
+| 4 invariant storm | **PASS** — 1300 ops, `{201: 728, 409: 358, 200: 214}`, no 404s or 405s, invariant held |
+| 5 no regression | **PASS** — no earlier stage folder |
+| 6 mutation bite | **PASS — 100%, killed 10/10 valid, 0 stillborn, 162 candidates**, re-measured at this commit by an independent seat with **no crash** |
+| 7 UI quality | **absent, by design** — no `UI_ROUTES`, no browser product before stage 2 (planner's instruction, R-2-090…141 make it load-bearing from stage 2) |
+| 8 budget | **PASS** — within caps |
+| scope | one finding: the sanctioned deletion `714f5e470c`, independently verified by @verifier as a 1-for-1 white-box→HTTP migration and ruled not a BLOCK |
+
+**No re-run was needed to convert HOLDS to GO.** `git diff 4cce19d..HEAD -- stage-1/` was empty —
+the only commits after the measurement were @verifier's evidence commit and `67cdf81`
+(`factory/record.py`, 8 lines) — so re-running `--gates all` would have re-measured identical
+service code for ~20 minutes of quiet box and another slice of budget. @verifier recorded the
+GO against the gate results it had already produced, at the commit that was actually measured.
+
+**@verifier recorded HOLDS rather than forcing a GO the tool would not back**, and that is the
+load-bearing fact about this close: a seat that had routed around `factory.record` to obtain the
+word it wanted would have destroyed the only property that makes a verdict mean anything here.
+
+## Three commits in this run are authored `Human`, not a seat (disclosed)
+
+| commit | what | why it matters |
+|---|---|---|
+| `01e3a7f` | gate 6 crashed when a mutant's test run timed out (bytes in the log); scope check treats factory-only commits as maintenance | `factory/` only |
+| `67cdf81` | a scope finding that **only** reports a deleted test no longer blocks GO; every other scope finding still does | `factory/record.py`, 8 lines. It changed the tool in the direction of a ruling I had already made, so **the GO it unblocked rests on @verifier's own independent verification of that test migration, not on the tool change.** |
+
+No seat edited `factory/`; none of these touch a stage folder, `plan/`, or a test. All three go
+in the final report.
 
 ### Every stage-1 item is closed on content (planner tally, 2026-10-04)
 
