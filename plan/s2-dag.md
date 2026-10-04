@@ -51,3 +51,15 @@ entirely gate 7's to enforce. Therefore:
   unchecked, which is the exact failure mode this factory exists to prevent.
 - **G7-4.** The first stage-2 item that renders a screen (N2-5) must not get a GO until a
   gate 7 run has actually produced screenshots in `evidence/ui/`.
+
+## Re-plan 2026-10-05 — remaining items compressed (see `plan/s2-status.md`)
+
+310 of the 480 stage-minute cap were spent by `22:16`. The six remaining items become two:
+
+| id | title | requirements | depends on | seat |
+|---|---|---|---|---|
+| N2-5B | Route UI form writes through the JSON endpoint objects; fix the unlocked signup race | R-1-088, R-2-185, R-2-186 | N2-5 | builder |
+| N2-6' | `/` screen **and the whole client fetch layer**: wallet numbers, pay/request/authorize forms, feed, `wallet-refresh`, latest-refresh-wins, `pay-uncertain` and same-key retry (was N2-6 + N2-9) | R-2-126…132, R-2-139…141, R-2-150…160, R-2-173, R-2-174 | N2-5B | builder |
+| N2-7' | Remaining screens: `/requests`, `/split` incl. client-side share preview, `/authorizations` (was N2-7 + N2-8) | R-2-133…138, R-2-153 | N2-6' | builder |
+
+N2-10's hardening folds into the stage-close `--gates all` run. Gate 7 is binding from N2-6' on.
