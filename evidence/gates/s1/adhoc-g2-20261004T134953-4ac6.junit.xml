@@ -1,0 +1,1928 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="127" skipped="0" tests="203" time="19.613" timestamp="2026-10-04T19:19:53.430165+05:30" hostname="prashant-Dell-G15-5530"><testcase classname="stage-1.tests.adversarial.test_n1_1_adversarial" name="test_head_method_is_not_a_5xx_r_1_005" time="0.017" /><testcase classname="stage-1.tests.adversarial.test_n1_1_adversarial" name="test_options_method_is_not_a_5xx_r_1_005" time="0.005" /><testcase classname="stage-1.tests.adversarial.test_n1_1_adversarial" name="test_malformed_content_length_gets_a_response_not_a_dropped_connection" time="0.001" /><testcase classname="stage-1.tests.adversarial.test_n1_2_adversarial" name="test_login_timing_does_not_distinguish_unknown_email_from_wrong_password" time="1.116" /><testcase classname="stage-1.tests.adversarial.test_n1_3_adversarial" name="test_concurrent_signups_same_email_exactly_one_201" time="0.046" /><testcase classname="stage-1.tests.adversarial.test_n1_3_adversarial" name="test_concurrent_signups_colliding_derived_handle_exactly_one_201" time="0.041" /><testcase classname="stage-1.tests.adversarial.test_n1_4_adversarial" name="test_bool_and_int_bodies_are_not_the_same_json_value_r_1_106" time="0.000"><failure message="AssertionError: a body with {'flag': True} was silently treated as the same request as {'flag': 1} and replayed instead of raising 409 idempotency_key_reuse">def test_bool_and_int_bodies_are_not_the_same_json_value_r_1_106():
+        """R-1-106: '{}' and '{"visibility":"public"}' are different bodies;
+        only *numbers* compared by exact numeric value collapse together
+        (1000 == 1000.0 == 1e3). A JSON boolean and a JSON number are
+        different types and must not collapse the same way.
+    
+        `resolve_or_claim`'s "same body" check is `entry.request_body != body`
+        on the parsed Python dicts. Python's `==` makes `True == 1` and
+        `False == 0`, so `{"flag": 1}` and `{"flag": True}` compare equal even
+        though they are different JSON values — a caller can retry with a
+        boolean swapped in for an integer (or vice versa) and get a silent
+        `200` replay of someone else's request instead of the
+        `409 idempotency_key_reuse` R-1-106 requires for a genuinely
+        different body.
+        """
+        store = IdempotencyStore()
+        outcome, composite = store.resolve_or_claim("u1", "POST", "/payments", "k1", {"flag": 1})
+        assert outcome == "claimed"
+        store.commit(composite, 201, {"flag": 1, "result": "ok"})
+    
+        try:
+            store.resolve_or_claim("u1", "POST", "/payments", "k1", {"flag": True})
+        except ApiError as exc:
+            assert exc.code == "idempotency_key_reuse", (
+                f"expected idempotency_key_reuse for a body that swaps an int for a bool, got {exc.code}"
+            )
+        else:
+&gt;           raise AssertionError(
+                "a body with {'flag': True} was silently treated as the same request as "
+                "{'flag': 1} and replayed instead of raising 409 idempotency_key_reuse"
+            )
+E           AssertionError: a body with {'flag': True} was silently treated as the same request as {'flag': 1} and replayed instead of raising 409 idempotency_key_reuse
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/adversarial/test_n1_4_adversarial.py:51: AssertionError</failure></testcase><testcase classname="stage-1.tests.adversarial.test_n1_4_adversarial" name="test_concurrent_claims_same_key_same_body_exactly_one_runs" time="0.055" /><testcase classname="stage-1.tests.test_auth" name="test_signup_creates_usable_account" time="0.032" /><testcase classname="stage-1.tests.test_auth" name="test_signup_derived_handle_from_email_local_part" time="0.032" /><testcase classname="stage-1.tests.test_auth" name="test_signup_ignores_supplied_handle_field" time="0.031" /><testcase classname="stage-1.tests.test_auth" name="test_login_with_correct_password" time="0.038" /><testcase classname="stage-1.tests.test_auth" name="test_signup_duplicate_email_409" time="0.026" /><testcase classname="stage-1.tests.test_auth" name="test_signup_short_password_422" time="0.005" /><testcase classname="stage-1.tests.test_auth" name="test_signup_invalid_email_422" time="0.014" /><testcase classname="stage-1.tests.test_auth" name="test_login_wrong_password_401" time="0.042" /><testcase classname="stage-1.tests.test_auth" name="test_login_unknown_email_401_same_as_wrong_password" time="0.018" /><testcase classname="stage-1.tests.test_auth" name="test_signup_handle_collision_with_existing_account_409" time="0.023" /><testcase classname="stage-1.tests.test_auth" name="test_signup_precedence_validation_before_email_before_handle" time="0.034" /><testcase classname="stage-1.tests.test_auth" name="test_protected_endpoint_requires_bearer_token" time="0.004" /><testcase classname="stage-1.tests.test_auth" name="test_public_endpoints_need_no_auth" time="0.042" /><testcase classname="stage-1.tests.test_auth" name="test_tokens_never_expire_and_multiple_concurrent_tokens_valid" time="0.080" /><testcase classname="stage-1.tests.test_auth" name="test_password_not_stored_in_plaintext_via_export" time="0.037"><failure message="assert 404 == 200&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_password_not_stored_in_plaintext_via_export():
+        """R-1-091"""
+        email = unique_email("hashcheck")
+        plaintext = "password123"
+        signup_ok(email, plaintext, "Hash Check")
+        export = api_get("/_test/export")
+&gt;       assert export.status_code == 200
+E       assert 404 == 200
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_auth.py:142: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_auth" name="test_token_prefix_suffix_case_variants_rejected" time="0.071" /><testcase classname="stage-1.tests.test_auth" name="test_missing_authorization_header" time="0.010" /><testcase classname="stage-1.tests.test_auth" name="test_authorization_header_not_bearer_form" time="0.010" /><testcase classname="stage-1.tests.test_auth" name="test_authorization_header_unknown_token" time="0.012" /><testcase classname="stage-1.tests.test_concurrency" name="test_50_concurrent_requests_no_5xx_and_fast" time="0.295" /><testcase classname="stage-1.tests.test_concurrency" name="test_reset_completes_within_10s" time="0.125" /><testcase classname="stage-1.tests.test_concurrency" name="test_payment_atomic_concurrent_with_reads_never_torn" time="0.242" /><testcase classname="stage-1.tests.test_concurrency" name="test_1000_concurrent_ops_with_replays_invariants_hold" time="0.950" /><testcase classname="stage-1.tests.test_concurrency" name="test_two_concurrent_pays_same_request_different_keys" time="0.109"><failure message="KeyError: 'request_id'">def test_two_concurrent_pays_same_request_different_keys():
+        """R-1-241"""
+        fixture, handles, tokens = _n_user_fixture(3, balance=1000)
+        req = api_post("/requests", json={"payer_handle": handles[1], "amount": 10},
+                       headers={**auth(tokens[0]), **idem(unique("k"))})
+&gt;       req_id = req.json()["request_id"]
+                 ^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'request_id'
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_concurrency.py:104: KeyError</failure></testcase><testcase classname="stage-1.tests.test_concurrency" name="test_two_concurrent_payments_exceeding_balance_at_most_one_succeeds" time="0.107"><failure message="assert (409 in Counter({404: 2}) or 0 == 1)">def test_two_concurrent_payments_exceeding_balance_at_most_one_succeeds():
+        """R-1-242"""
+        fixture, handles, tokens = _n_user_fixture(3, balance=100)
+        results = []
+        lock = threading.Lock()
+    
+        def pay(i):
+            r = api_post("/payments", json={"to_handle": handles[(i + 1) % 3], "amount": 80},
+                         headers={**auth(tokens[0]), **idem(unique(f"pk{i}"))})
+            with lock:
+                results.append(r.status_code)
+    
+        threads = [threading.Thread(target=pay, args=(i,)) for i in range(2)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+    
+        counts = Counter(results)
+        assert counts[201] &lt;= 1, f"both concurrent overdraft payments succeeded: {dict(counts)}"
+&gt;       assert 409 in counts or counts[201] == 1
+E       assert (409 in Counter({404: 2}) or 0 == 1)
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_concurrency.py:145: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_concurrency" name="test_concurrent_settlements_and_payments_conserve_total" time="0.389" /><testcase classname="stage-1.tests.test_concurrency" name="test_reset_concurrent_with_traffic_no_5xx_and_clean_cutover" time="0.170" /><testcase classname="stage-1.tests.test_errors_precedence" name="test_error_body_shape_every_4xx_and_5xx_family" time="0.005" /><testcase classname="stage-1.tests.test_errors_precedence" name="test_malformed_request_unparseable_body" time="0.090"><failure message="AssertionError: expected 400 got 404: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /payments&quot;}}&#10;assert 404 == 400&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_malformed_request_unparseable_body():
+        """R-1-061"""
+        fixture, token_a, _ = _two_user_fixture()
+        r = httpx.post(url("/payments"), content=b"{not json", headers={**auth(token_a), "Idempotency-Key": "k",
+                                                                          "Content-Type": "application/json"})
+&gt;       assert_error(r, 400, "malformed_request")
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_errors_precedence.py:33: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+resp = &lt;Response [404 Not Found]&gt;, status = 400, code = 'malformed_request'
+
+    def assert_error(resp: httpx.Response, status: int, code: str):
+&gt;       assert resp.status_code == status, f"expected {status} got {resp.status_code}: {resp.text}"
+E       AssertionError: expected 400 got 404: {"error": {"code": "not_found", "message": "no such endpoint: POST /payments"}}
+E       assert 404 == 400
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/conftest.py:165: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_errors_precedence" name="test_malformed_request_non_object_top_level" time="0.075"><failure message="AssertionError: expected 400 got 404: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /payments&quot;}}&#10;assert 404 == 400&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_malformed_request_non_object_top_level():
+        """R-1-061"""
+        fixture, token_a, _ = _two_user_fixture()
+        r = api_post("/payments", json=[1, 2, 3], headers={**auth(token_a), **idem(unique("k"))})
+&gt;       assert_error(r, 400, "malformed_request")
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_errors_precedence.py:40: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+resp = &lt;Response [404 Not Found]&gt;, status = 400, code = 'malformed_request'
+
+    def assert_error(resp: httpx.Response, status: int, code: str):
+&gt;       assert resp.status_code == status, f"expected {status} got {resp.status_code}: {resp.text}"
+E       AssertionError: expected 400 got 404: {"error": {"code": "not_found", "message": "no such endpoint: POST /payments"}}
+E       assert 404 == 400
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/conftest.py:165: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_errors_precedence" name="test_missing_idempotency_key" time="0.092"><failure message="AssertionError: expected 400 got 404: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /payments&quot;}}&#10;assert 404 == 400&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_missing_idempotency_key():
+        """R-1-062"""
+        fixture, token_a, _ = _two_user_fixture()
+        b_handle = fixture["users"][1]["handle"]
+        r = api_post("/payments", json={"to_handle": b_handle, "amount": 10}, headers=auth(token_a))
+&gt;       assert_error(r, 400, "missing_idempotency_key")
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_errors_precedence.py:48: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+resp = &lt;Response [404 Not Found]&gt;, status = 400
+code = 'missing_idempotency_key'
+
+    def assert_error(resp: httpx.Response, status: int, code: str):
+&gt;       assert resp.status_code == status, f"expected {status} got {resp.status_code}: {resp.text}"
+E       AssertionError: expected 400 got 404: {"error": {"code": "not_found", "message": "no such endpoint: POST /payments"}}
+E       assert 404 == 400
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/conftest.py:165: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_errors_precedence" name="test_unauthenticated_variants" time="0.018" /><testcase classname="stage-1.tests.test_errors_precedence" name="test_forbidden_non_operator_settlement" time="0.096"><failure message="AssertionError: expected 403 got 404: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /settlements&quot;}}&#10;assert 404 == 403&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_forbidden_non_operator_settlement():
+        """R-1-064"""
+        fixture, token_a, token_b = _two_user_fixture()
+        r = api_post("/settlements", json={"transfers": []}, headers={**auth(token_b), **idem(unique("k"))})
+&gt;       assert_error(r, 403, "forbidden")
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_errors_precedence.py:62: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+resp = &lt;Response [404 Not Found]&gt;, status = 403, code = 'forbidden'
+
+    def assert_error(resp: httpx.Response, status: int, code: str):
+&gt;       assert resp.status_code == status, f"expected {status} got {resp.status_code}: {resp.text}"
+E       AssertionError: expected 403 got 404: {"error": {"code": "not_found", "message": "no such endpoint: POST /settlements"}}
+E       assert 404 == 403
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/conftest.py:165: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_errors_precedence" name="test_not_found_unknown_resource" time="0.075" /><testcase classname="stage-1.tests.test_errors_precedence" name="test_idempotency_key_reuse_different_body" time="0.080"><failure message="AssertionError: expected 409 got 404: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /payments&quot;}}&#10;assert 404 == 409&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_idempotency_key_reuse_different_body():
+        """R-1-066"""
+        fixture, token_a, _ = _two_user_fixture()
+        b_handle = fixture["users"][1]["handle"]
+        key = unique("k")
+        api_post("/payments", json={"to_handle": b_handle, "amount": 10}, headers={**auth(token_a), **idem(key)})
+        r = api_post("/payments", json={"to_handle": b_handle, "amount": 99}, headers={**auth(token_a), **idem(key)})
+&gt;       assert_error(r, 409, "idempotency_key_reuse")
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_errors_precedence.py:79: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+resp = &lt;Response [404 Not Found]&gt;, status = 409, code = 'idempotency_key_reuse'
+
+    def assert_error(resp: httpx.Response, status: int, code: str):
+&gt;       assert resp.status_code == status, f"expected {status} got {resp.status_code}: {resp.text}"
+E       AssertionError: expected 409 got 404: {"error": {"code": "not_found", "message": "no such endpoint: POST /payments"}}
+E       assert 404 == 409
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/conftest.py:165: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_errors_precedence" name="test_validation_failed_missing_required_field" time="0.074"><failure message="AssertionError: expected 422 got 404: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /payments&quot;}}&#10;assert 404 == 422&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_validation_failed_missing_required_field():
+        """R-1-067"""
+        fixture, token_a, _ = _two_user_fixture()
+        r = api_post("/payments", json={"amount": 10}, headers={**auth(token_a), **idem(unique("k"))})
+&gt;       assert_error(r, 422, "validation_failed")
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_errors_precedence.py:86: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+resp = &lt;Response [404 Not Found]&gt;, status = 422, code = 'validation_failed'
+
+    def assert_error(resp: httpx.Response, status: int, code: str):
+&gt;       assert resp.status_code == status, f"expected {status} got {resp.status_code}: {resp.text}"
+E       AssertionError: expected 422 got 404: {"error": {"code": "not_found", "message": "no such endpoint: POST /payments"}}
+E       assert 404 == 422
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/conftest.py:165: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_errors_precedence" name="test_validation_failed_correct_type_bad_value" time="0.075"><failure message="AssertionError: expected 422 got 404: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /payments&quot;}}&#10;assert 404 == 422&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_validation_failed_correct_type_bad_value():
+        """R-1-068"""
+        fixture, token_a, _ = _two_user_fixture()
+        b_handle = fixture["users"][1]["handle"]
+        r = api_post("/payments", json={"to_handle": b_handle, "amount": -5}, headers={**auth(token_a), **idem(unique("k"))})
+&gt;       assert_error(r, 422, "validation_failed")
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_errors_precedence.py:94: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+resp = &lt;Response [404 Not Found]&gt;, status = 422, code = 'validation_failed'
+
+    def assert_error(resp: httpx.Response, status: int, code: str):
+&gt;       assert resp.status_code == status, f"expected {status} got {resp.status_code}: {resp.text}"
+E       AssertionError: expected 422 got 404: {"error": {"code": "not_found", "message": "no such endpoint: POST /payments"}}
+E       assert 404 == 422
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/conftest.py:165: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_errors_precedence" name="test_special_field_rules_take_precedence_over_wrong_type" time="0.085"><failure message="AssertionError: expected 422 got 404: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /payments&quot;}}&#10;assert 404 == 422&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_special_field_rules_take_precedence_over_wrong_type():
+        """R-1-069"""
+        fixture, token_a, _ = _two_user_fixture()
+        b_handle = fixture["users"][1]["handle"]
+    
+        r = api_post("/payments", json={"to_handle": b_handle, "amount": "50"}, headers={**auth(token_a), **idem(unique("k"))})
+&gt;       assert_error(r, 422, "validation_failed")
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_errors_precedence.py:103: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+resp = &lt;Response [404 Not Found]&gt;, status = 422, code = 'validation_failed'
+
+    def assert_error(resp: httpx.Response, status: int, code: str):
+&gt;       assert resp.status_code == status, f"expected {status} got {resp.status_code}: {resp.text}"
+E       AssertionError: expected 422 got 404: {"error": {"code": "not_found", "message": "no such endpoint: POST /payments"}}
+E       assert 404 == 422
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/conftest.py:165: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_errors_precedence" name="test_optional_field_omitted_is_never_an_error" time="0.086"><failure message="AssertionError: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /payments&quot;}}&#10;assert 404 == 201&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_optional_field_omitted_is_never_an_error():
+        """R-1-070"""
+        fixture, token_a, _ = _two_user_fixture()
+        b_handle = fixture["users"][1]["handle"]
+        r = api_post("/payments", json={"to_handle": b_handle, "amount": 10}, headers={**auth(token_a), **idem(unique("k"))})
+&gt;       assert r.status_code == 201, r.text
+E       AssertionError: {"error": {"code": "not_found", "message": "no such endpoint: POST /payments"}}
+E       assert 404 == 201
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_errors_precedence.py:123: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_errors_precedence" name="test_required_field_omitted_is_422" time="0.075"><failure message="AssertionError: expected 422 got 405: {&quot;error&quot;: {&quot;code&quot;: &quot;method_not_allowed&quot;, &quot;message&quot;: &quot;method not allowed; try one of: GET&quot;}}&#10;assert 405 == 422&#10; +  where 405 = &lt;Response [405 Method Not Allowed]&gt;.status_code">def test_required_field_omitted_is_422():
+        """R-1-070"""
+        fixture, token_a, _ = _two_user_fixture()
+        r = api_post("/requests", json={"amount": 10}, headers={**auth(token_a), **idem(unique("k"))})
+&gt;       assert_error(r, 422, "validation_failed")
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_errors_precedence.py:130: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+resp = &lt;Response [405 Method Not Allowed]&gt;, status = 422
+code = 'validation_failed'
+
+    def assert_error(resp: httpx.Response, status: int, code: str):
+&gt;       assert resp.status_code == status, f"expected {status} got {resp.status_code}: {resp.text}"
+E       AssertionError: expected 422 got 405: {"error": {"code": "method_not_allowed", "message": "method not allowed; try one of: GET"}}
+E       assert 405 == 422
+E        +  where 405 = &lt;Response [405 Method Not Allowed]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/conftest.py:165: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_errors_precedence" name="test_integer_query_param_strict_decimal_form" time="0.119" /><testcase classname="stage-1.tests.test_errors_precedence" name="test_limit_range_422" time="0.150" /><testcase classname="stage-1.tests.test_errors_precedence" name="test_offset_range_422" time="0.118" /><testcase classname="stage-1.tests.test_errors_precedence" name="test_precedence_auth_before_everything" time="0.008"><failure message="AssertionError: expected 401 got 404: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /payments&quot;}}&#10;assert 404 == 401&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_precedence_auth_before_everything():
+        """R-1-075"""
+        # no auth, bad body, no key: 401 wins
+        r = httpx.post(url("/payments"), content=b"not json at all")
+&gt;       assert_error(r, 401, "unauthenticated")
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_errors_precedence.py:163: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+resp = &lt;Response [404 Not Found]&gt;, status = 401, code = 'unauthenticated'
+
+    def assert_error(resp: httpx.Response, status: int, code: str):
+&gt;       assert resp.status_code == status, f"expected {status} got {resp.status_code}: {resp.text}"
+E       AssertionError: expected 401 got 404: {"error": {"code": "not_found", "message": "no such endpoint: POST /payments"}}
+E       assert 404 == 401
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/conftest.py:165: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_errors_precedence" name="test_precedence_permission_before_malformed_body" time="0.090"><failure message="AssertionError: expected 403 got 404: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /settlements&quot;}}&#10;assert 404 == 403&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_precedence_permission_before_malformed_body():
+        """R-1-075"""
+        fixture, token_a, token_b = _two_user_fixture()
+        r = httpx.post(url("/settlements"), content=b"not json", headers={**auth(token_b), "Content-Type": "application/json"})
+&gt;       assert_error(r, 403, "forbidden")
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_errors_precedence.py:170: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+resp = &lt;Response [404 Not Found]&gt;, status = 403, code = 'forbidden'
+
+    def assert_error(resp: httpx.Response, status: int, code: str):
+&gt;       assert resp.status_code == status, f"expected {status} got {resp.status_code}: {resp.text}"
+E       AssertionError: expected 403 got 404: {"error": {"code": "not_found", "message": "no such endpoint: POST /settlements"}}
+E       assert 404 == 403
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/conftest.py:165: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_errors_precedence" name="test_precedence_malformed_body_before_missing_key" time="0.090"><failure message="AssertionError: expected 400 got 404: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /payments&quot;}}&#10;assert 404 == 400&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_precedence_malformed_body_before_missing_key():
+        """R-1-075"""
+        fixture, token_a, _ = _two_user_fixture()
+        r = httpx.post(url("/payments"), content=b"not json", headers={**auth(token_a), "Content-Type": "application/json"})
+&gt;       assert_error(r, 400, "malformed_request")
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_errors_precedence.py:177: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+resp = &lt;Response [404 Not Found]&gt;, status = 400, code = 'malformed_request'
+
+    def assert_error(resp: httpx.Response, status: int, code: str):
+&gt;       assert resp.status_code == status, f"expected {status} got {resp.status_code}: {resp.text}"
+E       AssertionError: expected 400 got 404: {"error": {"code": "not_found", "message": "no such endpoint: POST /payments"}}
+E       assert 404 == 400
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/conftest.py:165: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_errors_precedence" name="test_precedence_missing_key_before_key_too_long" time="0.089"><failure message="AssertionError: expected 422 got 404: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /payments&quot;}}&#10;assert 404 == 422&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_precedence_missing_key_before_key_too_long():
+        """R-1-075: missing key is checked before the over-long-key rule — but an
+        actually-present, over-long key still reaches the length check."""
+        fixture, token_a, _ = _two_user_fixture()
+        b_handle = fixture["users"][1]["handle"]
+        r = api_post("/payments", json={"to_handle": b_handle, "amount": 10},
+                     headers={**auth(token_a), "Idempotency-Key": "k" * 256})
+&gt;       assert_error(r, 422, "validation_failed")
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_errors_precedence.py:187: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+resp = &lt;Response [404 Not Found]&gt;, status = 422, code = 'validation_failed'
+
+    def assert_error(resp: httpx.Response, status: int, code: str):
+&gt;       assert resp.status_code == status, f"expected {status} got {resp.status_code}: {resp.text}"
+E       AssertionError: expected 422 got 404: {"error": {"code": "not_found", "message": "no such endpoint: POST /payments"}}
+E       assert 404 == 422
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/conftest.py:165: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_errors_precedence" name="test_precedence_idempotency_resolution_before_field_validation" time="0.078"><failure message="assert 404 == 201&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_precedence_idempotency_resolution_before_field_validation():
+        """R-1-075, R-1-110"""
+        fixture, token_a, _ = _two_user_fixture()
+        b_handle = fixture["users"][1]["handle"]
+        key = unique("k")
+        first = api_post("/payments", json={"to_handle": b_handle, "amount": 10}, headers={**auth(token_a), **idem(key)})
+&gt;       assert first.status_code == 201
+E       assert 404 == 201
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_errors_precedence.py:196: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_errors_precedence" name="test_precedence_field_validation_before_lookup" time="0.088"><failure message="AssertionError: expected 422 got 404: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /payments&quot;}}&#10;assert 404 == 422&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_precedence_field_validation_before_lookup():
+        """R-1-075"""
+        fixture, token_a, _ = _two_user_fixture()
+        # amount is invalid AND to_handle doesn't exist: field validation (amount) wins over 404
+        r = api_post("/payments", json={"to_handle": unique_handle("ghost"), "amount": -1},
+                     headers={**auth(token_a), **idem(unique("k"))})
+&gt;       assert_error(r, 422, "validation_failed")
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_errors_precedence.py:207: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+resp = &lt;Response [404 Not Found]&gt;, status = 422, code = 'validation_failed'
+
+    def assert_error(resp: httpx.Response, status: int, code: str):
+&gt;       assert resp.status_code == status, f"expected {status} got {resp.status_code}: {resp.text}"
+E       AssertionError: expected 422 got 404: {"error": {"code": "not_found", "message": "no such endpoint: POST /payments"}}
+E       assert 404 == 422
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/conftest.py:165: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_errors_precedence" name="test_precedence_lookup_before_resource_permission" time="0.102" /><testcase classname="stage-1.tests.test_errors_precedence" name="test_precedence_resource_state_before_funds" time="0.100"><failure message="KeyError: 'request_id'">def test_precedence_resource_state_before_funds():
+        """R-1-075"""
+        fixture, token_a, token_b = _two_user_fixture(balance_a=0, balance_b=0)
+        r = api_post("/requests", json={"payer_handle": fixture["users"][1]["handle"], "amount": 10},
+                     headers={**auth(token_a), **idem(unique("k"))})
+&gt;       req_id = r.json()["request_id"]
+                 ^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'request_id'
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_errors_precedence.py:222: KeyError</failure></testcase><testcase classname="stage-1.tests.test_errors_precedence" name="test_body_field_validation_order" time="0.094"><failure message="AssertionError: expected 422 got 404: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /payments&quot;}}&#10;assert 404 == 422&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_body_field_validation_order():
+        """R-1-076: required presence -&gt; wrong type -&gt; amount range/integrality -&gt;
+        note length -&gt; visibility -&gt; handle syntax -&gt; collection rules -&gt; self-reference."""
+        fixture, token_a, _ = _two_user_fixture()
+        own_handle = fixture["users"][0]["handle"]
+    
+        # amount wrong type takes priority over a bad-syntax handle (amount checked first)
+        r = api_post("/payments", json={"to_handle": "Not Valid!", "amount": "oops"},
+                     headers={**auth(token_a), **idem(unique("k"))})
+&gt;       assert_error(r, 422, "validation_failed")
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_errors_precedence.py:238: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+resp = &lt;Response [404 Not Found]&gt;, status = 422, code = 'validation_failed'
+
+    def assert_error(resp: httpx.Response, status: int, code: str):
+&gt;       assert resp.status_code == status, f"expected {status} got {resp.status_code}: {resp.text}"
+E       AssertionError: expected 422 got 404: {"error": {"code": "not_found", "message": "no such endpoint: POST /payments"}}
+E       assert 404 == 422
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/conftest.py:165: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_errors_precedence" name="test_handle_syntax_vs_not_found_vs_malformed" time="0.095"><failure message="AssertionError: expected 422 got 404: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /payments&quot;}}&#10;assert 404 == 422&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_handle_syntax_vs_not_found_vs_malformed():
+        """R-1-077"""
+        fixture, token_a, _ = _two_user_fixture()
+    
+        bad_syntax = api_post("/payments", json={"to_handle": "NOT-VALID!", "amount": 10},
+                              headers={**auth(token_a), **idem(unique("k"))})
+&gt;       assert_error(bad_syntax, 422, "validation_failed")
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_errors_precedence.py:251: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+resp = &lt;Response [404 Not Found]&gt;, status = 422, code = 'validation_failed'
+
+    def assert_error(resp: httpx.Response, status: int, code: str):
+&gt;       assert resp.status_code == status, f"expected {status} got {resp.status_code}: {resp.text}"
+E       AssertionError: expected 422 got 404: {"error": {"code": "not_found", "message": "no such endpoint: POST /payments"}}
+E       assert 404 == 422
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/conftest.py:165: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_errors_precedence" name="test_4xx_never_leaks_invisible_resource" time="0.100"><failure message="KeyError: 'request_id'">def test_4xx_never_leaks_invisible_resource():
+        """R-1-078"""
+        a_id, b_id, c_id = unique("u"), unique("u"), unique("u")
+        a_handle, b_handle, c_handle = unique_handle("a"), unique_handle("b"), unique_handle("c")
+        fixture = make_fixture([user(a_id, a_handle, balance=0), user(b_id, b_handle, balance=0),
+                                 user(c_id, c_handle, balance=0)])
+        reset_ok(fixture)
+        token_a = login_token(fixture["users"][0]["email"])
+        token_c = login_token(fixture["users"][2]["email"])
+        r = api_post("/requests", json={"payer_handle": b_handle, "amount": 10}, headers={**auth(token_a), **idem(unique("k"))})
+&gt;       req_id = r.json()["request_id"]
+                 ^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'request_id'
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_errors_precedence.py:272: KeyError</failure></testcase><testcase classname="stage-1.tests.test_export_import" name="test_export_shape_unauthenticated" time="0.023"><failure message="assert 404 == 200&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_export_shape_unauthenticated():
+        """R-1-200"""
+        fixture = make_fixture([user(unique("u"), unique_handle("a"), balance=10)])
+        reset_ok(fixture)
+        r = api_get("/_test/export", headers=None)
+&gt;       assert r.status_code == 200
+E       assert 404 == 200
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_export_import.py:15: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_export_import" name="test_import_unauthenticated_and_full_replace" time="0.073"><failure message="assert 404 == 204&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_import_unauthenticated_and_full_replace():
+        """R-1-201"""
+        a_id = unique("u")
+        fixture = make_fixture([user(a_id, unique_handle("a"), balance=500)])
+        reset_ok(fixture)
+        export = api_get("/_test/export")
+        document = export.json()
+    
+        other = make_fixture([user(unique("u"), unique_handle("b"), balance=1)])
+        reset_ok(other)
+    
+        r = api_post("/_test/import", json=document, headers=None)
+&gt;       assert r.status_code == 204
+E       assert 404 == 204
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_export_import.py:34: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_export_import" name="test_import_accepts_unmodified_export_regardless_of_origin" time="0.040"><failure message="assert 404 == 204&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_import_accepts_unmodified_export_regardless_of_origin():
+        """R-1-202"""
+        fixture = make_fixture([user(unique("u"), unique_handle("a"), balance=250)])
+        reset_ok(fixture)
+        document = api_get("/_test/export").json()
+        r = api_post("/_test/import", json=document)
+&gt;       assert r.status_code == 204
+E       assert 404 == 204
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_export_import.py:48: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_export_import" name="test_import_is_replacement_not_merge_idempotent" time="0.111"><failure message="AssertionError: login failed: 401 {&quot;error&quot;: {&quot;code&quot;: &quot;unauthenticated&quot;, &quot;message&quot;: &quot;missing or unknown bearer token&quot;}}&#10;assert 401 == 200&#10; +  where 401 = &lt;Response [401 Unauthorized]&gt;.status_code">def test_import_is_replacement_not_merge_idempotent():
+        """R-1-203"""
+        kept_id = unique("u")
+        kept_handle = unique_handle("keep")
+        fixture = make_fixture([user(kept_id, kept_handle, balance=300)])
+        reset_ok(fixture)
+        document = api_get("/_test/export").json()
+    
+        other_id = unique("u")
+        other_handle = unique_handle("other")
+        reset_ok(make_fixture([user(other_id, other_handle, balance=1)]))
+    
+        api_post("/_test/import", json=document)
+        api_post("/_test/import", json=document)  # repeat import
+    
+&gt;       token = login_token(fixture["users"][0]["email"])
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_export_import.py:66: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+email = 'keepfb42f816317@example.com', password = 'password123'
+
+    def login_token(email: str, password: str = "password123") -&gt; str:
+        r = login(email, password)
+&gt;       assert r.status_code == 200, f"login failed: {r.status_code} {r.text}"
+E       AssertionError: login failed: 401 {"error": {"code": "unauthenticated", "message": "missing or unknown bearer token"}}
+E       assert 401 == 200
+E        +  where 401 = &lt;Response [401 Unauthorized]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/conftest.py:110: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_export_import" name="test_import_malformed_and_invalid_body" time="0.071"><failure message="AssertionError: expected 400 got 404: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /_test/import&quot;}}&#10;assert 404 == 400&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_import_malformed_and_invalid_body():
+        """R-1-204"""
+        fixture = make_fixture([user(unique("u"), unique_handle("a"), balance=42)])
+        reset_ok(fixture)
+        token = login_token(fixture["users"][0]["email"])
+    
+        bad_json = httpx.post(url("/_test/import"), content=b"{{{not json", headers={"Content-Type": "application/json"})
+&gt;       assert_error(bad_json, 400, "malformed_request")
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_export_import.py:80: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+resp = &lt;Response [404 Not Found]&gt;, status = 400, code = 'malformed_request'
+
+    def assert_error(resp: httpx.Response, status: int, code: str):
+&gt;       assert resp.status_code == status, f"expected {status} got {resp.status_code}: {resp.text}"
+E       AssertionError: expected 400 got 404: {"error": {"code": "not_found", "message": "no such endpoint: POST /_test/import"}}
+E       assert 404 == 400
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/conftest.py:165: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_export_import" name="test_export_import_preserves_accounts_tokens_balances_requests" time="0.074"><failure message="assert 404 == 201&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_export_import_preserves_accounts_tokens_balances_requests():
+        """R-1-205"""
+        a_id, b_id = unique("u"), unique("u")
+        a_handle, b_handle = unique_handle("a"), unique_handle("b")
+        op_id = unique("u")
+        op_handle = unique_handle("op")
+        fixture = make_fixture(
+            [user(a_id, a_handle, balance=1000), user(b_id, b_handle, balance=0), user(op_id, op_handle, balance=0)],
+            settlement_operator_ids=[op_id],
+        )
+        reset_ok(fixture)
+        token_a = login_token(fixture["users"][0]["email"])
+        pay = api_post("/payments", json={"to_handle": b_handle, "amount": 100},
+                       headers={**auth(token_a), **idem(unique("k"))})
+&gt;       assert pay.status_code == 201
+E       assert 404 == 201
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_export_import.py:114: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_export_import" name="test_export_import_preserves_idempotent_retry_identity" time="0.068"><failure message="AssertionError: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /payments&quot;}}&#10;assert 404 == 201&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_export_import_preserves_idempotent_retry_identity():
+        """R-1-111, R-1-206"""
+        fixture = make_fixture([user(unique("u"), unique_handle("a"), balance=1000),
+                                 user(unique("u"), unique_handle("b"), balance=0)])
+        reset_ok(fixture)
+        token = login_token(fixture["users"][0]["email"])
+        b_handle = fixture["users"][1]["handle"]
+        key = unique("retry-key")
+        original = api_post("/payments", json={"to_handle": b_handle, "amount": 10}, headers={**auth(token), **idem(key)})
+&gt;       assert original.status_code == 201, original.text
+E       AssertionError: {"error": {"code": "not_found", "message": "no such endpoint: POST /payments"}}
+E       assert 404 == 201
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_export_import.py:143: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_export_import" name="test_export_is_atomic_readonly_snapshot" time="0.083"><failure message="AssertionError: a write after export must not be reflected in the earlier snapshot&#10;assert {'error': {'code': 'not_found', 'message': 'no such endpoint: GET /_test/export'}} != {'error': {'code': 'not_found', 'message': 'no such endpoint: GET /_test/export'}}">def test_export_is_atomic_readonly_snapshot():
+        """R-1-207, R-1-208"""
+        fixture = make_fixture([user(unique("u"), unique_handle("a"), balance=1000),
+                                 user(unique("u"), unique_handle("b"), balance=0)])
+        reset_ok(fixture)
+        token = login_token(fixture["users"][0]["email"])
+        b_handle = fixture["users"][1]["handle"]
+    
+        document = api_get("/_test/export").json()
+    
+        # writes after export must not retroactively change the already-returned document
+        api_post("/payments", json={"to_handle": b_handle, "amount": 50}, headers={**auth(token), **idem(unique("k"))})
+        second_export = api_get("/_test/export").json()
+&gt;       assert document != second_export, "a write after export must not be reflected in the earlier snapshot"
+E       AssertionError: a write after export must not be reflected in the earlier snapshot
+E       assert {'error': {'code': 'not_found', 'message': 'no such endpoint: GET /_test/export'}} != {'error': {'code': 'not_found', 'message': 'no such endpoint: GET /_test/export'}}
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_export_import.py:175: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_export_import" name="test_import_regenerates_nothing_balances_exact" time="0.127" /><testcase classname="stage-1.tests.test_export_import" name="test_reset_clears_imported_state" time="0.108" /><testcase classname="stage-1.tests.test_export_import" name="test_fresh_fixture_reset_does_not_satisfy_import_semantics" time="0.112" /><testcase classname="stage-1.tests.test_export_import" name="test_export_import_preserves_settlement_operator_and_membership" time="0.086"><failure message="AssertionError: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /settlements&quot;}}&#10;assert 404 == 201&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_export_import_preserves_settlement_operator_and_membership():
+        """R-1-235"""
+        a_id, b_id, op_id = unique("u"), unique("u"), unique("u")
+        a_handle, b_handle, op_handle = unique_handle("a"), unique_handle("b"), unique_handle("op")
+        fixture = make_fixture(
+            [user(a_id, a_handle, balance=1000), user(b_id, b_handle, balance=0), user(op_id, op_handle, balance=0)],
+            settlement_operator_ids=[op_id],
+        )
+        reset_ok(fixture)
+        token_op = login_token(fixture["users"][2]["email"])
+        settle = api_post("/settlements", json={"transfers": [{"from_handle": a_handle, "to_handle": b_handle, "amount": 10}]},
+                          headers={**auth(token_op), **idem(unique("k"))})
+&gt;       assert settle.status_code == 201, settle.text
+E       AssertionError: {"error": {"code": "not_found", "message": "no such endpoint: POST /settlements"}}
+E       assert 404 == 201
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_export_import.py:246: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_idempotency" name="test_five_paths_require_idempotency_key" time="0.103"><failure message="AssertionError: expected 400 got 404: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /payments&quot;}}&#10;assert 404 == 400&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_five_paths_require_idempotency_key():
+        """R-1-100, R-1-062"""
+        fixture, token_a, token_b = _two_user_fixture()
+        b_handle = fixture["users"][1]["handle"]
+    
+        r = api_post("/payments", json={"to_handle": b_handle, "amount": 10}, headers=auth(token_a))
+&gt;       assert_error(r, 400, "missing_idempotency_key")
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_idempotency.py:25: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+resp = &lt;Response [404 Not Found]&gt;, status = 400
+code = 'missing_idempotency_key'
+
+    def assert_error(resp: httpx.Response, status: int, code: str):
+&gt;       assert resp.status_code == status, f"expected {status} got {resp.status_code}: {resp.text}"
+E       AssertionError: expected 400 got 404: {"error": {"code": "not_found", "message": "no such endpoint: POST /payments"}}
+E       assert 404 == 400
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/conftest.py:165: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_idempotency" name="test_other_endpoints_do_not_require_idempotency_key" time="0.099"><failure message="AssertionError: assert 404 == 200&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code&#10; +    where &lt;Response [404 Not Found]&gt; = api_get('/activity', headers={'Authorization': 'Bearer QB-InGMe7lIuVgkknLyTxC6HtmHUAuKXCbEtw4QZ-JY'})&#10; +      where {'Authorization': 'Bearer QB-InGMe7lIuVgkknLyTxC6HtmHUAuKXCbEtw4QZ-JY'} = auth('QB-InGMe7lIuVgkknLyTxC6HtmHUAuKXCbEtw4QZ-JY')">def test_other_endpoints_do_not_require_idempotency_key():
+        """R-1-100"""
+        fixture, token_a, _ = _two_user_fixture()
+        assert api_get("/me", headers=auth(token_a)).status_code == 200
+        assert api_get("/requests", headers=auth(token_a)).status_code == 200
+&gt;       assert api_get("/activity", headers=auth(token_a)).status_code == 200
+E       AssertionError: assert 404 == 200
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+E        +    where &lt;Response [404 Not Found]&gt; = api_get('/activity', headers={'Authorization': 'Bearer QB-InGMe7lIuVgkknLyTxC6HtmHUAuKXCbEtw4QZ-JY'})
+E        +      where {'Authorization': 'Bearer QB-InGMe7lIuVgkknLyTxC6HtmHUAuKXCbEtw4QZ-JY'} = auth('QB-InGMe7lIuVgkknLyTxC6HtmHUAuKXCbEtw4QZ-JY')
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_idempotency.py:46: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_idempotency" name="test_idempotency_scoped_per_user" time="0.176"><failure message="AssertionError: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /payments&quot;}}&#10;assert 404 == 201&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_idempotency_scoped_per_user():
+        """R-1-101"""
+        fixture, token_a, token_b = _two_user_fixture(balance_a=10_000, balance_b=10_000)
+        key = unique("shared-key")
+        other_handle = unique_handle("third")
+        third = user(unique("u"), other_handle, balance=0)
+        fixture2 = make_fixture([*fixture["users"], third])
+        reset_ok(fixture2)
+        token_a = login_token(fixture["users"][0]["email"])
+        token_b = login_token(fixture["users"][1]["email"])
+    
+        r1 = api_post("/payments", json={"to_handle": other_handle, "amount": 5},
+                      headers={**auth(token_a), **idem(key)})
+&gt;       assert r1.status_code == 201, r1.text
+E       AssertionError: {"error": {"code": "not_found", "message": "no such endpoint: POST /payments"}}
+E       assert 404 == 201
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_idempotency.py:62: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_idempotency" name="test_same_key_different_path_is_independent" time="0.080"><failure message="AssertionError: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /payments&quot;}}&#10;assert 404 == 201&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_same_key_different_path_is_independent():
+        """R-1-102"""
+        fixture, token_a, _ = _two_user_fixture()
+        b_handle = fixture["users"][1]["handle"]
+        key = unique("cross-path")
+        r1 = api_post("/payments", json={"to_handle": b_handle, "amount": 10}, headers={**auth(token_a), **idem(key)})
+&gt;       assert r1.status_code == 201, r1.text
+E       AssertionError: {"error": {"code": "not_found", "message": "no such endpoint: POST /payments"}}
+E       assert 404 == 201
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_idempotency.py:76: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_idempotency" name="test_first_use_returns_201" time="0.082"><failure message="assert 404 == 201&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_first_use_returns_201():
+        """R-1-103"""
+        fixture, token_a, _ = _two_user_fixture()
+        b_handle = fixture["users"][1]["handle"]
+        r = api_post("/payments", json={"to_handle": b_handle, "amount": 10},
+                     headers={**auth(token_a), **idem(unique("k"))})
+&gt;       assert r.status_code == 201
+E       assert 404 == 201
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_idempotency.py:87: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_idempotency" name="test_replay_returns_200_identical_body" time="0.085"><failure message="AssertionError: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /payments&quot;}}&#10;assert 404 == 201&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_replay_returns_200_identical_body():
+        """R-1-104"""
+        fixture, token_a, _ = _two_user_fixture()
+        b_handle = fixture["users"][1]["handle"]
+        key = unique("k")
+        body = {"to_handle": b_handle, "amount": 10, "note": "hi"}
+        r1 = api_post("/payments", json=body, headers={**auth(token_a), **idem(key)})
+&gt;       assert r1.status_code == 201, r1.text
+E       AssertionError: {"error": {"code": "not_found", "message": "no such endpoint: POST /payments"}}
+E       assert 404 == 201
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_idempotency.py:97: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_idempotency" name="test_same_key_different_body_409" time="0.076"><failure message="AssertionError: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /payments&quot;}}&#10;assert 404 == 201&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_same_key_different_body_409():
+        """R-1-105"""
+        fixture, token_a, _ = _two_user_fixture()
+        b_handle = fixture["users"][1]["handle"]
+        key = unique("k")
+        r1 = api_post("/payments", json={"to_handle": b_handle, "amount": 10}, headers={**auth(token_a), **idem(key)})
+&gt;       assert r1.status_code == 201, r1.text
+E       AssertionError: {"error": {"code": "not_found", "message": "no such endpoint: POST /payments"}}
+E       assert 404 == 201
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_idempotency.py:109: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_idempotency" name="test_same_body_different_key_order_and_whitespace_is_same_body" time="0.080"><failure message="AssertionError: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /payments&quot;}}&#10;assert 404 == 201&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_same_body_different_key_order_and_whitespace_is_same_body():
+        """R-1-106"""
+        fixture, token_a, _ = _two_user_fixture()
+        b_handle = fixture["users"][1]["handle"]
+        key = unique("k")
+        r1 = api_post("/payments", json={"to_handle": b_handle, "amount": 1000, "note": "x"},
+                      headers={**auth(token_a), **idem(key)})
+&gt;       assert r1.status_code == 201, r1.text
+E       AssertionError: {"error": {"code": "not_found", "message": "no such endpoint: POST /payments"}}
+E       assert 404 == 201
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_idempotency.py:124: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_idempotency" name="test_absent_vs_default_present_is_different_body" time="0.078"><failure message="KeyError: 'request_id'">def test_absent_vs_default_present_is_different_body():
+        """R-1-106"""
+        fixture, token_a, token_b = _two_user_fixture()
+        req = api_post("/requests", json={"payer_handle": fixture["users"][1]["handle"], "amount": 10},
+                       headers={**auth(token_a), **idem(unique("k"))})
+&gt;       req_id = req.json()["request_id"]
+                 ^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'request_id'
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_idempotency.py:136: KeyError</failure></testcase><testcase classname="stage-1.tests.test_idempotency" name="test_key_reused_after_4xx_failure_is_first_use" time="0.076"><failure message="AssertionError: expected 422 got 404: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /payments&quot;}}&#10;assert 404 == 422&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_key_reused_after_4xx_failure_is_first_use():
+        """R-1-107"""
+        fixture, token_a, _ = _two_user_fixture(balance_a=5)
+        b_handle = fixture["users"][1]["handle"]
+        key = unique("k")
+        r1 = api_post("/payments", json={"to_handle": b_handle, "amount": 1_000_000}, headers={**auth(token_a), **idem(key)})
+&gt;       assert_error(r1, 422, "validation_failed")
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_idempotency.py:150: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+resp = &lt;Response [404 Not Found]&gt;, status = 422, code = 'validation_failed'
+
+    def assert_error(resp: httpx.Response, status: int, code: str):
+&gt;       assert resp.status_code == status, f"expected {status} got {resp.status_code}: {resp.text}"
+E       AssertionError: expected 422 got 404: {"error": {"code": "not_found", "message": "no such endpoint: POST /payments"}}
+E       assert 404 == 422
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/conftest.py:165: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_idempotency" name="test_concurrent_identical_requests_exactly_one_takes_effect" time="0.106"><failure message="AssertionError: expected exactly one 201, got {404: 10}&#10;assert 0 == 1">def test_concurrent_identical_requests_exactly_one_takes_effect():
+        """R-1-003, R-1-108"""
+        fixture, token_a, _ = _two_user_fixture()
+        b_handle = fixture["users"][1]["handle"]
+        key = unique("concurrent-key")
+        body = {"to_handle": b_handle, "amount": 25}
+        results = []
+        lock = threading.Lock()
+    
+        def go():
+            r = api_post("/payments", json=body, headers={**auth(token_a), **idem(key)})
+            with lock:
+                results.append(r)
+    
+        threads = [threading.Thread(target=go) for _ in range(10)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+    
+        statuses = Counter(r.status_code for r in results)
+&gt;       assert statuses[201] == 1, f"expected exactly one 201, got {dict(statuses)}"
+E       AssertionError: expected exactly one 201, got {404: 10}
+E       assert 0 == 1
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_idempotency.py:176: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_idempotency" name="test_replay_after_resource_changed_still_returns_original" time="0.071"><failure message="KeyError: 'request_id'">def test_replay_after_resource_changed_still_returns_original():
+        """R-1-109"""
+        fixture, token_a, token_b = _two_user_fixture()
+        req = api_post("/requests", json={"payer_handle": fixture["users"][1]["handle"], "amount": 10},
+                       headers={**auth(token_a), **idem(unique("k"))})
+&gt;       req_id = req.json()["request_id"]
+                 ^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'request_id'
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_idempotency.py:190: KeyError</failure></testcase><testcase classname="stage-1.tests.test_idempotency" name="test_idempotency_resolved_before_field_validation" time="0.078"><failure message="AssertionError: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /payments&quot;}}&#10;assert 404 == 201&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_idempotency_resolved_before_field_validation():
+        """R-1-110"""
+        fixture, token_a, _ = _two_user_fixture()
+        b_handle = fixture["users"][1]["handle"]
+        key = unique("k")
+        r1 = api_post("/payments", json={"to_handle": b_handle, "amount": 10}, headers={**auth(token_a), **idem(key)})
+&gt;       assert r1.status_code == 201, r1.text
+E       AssertionError: {"error": {"code": "not_found", "message": "no such endpoint: POST /payments"}}
+E       assert 404 == 201
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_idempotency.py:206: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_idempotency" name="test_idempotency_key_too_long_422" time="0.084"><failure message="AssertionError: expected 422 got 404: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /payments&quot;}}&#10;assert 404 == 422&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_idempotency_key_too_long_422():
+        """R-1-072"""
+        fixture, token_a, _ = _two_user_fixture()
+        b_handle = fixture["users"][1]["handle"]
+        long_key = "k" * 256
+        r = api_post("/payments", json={"to_handle": b_handle, "amount": 10}, headers={**auth(token_a), **idem(long_key)})
+&gt;       assert_error(r, 422, "validation_failed")
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_idempotency.py:219: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+resp = &lt;Response [404 Not Found]&gt;, status = 422, code = 'validation_failed'
+
+    def assert_error(resp: httpx.Response, status: int, code: str):
+&gt;       assert resp.status_code == status, f"expected {status} got {resp.status_code}: {resp.text}"
+E       AssertionError: expected 422 got 404: {"error": {"code": "not_found", "message": "no such endpoint: POST /payments"}}
+E       assert 404 == 422
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/conftest.py:165: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_idempotency" name="test_idempotency_key_max_length_accepted" time="0.085"><failure message="AssertionError: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /payments&quot;}}&#10;assert 404 == 201&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_idempotency_key_max_length_accepted():
+        """R-1-072"""
+        fixture, token_a, _ = _two_user_fixture()
+        b_handle = fixture["users"][1]["handle"]
+        key = "k" * 255
+        r = api_post("/payments", json={"to_handle": b_handle, "amount": 10}, headers={**auth(token_a), **idem(key)})
+&gt;       assert r.status_code == 201, r.text
+E       AssertionError: {"error": {"code": "not_found", "message": "no such endpoint: POST /payments"}}
+E       assert 404 == 201
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_idempotency.py:228: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_idempotency" name="test_idempotency_key_empty_is_missing" time="0.094"><failure message="AssertionError: expected 400 got 404: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /payments&quot;}}&#10;assert 404 == 400&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_idempotency_key_empty_is_missing():
+        """R-1-072, R-1-062"""
+        fixture, token_a, _ = _two_user_fixture()
+        b_handle = fixture["users"][1]["handle"]
+        r = api_post("/payments", json={"to_handle": b_handle, "amount": 10},
+                     headers={**auth(token_a), "Idempotency-Key": ""})
+&gt;       assert_error(r, 400, "missing_idempotency_key")
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_idempotency.py:237: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+resp = &lt;Response [404 Not Found]&gt;, status = 400
+code = 'missing_idempotency_key'
+
+    def assert_error(resp: httpx.Response, status: int, code: str):
+&gt;       assert resp.status_code == status, f"expected {status} got {resp.status_code}: {resp.text}"
+E       AssertionError: expected 400 got 404: {"error": {"code": "not_found", "message": "no such endpoint: POST /payments"}}
+E       assert 404 == 400
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/conftest.py:165: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_payments_activity" name="test_get_me_shape" time="0.084" /><testcase classname="stage-1.tests.test_payments_activity" name="test_payment_moves_money_atomically" time="0.073"><failure message="AssertionError: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /payments&quot;}}&#10;assert 404 == 201&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_payment_moves_money_atomically():
+        """R-1-001, R-1-006, R-1-130"""
+        fixture, token_a, token_b = _two_user_fixture(balance_a=1000, balance_b=0)
+        b_handle = fixture["users"][1]["handle"]
+        r = api_post("/payments", json={"to_handle": b_handle, "amount": 400, "note": "x", "visibility": "public"},
+                     headers={**auth(token_a), **idem(unique("k"))})
+&gt;       assert r.status_code == 201, r.text
+E       AssertionError: {"error": {"code": "not_found", "message": "no such endpoint: POST /payments"}}
+E       assert 404 == 201
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_payments_activity.py:36: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_payments_activity" name="test_payment_object_shape" time="0.085"><failure message="AssertionError: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /payments&quot;}}&#10;assert 404 == 201&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_payment_object_shape():
+        """R-1-131"""
+        fixture, token_a, _ = _two_user_fixture()
+        b_handle = fixture["users"][1]["handle"]
+        r = api_post("/payments", json={"to_handle": b_handle, "amount": 10}, headers={**auth(token_a), **idem(unique("k"))})
+&gt;       assert r.status_code == 201, r.text
+E       AssertionError: {"error": {"code": "not_found", "message": "no such endpoint: POST /payments"}}
+E       assert 404 == 201
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_payments_activity.py:46: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_payments_activity" name="test_payment_defaults_note_and_visibility" time="0.081"><failure message="AssertionError: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /payments&quot;}}&#10;assert 404 == 201&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_payment_defaults_note_and_visibility():
+        """R-1-132"""
+        fixture, token_a, _ = _two_user_fixture()
+        b_handle = fixture["users"][1]["handle"]
+        r = api_post("/payments", json={"to_handle": b_handle, "amount": 10}, headers={**auth(token_a), **idem(unique("k"))})
+&gt;       assert r.status_code == 201, r.text
+E       AssertionError: {"error": {"code": "not_found", "message": "no such endpoint: POST /payments"}}
+E       assert 404 == 201
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_payments_activity.py:62: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_payments_activity" name="test_insufficient_funds_409_no_change" time="0.086"><failure message="AssertionError: expected 409 got 404: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /payments&quot;}}&#10;assert 404 == 409&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_insufficient_funds_409_no_change():
+        """R-1-002, R-1-007, R-1-133"""
+        fixture, token_a, token_b = _two_user_fixture(balance_a=5, balance_b=0)
+        b_handle = fixture["users"][1]["handle"]
+        r = api_post("/payments", json={"to_handle": b_handle, "amount": 6}, headers={**auth(token_a), **idem(unique("k"))})
+&gt;       assert_error(r, 409, "insufficient_funds")
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_payments_activity.py:73: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+resp = &lt;Response [404 Not Found]&gt;, status = 409, code = 'insufficient_funds'
+
+    def assert_error(resp: httpx.Response, status: int, code: str):
+&gt;       assert resp.status_code == status, f"expected {status} got {resp.status_code}: {resp.text}"
+E       AssertionError: expected 409 got 404: {"error": {"code": "not_found", "message": "no such endpoint: POST /payments"}}
+E       assert 404 == 409
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/conftest.py:165: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_payments_activity" name="test_amount_range_rejected" time="0.091"><failure message="AssertionError: expected 422 got 404: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /payments&quot;}}&#10;assert 404 == 422&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_amount_range_rejected():
+        """R-1-134"""
+        fixture, token_a, _ = _two_user_fixture(balance_a=10**12)
+        b_handle = fixture["users"][1]["handle"]
+        for amount in (0, -1, 1_000_000_001, 10.5):
+            r = api_post("/payments", json={"to_handle": b_handle, "amount": amount},
+                         headers={**auth(token_a), **idem(unique("k"))})
+&gt;           assert_error(r, 422, "validation_failed")
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_payments_activity.py:86: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+resp = &lt;Response [404 Not Found]&gt;, status = 422, code = 'validation_failed'
+
+    def assert_error(resp: httpx.Response, status: int, code: str):
+&gt;       assert resp.status_code == status, f"expected {status} got {resp.status_code}: {resp.text}"
+E       AssertionError: expected 422 got 404: {"error": {"code": "not_found", "message": "no such endpoint: POST /payments"}}
+E       assert 404 == 422
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/conftest.py:165: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_payments_activity" name="test_amount_boundaries_accepted" time="0.086"><failure message="AssertionError: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /payments&quot;}}&#10;assert 404 == 201&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_amount_boundaries_accepted():
+        """R-1-134"""
+        fixture, token_a, _ = _two_user_fixture(balance_a=2_000_000_000)
+        b_handle = fixture["users"][1]["handle"]
+        r = api_post("/payments", json={"to_handle": b_handle, "amount": 1}, headers={**auth(token_a), **idem(unique("k"))})
+&gt;       assert r.status_code == 201, r.text
+E       AssertionError: {"error": {"code": "not_found", "message": "no such endpoint: POST /payments"}}
+E       assert 404 == 201
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_payments_activity.py:94: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_payments_activity" name="test_self_payment_422" time="0.075"><failure message="AssertionError: expected 422 got 404: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /payments&quot;}}&#10;assert 404 == 422&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_self_payment_422():
+        """R-1-135"""
+        fixture, token_a, _ = _two_user_fixture()
+        own_handle = fixture["users"][0]["handle"]
+        r = api_post("/payments", json={"to_handle": own_handle, "amount": 1}, headers={**auth(token_a), **idem(unique("k"))})
+&gt;       assert_error(r, 422, "self_payment")
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_payments_activity.py:105: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+resp = &lt;Response [404 Not Found]&gt;, status = 422, code = 'self_payment'
+
+    def assert_error(resp: httpx.Response, status: int, code: str):
+&gt;       assert resp.status_code == status, f"expected {status} got {resp.status_code}: {resp.text}"
+E       AssertionError: expected 422 got 404: {"error": {"code": "not_found", "message": "no such endpoint: POST /payments"}}
+E       assert 404 == 422
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/conftest.py:165: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_payments_activity" name="test_note_too_long_422" time="0.074"><failure message="AssertionError: expected 422 got 404: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /payments&quot;}}&#10;assert 404 == 422&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_note_too_long_422():
+        """R-1-136"""
+        fixture, token_a, _ = _two_user_fixture()
+        b_handle = fixture["users"][1]["handle"]
+        r = api_post("/payments", json={"to_handle": b_handle, "amount": 1, "note": "x" * 201},
+                     headers={**auth(token_a), **idem(unique("k"))})
+&gt;       assert_error(r, 422, "validation_failed")
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_payments_activity.py:114: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+resp = &lt;Response [404 Not Found]&gt;, status = 422, code = 'validation_failed'
+
+    def assert_error(resp: httpx.Response, status: int, code: str):
+&gt;       assert resp.status_code == status, f"expected {status} got {resp.status_code}: {resp.text}"
+E       AssertionError: expected 422 got 404: {"error": {"code": "not_found", "message": "no such endpoint: POST /payments"}}
+E       assert 404 == 422
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/conftest.py:165: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_payments_activity" name="test_note_at_max_length_accepted" time="0.101"><failure message="AssertionError: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /payments&quot;}}&#10;assert 404 == 201&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_note_at_max_length_accepted():
+        """R-1-136"""
+        fixture, token_a, _ = _two_user_fixture()
+        b_handle = fixture["users"][1]["handle"]
+        r = api_post("/payments", json={"to_handle": b_handle, "amount": 1, "note": "x" * 200},
+                     headers={**auth(token_a), **idem(unique("k"))})
+&gt;       assert r.status_code == 201, r.text
+E       AssertionError: {"error": {"code": "not_found", "message": "no such endpoint: POST /payments"}}
+E       assert 404 == 201
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_payments_activity.py:123: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_payments_activity" name="test_note_counted_in_code_points_emoji" time="0.096"><failure message="AssertionError: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /payments&quot;}}&#10;assert 404 == 201&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_note_counted_in_code_points_emoji():
+        """R-1-136, R-1-139"""
+        fixture, token_a, _ = _two_user_fixture()
+        b_handle = fixture["users"][1]["handle"]
+        note = "\U0001F600" * 200  # 200 code points, emoji
+        r = api_post("/payments", json={"to_handle": b_handle, "amount": 1, "note": note},
+                     headers={**auth(token_a), **idem(unique("k"))})
+&gt;       assert r.status_code == 201, r.text
+E       AssertionError: {"error": {"code": "not_found", "message": "no such endpoint: POST /payments"}}
+E       assert 404 == 201
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_payments_activity.py:133: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_payments_activity" name="test_visibility_invalid_value_422" time="0.079"><failure message="AssertionError: expected 422 got 404: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /payments&quot;}}&#10;assert 404 == 422&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_visibility_invalid_value_422():
+        """R-1-137"""
+        fixture, token_a, _ = _two_user_fixture()
+        b_handle = fixture["users"][1]["handle"]
+        r = api_post("/payments", json={"to_handle": b_handle, "amount": 1, "visibility": "secret"},
+                     headers={**auth(token_a), **idem(unique("k"))})
+&gt;       assert_error(r, 422, "validation_failed")
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_payments_activity.py:143: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+resp = &lt;Response [404 Not Found]&gt;, status = 422, code = 'validation_failed'
+
+    def assert_error(resp: httpx.Response, status: int, code: str):
+&gt;       assert resp.status_code == status, f"expected {status} got {resp.status_code}: {resp.text}"
+E       AssertionError: expected 422 got 404: {"error": {"code": "not_found", "message": "no such endpoint: POST /payments"}}
+E       assert 404 == 422
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/conftest.py:165: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_payments_activity" name="test_to_handle_no_owner_404" time="0.082" /><testcase classname="stage-1.tests.test_payments_activity" name="test_note_verbatim_round_trip_unicode" time="0.101"><failure message="AssertionError: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /payments&quot;}}&#10;assert 404 == 201&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_note_verbatim_round_trip_unicode():
+        """R-1-139"""
+        fixture, token_a, _ = _two_user_fixture()
+        b_handle = fixture["users"][1]["handle"]
+        note = "  héllo wörld 日本語 🎉  "
+        r = api_post("/payments", json={"to_handle": b_handle, "amount": 1, "note": note},
+                     headers={**auth(token_a), **idem(unique("k"))})
+&gt;       assert r.status_code == 201, r.text
+E       AssertionError: {"error": {"code": "not_found", "message": "no such endpoint: POST /payments"}}
+E       assert 404 == 201
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_payments_activity.py:161: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_payments_activity" name="test_balance_stays_within_safe_integer_range" time="0.074"><failure message="AssertionError: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /payments&quot;}}&#10;assert 404 == 201&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_balance_stays_within_safe_integer_range():
+        """R-1-140"""
+        a_id, b_id = unique("u"), unique("u")
+        a_handle, b_handle = unique_handle("a"), unique_handle("b")
+        big = 2**53 - 100
+        fixture = make_fixture([user(a_id, a_handle, balance=big), user(b_id, b_handle, balance=0)])
+        reset_ok(fixture)
+        token_a = login_token(fixture["users"][0]["email"])
+        r = api_post("/payments", json={"to_handle": b_handle, "amount": 50}, headers={**auth(token_a), **idem(unique("k"))})
+&gt;       assert r.status_code == 201, r.text
+E       AssertionError: {"error": {"code": "not_found", "message": "no such endpoint: POST /payments"}}
+E       assert 404 == 201
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_payments_activity.py:174: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_payments_activity" name="test_activity_feed_shape_and_order" time="0.085"><failure message="AssertionError: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /payments&quot;}}&#10;assert 404 == 201&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_activity_feed_shape_and_order():
+        """R-1-190"""
+        fixture, token_a, token_b = _two_user_fixture(balance_a=1000)
+        b_handle = fixture["users"][1]["handle"]
+        for i in range(3):
+            r = api_post("/payments", json={"to_handle": b_handle, "amount": 10},
+                         headers={**auth(token_a), **idem(unique(f"k{i}"))})
+&gt;           assert r.status_code == 201, r.text
+E           AssertionError: {"error": {"code": "not_found", "message": "no such endpoint: POST /payments"}}
+E           assert 404 == 201
+E            +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_payments_activity.py:186: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_payments_activity" name="test_activity_visibility_rule" time="0.125"><failure message="assert (404 == 201)&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_activity_visibility_rule():
+        """R-1-191, R-1-192"""
+        a_id, b_id, c_id = unique("u"), unique("u"), unique("u")
+        a_handle, b_handle, c_handle = unique_handle("a"), unique_handle("b"), unique_handle("c")
+        fixture = make_fixture([user(a_id, a_handle, balance=1000), user(b_id, b_handle, balance=0),
+                                 user(c_id, c_handle, balance=0)])
+        reset_ok(fixture)
+        token_a = login_token(fixture["users"][0]["email"])
+        token_b = login_token(fixture["users"][1]["email"])
+        token_c = login_token(fixture["users"][2]["email"])
+    
+        pub = api_post("/payments", json={"to_handle": b_handle, "amount": 10, "visibility": "public"},
+                       headers={**auth(token_a), **idem(unique("k"))})
+        priv = api_post("/payments", json={"to_handle": b_handle, "amount": 10, "visibility": "private"},
+                        headers={**auth(token_a), **idem(unique("k"))})
+&gt;       assert pub.status_code == 201 and priv.status_code == 201
+E       assert (404 == 201)
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_payments_activity.py:210: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_payments_activity" name="test_requests_never_in_activity_feed" time="0.091"><failure message="AssertionError: {&quot;error&quot;: {&quot;code&quot;: &quot;method_not_allowed&quot;, &quot;message&quot;: &quot;method not allowed; try one of: GET&quot;}}&#10;assert 405 == 201&#10; +  where 405 = &lt;Response [405 Method Not Allowed]&gt;.status_code">def test_requests_never_in_activity_feed():
+        """R-1-193"""
+        fixture, token_a, token_b = _two_user_fixture()
+        b_handle = fixture["users"][1]["handle"]
+        r = api_post("/requests", json={"payer_handle": b_handle, "amount": 10},
+                     headers={**auth(token_a), **idem(unique("k"))})
+&gt;       assert r.status_code == 201, r.text
+E       AssertionError: {"error": {"code": "method_not_allowed", "message": "method not allowed; try one of: GET"}}
+E       assert 405 == 201
+E        +  where 405 = &lt;Response [405 Method Not Allowed]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_payments_activity.py:234: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_payments_activity" name="test_split_itself_not_a_feed_item" time="0.079"><failure message="AssertionError: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /splits&quot;}}&#10;assert 404 == 201&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_split_itself_not_a_feed_item():
+        """R-1-193"""
+        a_id, b_id, c_id = unique("u"), unique("u"), unique("u")
+        a_handle, b_handle, c_handle = unique_handle("a"), unique_handle("b"), unique_handle("c")
+        fixture = make_fixture([user(a_id, a_handle, balance=0), user(b_id, b_handle, balance=0),
+                                 user(c_id, c_handle, balance=0)])
+        reset_ok(fixture)
+        token_a = login_token(fixture["users"][0]["email"])
+        r = api_post("/splits", json={"amount": 9, "participant_handles": [a_handle, b_handle, c_handle]},
+                     headers={**auth(token_a), **idem(unique("k"))})
+&gt;       assert r.status_code == 201, r.text
+E       AssertionError: {"error": {"code": "not_found", "message": "no such endpoint: POST /splits"}}
+E       assert 404 == 201
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_payments_activity.py:249: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_payments_activity" name="test_activity_remains_correct_under_concurrent_writes" time="0.128"><failure message="assert 404 == 200&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_activity_remains_correct_under_concurrent_writes():
+        """R-1-195: relative order of same-second payments and pagination
+        stability under concurrent writes are unspecified — this test asserts
+        only that every payment shows up and the service stays correct (5xx-free),
+        never a specific order or a stable page boundary."""
+        fixture, token_a, _ = _two_user_fixture(balance_a=1000)
+        b_handle = fixture["users"][1]["handle"]
+        created_ids = []
+        lock = threading.Lock()
+    
+        def one(i):
+            r = api_post("/payments", json={"to_handle": b_handle, "amount": 1},
+                         headers={**auth(token_a), **idem(unique(f"k{i}"))})
+            assert r.status_code == 201, r.text
+            with lock:
+                created_ids.append(r.json()["payment_id"])
+    
+        threads = [threading.Thread(target=one, args=(i,)) for i in range(8)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+    
+        feed = api_get("/activity", headers=auth(token_a), params={"limit": 200})
+&gt;       assert feed.status_code == 200
+E       assert 404 == 200
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_payments_activity.py:278: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_payments_activity" name="test_activity_limit_offset_and_has_more" time="0.083"><failure message="AssertionError: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /payments&quot;}}&#10;assert 404 == 201&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_activity_limit_offset_and_has_more():
+        """R-1-194"""
+        fixture, token_a, _ = _two_user_fixture(balance_a=1000)
+        b_handle = fixture["users"][1]["handle"]
+        for i in range(5):
+            r = api_post("/payments", json={"to_handle": b_handle, "amount": 1}, headers={**auth(token_a), **idem(unique(f"k{i}"))})
+&gt;           assert r.status_code == 201, r.text
+E           AssertionError: {"error": {"code": "not_found", "message": "no such endpoint: POST /payments"}}
+E           assert 404 == 201
+E            +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_payments_activity.py:289: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_payments_activity" name="test_activity_limit_and_offset_invalid_422" time="0.094"><failure message="AssertionError: expected 422 got 404: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: GET /activity&quot;}}&#10;assert 404 == 422&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_activity_limit_and_offset_invalid_422():
+        """R-1-073, R-1-074, R-1-194"""
+        fixture, token_a, _ = _two_user_fixture()
+        for bad_limit in (0, 201, -1, "abc"):
+            r = api_get("/activity", headers=auth(token_a), params={"limit": bad_limit})
+&gt;           assert_error(r, 422, "validation_failed")
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_payments_activity.py:306: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+resp = &lt;Response [404 Not Found]&gt;, status = 422, code = 'validation_failed'
+
+    def assert_error(resp: httpx.Response, status: int, code: str):
+&gt;       assert resp.status_code == status, f"expected {status} got {resp.status_code}: {resp.text}"
+E       AssertionError: expected 422 got 404: {"error": {"code": "not_found", "message": "no such endpoint: GET /activity"}}
+E       assert 404 == 422
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/conftest.py:165: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_payments_activity" name="test_settlement_member_payment_follows_feed_visibility_rule" time="0.113"><failure message="AssertionError: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /settlements&quot;}}&#10;assert 404 == 201&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_settlement_member_payment_follows_feed_visibility_rule():
+        """R-1-196"""
+        a_id, b_id, op_id, third_id = unique("u"), unique("u"), unique("u"), unique("u")
+        a_handle, b_handle, op_handle, third_handle = (unique_handle("a"), unique_handle("b"),
+                                                        unique_handle("op"), unique_handle("c"))
+        fixture = make_fixture(
+            [user(a_id, a_handle, balance=1000), user(b_id, b_handle, balance=0),
+             user(op_id, op_handle, balance=0), user(third_id, third_handle, balance=0)],
+            settlement_operator_ids=[op_id],
+        )
+        reset_ok(fixture)
+        token_op = login_token(fixture["users"][2]["email"])
+        token_third = login_token(fixture["users"][3]["email"])
+        r = api_post("/settlements", json={"transfers": [{"from_handle": a_handle, "to_handle": b_handle,
+                                                            "amount": 10, "visibility": "private"}]},
+                     headers={**auth(token_op), **idem(unique("k"))})
+&gt;       assert r.status_code == 201, r.text
+E       AssertionError: {"error": {"code": "not_found", "message": "no such endpoint: POST /settlements"}}
+E       assert 404 == 201
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_payments_activity.py:328: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_requests" name="test_create_request_shape" time="0.090"><failure message="AssertionError: {&quot;error&quot;: {&quot;code&quot;: &quot;method_not_allowed&quot;, &quot;message&quot;: &quot;method not allowed; try one of: GET&quot;}}&#10;assert 405 == 201&#10; +  where 405 = &lt;Response [405 Method Not Allowed]&gt;.status_code">def test_create_request_shape():
+        """R-1-150"""
+        fixture, token_a, _ = _two_user_fixture()
+        b_handle = fixture["users"][1]["handle"]
+        r = api_post("/requests", json={"payer_handle": b_handle, "amount": 50, "note": "rent"},
+                     headers={**auth(token_a), **idem(unique("k"))})
+&gt;       assert r.status_code == 201, r.text
+E       AssertionError: {"error": {"code": "method_not_allowed", "message": "method not allowed; try one of: GET"}}
+E       assert 405 == 201
+E        +  where 405 = &lt;Response [405 Method Not Allowed]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_requests.py:22: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_requests" name="test_request_ignores_payer_balance" time="0.090"><failure message="AssertionError: {&quot;error&quot;: {&quot;code&quot;: &quot;method_not_allowed&quot;, &quot;message&quot;: &quot;method not allowed; try one of: GET&quot;}}&#10;assert 405 == 201&#10; +  where 405 = &lt;Response [405 Method Not Allowed]&gt;.status_code">def test_request_ignores_payer_balance():
+        """R-1-151"""
+        fixture, token_a, token_b = _two_user_fixture(balance_a=0, balance_b=0)
+        b_handle = fixture["users"][1]["handle"]
+        r = api_post("/requests", json={"payer_handle": b_handle, "amount": 1_000_000},
+                     headers={**auth(token_a), **idem(unique("k"))})
+&gt;       assert r.status_code == 201, r.text
+E       AssertionError: {"error": {"code": "method_not_allowed", "message": "method not allowed; try one of: GET"}}
+E       assert 405 == 201
+E        +  where 405 = &lt;Response [405 Method Not Allowed]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_requests.py:39: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_requests" name="test_request_becomes_payable_once_funds_arrive" time="0.109"><failure message="KeyError: 'request_id'">def test_request_becomes_payable_once_funds_arrive():
+        """R-1-151"""
+        a_id, b_id, funder_id = unique("u"), unique("u"), unique("u")
+        a_handle, b_handle, funder_handle = unique_handle("a"), unique_handle("b"), unique_handle("f")
+        fixture = make_fixture([user(a_id, a_handle, balance=0), user(b_id, b_handle, balance=0),
+                                 user(funder_id, funder_handle, balance=1000)])
+        reset_ok(fixture)
+        token_a = login_token(fixture["users"][0]["email"])
+        token_b = login_token(fixture["users"][1]["email"])
+        token_funder = login_token(fixture["users"][2]["email"])
+    
+        r = api_post("/requests", json={"payer_handle": b_handle, "amount": 500},
+                     headers={**auth(token_a), **idem(unique("k"))})
+&gt;       req_id = r.json()["request_id"]
+                 ^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'request_id'
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_requests.py:63: KeyError</failure></testcase><testcase classname="stage-1.tests.test_requests" name="test_request_no_visibility_and_not_in_activity" time="0.089"><failure message="AssertionError: {&quot;error&quot;: {&quot;code&quot;: &quot;method_not_allowed&quot;, &quot;message&quot;: &quot;method not allowed; try one of: GET&quot;}}&#10;assert 405 == 201&#10; +  where 405 = &lt;Response [405 Method Not Allowed]&gt;.status_code">def test_request_no_visibility_and_not_in_activity():
+        """R-1-152"""
+        fixture, token_a, _ = _two_user_fixture()
+        b_handle = fixture["users"][1]["handle"]
+        r = api_post("/requests", json={"payer_handle": b_handle, "amount": 10},
+                     headers={**auth(token_a), **idem(unique("k"))})
+&gt;       assert r.status_code == 201, r.text
+E       AssertionError: {"error": {"code": "method_not_allowed", "message": "method not allowed; try one of: GET"}}
+E       assert 405 == 201
+E        +  where 405 = &lt;Response [405 Method Not Allowed]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_requests.py:82: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_requests" name="test_request_field_errors" time="0.080"><failure message="AssertionError: expected 422 got 405: {&quot;error&quot;: {&quot;code&quot;: &quot;method_not_allowed&quot;, &quot;message&quot;: &quot;method not allowed; try one of: GET&quot;}}&#10;assert 405 == 422&#10; +  where 405 = &lt;Response [405 Method Not Allowed]&gt;.status_code">def test_request_field_errors():
+        """R-1-153"""
+        fixture, token_a, _ = _two_user_fixture()
+        b_handle = fixture["users"][1]["handle"]
+        own_handle = fixture["users"][0]["handle"]
+    
+        r = api_post("/requests", json={"payer_handle": b_handle, "amount": 0}, headers={**auth(token_a), **idem(unique("k"))})
+&gt;       assert_error(r, 422, "validation_failed")
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_requests.py:94: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+resp = &lt;Response [405 Method Not Allowed]&gt;, status = 422
+code = 'validation_failed'
+
+    def assert_error(resp: httpx.Response, status: int, code: str):
+&gt;       assert resp.status_code == status, f"expected {status} got {resp.status_code}: {resp.text}"
+E       AssertionError: expected 422 got 405: {"error": {"code": "method_not_allowed", "message": "method not allowed; try one of: GET"}}
+E       assert 405 == 422
+E        +  where 405 = &lt;Response [405 Method Not Allowed]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/conftest.py:165: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_requests" name="test_request_lifecycle_terminal_states" time="0.095"><failure message="KeyError: 'request_id'">def test_request_lifecycle_terminal_states():
+        """R-1-154"""
+        fixture, token_a, token_b = _two_user_fixture()
+        b_handle = fixture["users"][1]["handle"]
+        r = api_post("/requests", json={"payer_handle": b_handle, "amount": 10}, headers={**auth(token_a), **idem(unique("k"))})
+&gt;       req_id = r.json()["request_id"]
+                 ^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'request_id'
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_requests.py:113: KeyError</failure></testcase><testcase classname="stage-1.tests.test_requests" name="test_pay_request_payer_only_shape" time="0.102"><failure message="KeyError: 'request_id'">def test_pay_request_payer_only_shape():
+        """R-1-155"""
+        fixture, token_a, token_b = _two_user_fixture()
+        b_handle = fixture["users"][1]["handle"]
+        r = api_post("/requests", json={"payer_handle": b_handle, "amount": 10}, headers={**auth(token_a), **idem(unique("k"))})
+&gt;       req_id = r.json()["request_id"]
+                 ^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'request_id'
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_requests.py:128: KeyError</failure></testcase><testcase classname="stage-1.tests.test_requests" name="test_pay_request_visibility_is_payers_choice" time="0.104"><failure message="KeyError: 'request_id'">def test_pay_request_visibility_is_payers_choice():
+        """R-1-156"""
+        fixture, token_a, token_b = _two_user_fixture()
+        b_handle = fixture["users"][1]["handle"]
+        r = api_post("/requests", json={"payer_handle": b_handle, "amount": 10}, headers={**auth(token_a), **idem(unique("k"))})
+&gt;       req_id = r.json()["request_id"]
+                 ^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'request_id'
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_requests.py:145: KeyError</failure></testcase><testcase classname="stage-1.tests.test_requests" name="test_pay_body_distinguishes_empty_from_explicit_default" time="0.094"><failure message="KeyError: 'request_id'">def test_pay_body_distinguishes_empty_from_explicit_default():
+        """R-1-157"""
+        fixture, token_a, token_b = _two_user_fixture()
+        b_handle = fixture["users"][1]["handle"]
+        r = api_post("/requests", json={"payer_handle": b_handle, "amount": 10}, headers={**auth(token_a), **idem(unique("k"))})
+&gt;       req_id = r.json()["request_id"]
+                 ^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'request_id'
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_requests.py:160: KeyError</failure></testcase><testcase classname="stage-1.tests.test_requests" name="test_pay_not_pending_insufficient_funds_forbidden_not_found" time="0.079"><failure message="KeyError: 'request_id'">def test_pay_not_pending_insufficient_funds_forbidden_not_found():
+        """R-1-158"""
+        fixture, token_a, token_b = _two_user_fixture(balance_a=0, balance_b=0)
+        b_handle = fixture["users"][1]["handle"]
+        r = api_post("/requests", json={"payer_handle": b_handle, "amount": 10}, headers={**auth(token_a), **idem(unique("k"))})
+&gt;       req_id = r.json()["request_id"]
+                 ^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'request_id'
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_requests.py:173: KeyError</failure></testcase><testcase classname="stage-1.tests.test_requests" name="test_replaying_successful_pay_never_409s" time="0.099"><failure message="KeyError: 'request_id'">def test_replaying_successful_pay_never_409s():
+        """R-1-159"""
+        fixture, token_a, token_b = _two_user_fixture()
+        b_handle = fixture["users"][1]["handle"]
+        r = api_post("/requests", json={"payer_handle": b_handle, "amount": 10}, headers={**auth(token_a), **idem(unique("k"))})
+&gt;       req_id = r.json()["request_id"]
+                 ^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'request_id'
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_requests.py:199: KeyError</failure></testcase><testcase classname="stage-1.tests.test_requests" name="test_decline_request" time="0.094"><failure message="KeyError: 'request_id'">def test_decline_request():
+        """R-1-160"""
+        fixture, token_a, token_b = _two_user_fixture()
+        b_handle = fixture["users"][1]["handle"]
+        r = api_post("/requests", json={"payer_handle": b_handle, "amount": 10}, headers={**auth(token_a), **idem(unique("k"))})
+&gt;       req_id = r.json()["request_id"]
+                 ^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'request_id'
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_requests.py:216: KeyError</failure></testcase><testcase classname="stage-1.tests.test_requests" name="test_cancel_request" time="0.082"><failure message="KeyError: 'request_id'">def test_cancel_request():
+        """R-1-161"""
+        fixture, token_a, token_b = _two_user_fixture()
+        b_handle = fixture["users"][1]["handle"]
+        r = api_post("/requests", json={"payer_handle": b_handle, "amount": 10}, headers={**auth(token_a), **idem(unique("k"))})
+&gt;       req_id = r.json()["request_id"]
+                 ^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'request_id'
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_requests.py:245: KeyError</failure></testcase><testcase classname="stage-1.tests.test_requests" name="test_decline_and_cancel_move_no_money" time="0.076"><failure message="KeyError: 'request_id'">def test_decline_and_cancel_move_no_money():
+        """R-1-162"""
+        fixture, token_a, token_b = _two_user_fixture(balance_a=1000, balance_b=1000)
+        b_handle = fixture["users"][1]["handle"]
+        r = api_post("/requests", json={"payer_handle": b_handle, "amount": 10}, headers={**auth(token_a), **idem(unique("k"))})
+&gt;       req_id = r.json()["request_id"]
+                 ^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'request_id'
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_requests.py:274: KeyError</failure></testcase><testcase classname="stage-1.tests.test_requests" name="test_get_requests_visible_only_to_participants" time="0.087"><failure message="KeyError: 'request_id'">def test_get_requests_visible_only_to_participants():
+        """R-1-163"""
+        a_id, b_id, c_id = unique("u"), unique("u"), unique("u")
+        a_handle, b_handle, c_handle = unique_handle("a"), unique_handle("b"), unique_handle("c")
+        fixture = make_fixture([user(a_id, a_handle, balance=0), user(b_id, b_handle, balance=0),
+                                 user(c_id, c_handle, balance=0)])
+        reset_ok(fixture)
+        token_a = login_token(fixture["users"][0]["email"])
+        token_c = login_token(fixture["users"][2]["email"])
+        r = api_post("/requests", json={"payer_handle": b_handle, "amount": 10}, headers={**auth(token_a), **idem(unique("k"))})
+&gt;       req_id = r.json()["request_id"]
+                 ^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'request_id'
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_requests.py:296: KeyError</failure></testcase><testcase classname="stage-1.tests.test_requests" name="test_get_requests_newest_first" time="0.109" /><testcase classname="stage-1.tests.test_requests" name="test_get_requests_direction_filter" time="0.108"><failure message="KeyError: 'request_id'">def test_get_requests_direction_filter():
+        """R-1-164"""
+        fixture, token_a, token_b = _two_user_fixture()
+        b_handle = fixture["users"][1]["handle"]
+        a_handle = fixture["users"][0]["handle"]
+        out_r = api_post("/requests", json={"payer_handle": b_handle, "amount": 1}, headers={**auth(token_a), **idem(unique("k"))})
+&gt;       out_id = out_r.json()["request_id"]
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'request_id'
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_requests.py:320: KeyError</failure></testcase><testcase classname="stage-1.tests.test_requests" name="test_get_requests_status_filter_and_unknown_value_422" time="0.076"><failure message="KeyError: 'request_id'">def test_get_requests_status_filter_and_unknown_value_422():
+        """R-1-165"""
+        fixture, token_a, token_b = _two_user_fixture()
+        b_handle = fixture["users"][1]["handle"]
+        r = api_post("/requests", json={"payer_handle": b_handle, "amount": 1}, headers={**auth(token_a), **idem(unique("k"))})
+&gt;       req_id = r.json()["request_id"]
+                 ^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'request_id'
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_requests.py:338: KeyError</failure></testcase><testcase classname="stage-1.tests.test_requests" name="test_get_requests_pagination_defaults_and_has_more" time="0.156"><failure message="assert 0 == 2&#10; +  where 0 = len([])">def test_get_requests_pagination_defaults_and_has_more():
+        """R-1-166, R-1-167"""
+        fixture, token_a, _ = _two_user_fixture()
+        b_handle = fixture["users"][1]["handle"]
+        for i in range(5):
+            api_post("/requests", json={"payer_handle": b_handle, "amount": 1}, headers={**auth(token_a), **idem(unique(f"k{i}"))})
+    
+        default_page = api_get("/requests", headers=auth(token_a))
+        assert default_page.status_code == 200
+        assert default_page.json()["has_more"] is False  # fewer than 50 total
+    
+        page = api_get("/requests", headers=auth(token_a), params={"limit": 2, "offset": 0})
+        body = page.json()
+&gt;       assert len(body["requests"]) == 2
+E       assert 0 == 2
+E        +  where 0 = len([])
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_requests.py:364: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_reset_fixture" name="test_currency_and_minor_units_declared" time="0.053" /><testcase classname="stage-1.tests.test_reset_fixture" name="test_minor_units_valid_values[2-EUR]" time="0.027" /><testcase classname="stage-1.tests.test_reset_fixture" name="test_minor_units_valid_values[0-JPY]" time="0.026" /><testcase classname="stage-1.tests.test_reset_fixture" name="test_minor_units_valid_values[3-BHD]" time="0.021" /><testcase classname="stage-1.tests.test_reset_fixture" name="test_minor_units_out_of_range_rejected" time="0.004" /><testcase classname="stage-1.tests.test_reset_fixture" name="test_amount_accepts_integral_numeric_forms" time="0.070"><failure message="AssertionError: amount 1000 rejected: 404 {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /payments&quot;}}&#10;assert 404 == 201&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_amount_accepts_integral_numeric_forms():
+        """R-1-031"""
+        a_id, b_id = unique("u"), unique("u")
+        a_handle, b_handle = unique_handle("a"), unique_handle("b")
+        fixture = make_fixture([user(a_id, a_handle, balance=10_000), user(b_id, b_handle, balance=0)])
+        reset_ok(fixture)
+        token = login_token(fixture["users"][0]["email"])
+        for i, amount in enumerate([1000, 1000.0, 1e3]):
+            r = api_post("/payments", json={"to_handle": b_handle, "amount": amount},
+                         headers={**auth(token), **idem(unique(f"k{i}"))})
+&gt;           assert r.status_code == 201, f"amount {amount!r} rejected: {r.status_code} {r.text}"
+E           AssertionError: amount 1000 rejected: 404 {"error": {"code": "not_found", "message": "no such endpoint: POST /payments"}}
+E           assert 404 == 201
+E            +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_reset_fixture.py:51: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_reset_fixture" name="test_amount_boolean_or_string_rejected_422" time="0.072"><failure message="AssertionError: expected 422 got 404: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /payments&quot;}}&#10;assert 404 == 422&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_amount_boolean_or_string_rejected_422():
+        """R-1-032"""
+        a_id, b_id = unique("u"), unique("u")
+        a_handle, b_handle = unique_handle("a"), unique_handle("b")
+        fixture = make_fixture([user(a_id, a_handle, balance=10_000), user(b_id, b_handle, balance=0)])
+        reset_ok(fixture)
+        token = login_token(fixture["users"][0]["email"])
+        for amount in (True, "100"):
+            r = api_post("/payments", json={"to_handle": b_handle, "amount": amount},
+                         headers={**auth(token), **idem(unique("k"))})
+&gt;           assert_error(r, 422, "validation_failed")
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_reset_fixture.py:65: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+resp = &lt;Response [404 Not Found]&gt;, status = 422, code = 'validation_failed'
+
+    def assert_error(resp: httpx.Response, status: int, code: str):
+&gt;       assert resp.status_code == status, f"expected {status} got {resp.status_code}: {resp.text}"
+E       AssertionError: expected 422 got 404: {"error": {"code": "not_found", "message": "no such endpoint: POST /payments"}}
+E       assert 404 == 422
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/conftest.py:165: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_reset_fixture" name="test_amount_non_integral_rejected_422" time="0.062"><failure message="AssertionError: expected 422 got 404: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /payments&quot;}}&#10;assert 404 == 422&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_amount_non_integral_rejected_422():
+        """R-1-033"""
+        a_id, b_id = unique("u"), unique("u")
+        a_handle, b_handle = unique_handle("a"), unique_handle("b")
+        fixture = make_fixture([user(a_id, a_handle, balance=10_000), user(b_id, b_handle, balance=0)])
+        reset_ok(fixture)
+        token = login_token(fixture["users"][0]["email"])
+        for amount in (10.5, 1e-1):
+            r = api_post("/payments", json={"to_handle": b_handle, "amount": amount},
+                         headers={**auth(token), **idem(unique("k"))})
+&gt;           assert_error(r, 422, "validation_failed")
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_reset_fixture.py:78: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+resp = &lt;Response [404 Not Found]&gt;, status = 422, code = 'validation_failed'
+
+    def assert_error(resp: httpx.Response, status: int, code: str):
+&gt;       assert resp.status_code == status, f"expected {status} got {resp.status_code}: {resp.text}"
+E       AssertionError: expected 422 got 404: {"error": {"code": "not_found", "message": "no such endpoint: POST /payments"}}
+E       assert 404 == 422
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/conftest.py:165: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_reset_fixture" name="test_handle_uniqueness_and_syntax_enforced_on_reset" time="0.024" /><testcase classname="stage-1.tests.test_reset_fixture" name="test_handle_bad_syntax_rejected_on_reset" time="0.006" /><testcase classname="stage-1.tests.test_reset_fixture" name="test_handles_identify_users_no_directory_endpoint" time="0.007" /><testcase classname="stage-1.tests.test_reset_fixture" name="test_seeded_user_starts_with_given_balance_and_can_transact" time="0.099"><failure message="AssertionError: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /payments&quot;}}&#10;assert 404 == 201&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_seeded_user_starts_with_given_balance_and_can_transact():
+        """R-1-037, R-1-044"""
+        a_id, b_id = unique("u"), unique("u")
+        a_handle, b_handle = unique_handle("a"), unique_handle("b")
+        fixture = make_fixture([user(a_id, a_handle, balance=0), user(b_id, b_handle, balance=500)])
+        reset_ok(fixture)
+        token_a = login_token(fixture["users"][0]["email"])
+        r = api_get("/me", headers=auth(token_a))
+        assert r.status_code == 200
+        assert r.json()["balance"] == 0
+        # can immediately be paid
+        token_b = login_token(fixture["users"][1]["email"])
+        pay = api_post("/payments", json={"to_handle": a_handle, "amount": 50},
+                       headers={**auth(token_b), **idem(unique("k"))})
+&gt;       assert pay.status_code == 201, pay.text
+E       AssertionError: {"error": {"code": "not_found", "message": "no such endpoint: POST /payments"}}
+E       assert 404 == 201
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_reset_fixture.py:118: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_reset_fixture" name="test_reset_replaces_all_state" time="0.124" /><testcase classname="stage-1.tests.test_reset_fixture" name="test_reset_requires_no_auth_and_is_repeatable" time="0.050" /><testcase classname="stage-1.tests.test_reset_fixture" name="test_seeded_balance_is_post_payment_not_replayed" time="0.119" /><testcase classname="stage-1.tests.test_reset_fixture" name="test_negative_balance_rejected_and_prior_state_intact" time="0.081" /><testcase classname="stage-1.tests.test_reset_fixture" name="test_reset_non_json_body_400" time="0.008" /><testcase classname="stage-1.tests.test_reset_fixture" name="test_reset_non_object_top_level_400" time="0.007" /><testcase classname="stage-1.tests.test_reset_fixture" name="test_reset_missing_required_user_field_422" time="0.006" /><testcase classname="stage-1.tests.test_reset_fixture" name="test_reset_duplicate_user_id_422" time="0.019" /><testcase classname="stage-1.tests.test_reset_fixture" name="test_reset_payment_unknown_user_422" time="0.018" /><testcase classname="stage-1.tests.test_reset_fixture" name="test_reset_request_unknown_user_422" time="0.029" /><testcase classname="stage-1.tests.test_reset_fixture" name="test_reset_bad_seeded_status_422" time="0.038" /><testcase classname="stage-1.tests.test_reset_fixture" name="test_reset_accepts_full_fixture_shape" time="0.079"><failure message="AssertionError: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /settlements&quot;}}&#10;assert 404 == 201&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_reset_accepts_full_fixture_shape():
+        """R-1-042"""
+        a_id, b_id, op_id = unique("u"), unique("u"), unique("u")
+        a_handle, b_handle, op_handle = unique_handle("a"), unique_handle("b"), unique_handle("op")
+        pay_id, req_id = unique("p"), unique("r")
+        fixture = make_fixture(
+            [user(a_id, a_handle, balance=900), user(b_id, b_handle, balance=100), user(op_id, op_handle, balance=0)],
+            payments=[{"id": pay_id, "from_user_id": a_id, "to_user_id": b_id, "amount": 100,
+                       "note": "seed", "visibility": "public"}],
+            requests=[{"id": req_id, "requester_id": a_id, "payer_id": b_id, "amount": 10,
+                       "note": "seed", "status": "pending"}],
+            settlement_operator_ids=[op_id],
+            currency="BHD", minor_units=3,
+        )
+        r = reset(fixture)
+        assert r.status_code == 204, r.text
+        token_op = login_token(fixture["users"][2]["email"])
+        settle = api_post("/settlements", json={"transfers": [{"from_handle": a_handle, "to_handle": b_handle, "amount": 1}]},
+                          headers={**auth(token_op), **idem(unique("k"))})
+&gt;       assert settle.status_code == 201, settle.text
+E       AssertionError: {"error": {"code": "not_found", "message": "no such endpoint: POST /settlements"}}
+E       assert 404 == 201
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_reset_fixture.py:269: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_reset_fixture" name="test_reset_omits_optional_collections" time="0.072"><failure message="assert 404 == 200&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_reset_omits_optional_collections():
+        """R-1-048"""
+        fixture = {"currency": "EUR", "minor_units": 2, "users": [user(unique("u"), unique_handle("a"), balance=5)]}
+        r = reset(fixture)
+        assert r.status_code == 204
+        token = login_token(fixture["users"][0]["email"])
+        reqs = api_get("/requests", headers=auth(token))
+        assert reqs.status_code == 200
+        assert reqs.json()["requests"] == []
+        acts = api_get("/activity", headers=auth(token))
+&gt;       assert acts.status_code == 200
+E       assert 404 == 200
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_reset_fixture.py:282: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_reset_fixture" name="test_reset_ignores_unknown_top_level_fields" time="0.030" /><testcase classname="stage-1.tests.test_reset_fixture" name="test_seeded_pending_request_is_payable_non_pending_is_not" time="0.098"><failure message="AssertionError: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /requests/rfb42f816751/pay&quot;}}&#10;assert 404 == 201&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_seeded_pending_request_is_payable_non_pending_is_not():
+        """R-1-049"""
+        a_id, b_id, c_id = unique("u"), unique("u"), unique("u")
+        a_handle, b_handle, c_handle = unique_handle("a"), unique_handle("b"), unique_handle("c")
+        pending_id, declined_id = unique("r"), unique("r")
+        fixture = make_fixture(
+            [user(a_id, a_handle, balance=100), user(b_id, b_handle, balance=100), user(c_id, c_handle, balance=100)],
+            requests=[
+                {"id": pending_id, "requester_id": a_id, "payer_id": b_id, "amount": 10, "note": "", "status": "pending"},
+                {"id": declined_id, "requester_id": a_id, "payer_id": c_id, "amount": 10, "note": "", "status": "declined"},
+            ],
+        )
+        reset_ok(fixture)
+        token_b = login_token(fixture["users"][1]["email"])
+        token_c = login_token(fixture["users"][2]["email"])
+    
+        pay_pending = api_post(f"/requests/{pending_id}/pay", json={}, headers={**auth(token_b), **idem(unique("k"))})
+&gt;       assert pay_pending.status_code == 201, pay_pending.text
+E       AssertionError: {"error": {"code": "not_found", "message": "no such endpoint: POST /requests/rfb42f816751/pay"}}
+E       assert 404 == 201
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_reset_fixture.py:311: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_reset_fixture" name="test_no_admin_balance_endpoint" time="0.064" /><testcase classname="stage-1.tests.test_runtime" name="test_dockerfile_and_run_md_present" time="0.001" /><testcase classname="stage-1.tests.test_runtime" name="test_no_compose_or_sidecar_needed" time="0.001" /><testcase classname="stage-1.tests.test_runtime" name="test_service_reachable_on_configured_port" time="0.010" /><testcase classname="stage-1.tests.test_runtime" name="test_dockerfile_has_no_runtime_network_fetch" time="0.000" /><testcase classname="stage-1.tests.test_runtime" name="test_no_persistent_volume_required" time="0.092" /><testcase classname="stage-1.tests.test_runtime" name="test_health_ok" time="0.005" /><testcase classname="stage-1.tests.test_runtime" name="test_health_no_auth_required" time="0.011" /><testcase classname="stage-1.tests.test_runtime" name="test_json_content_type_on_success" time="0.009" /><testcase classname="stage-1.tests.test_runtime" name="test_json_content_type_on_error" time="0.010" /><testcase classname="stage-1.tests.test_runtime" name="test_timestamps_are_rfc3339_with_offset" time="0.086"><failure message="AssertionError: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /payments&quot;}}&#10;assert 404 == 201&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_timestamps_are_rfc3339_with_offset():
+        """R-1-021"""
+        a_id, b_id = unique("u"), unique("u")
+        a_handle, b_handle = unique_handle("a"), unique_handle("b")
+        fixture = make_fixture([user(a_id, a_handle, balance=1000), user(b_id, b_handle, balance=0)])
+        reset_ok(fixture)
+        token = login_token(fixture["users"][0]["email"])
+        r = api_post("/payments", json={"to_handle": b_handle, "amount": 10},
+                     headers={**auth(token), **idem(unique("k"))})
+&gt;       assert r.status_code == 201, r.text
+E       AssertionError: {"error": {"code": "not_found", "message": "no such endpoint: POST /payments"}}
+E       assert 404 == 201
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_runtime.py:102: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_runtime" name="test_unknown_request_body_fields_ignored" time="0.067"><failure message="AssertionError: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /payments&quot;}}&#10;assert 404 == 201&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_unknown_request_body_fields_ignored():
+        """R-1-022"""
+        a_id, b_id = unique("u"), unique("u")
+        a_handle, b_handle = unique_handle("a"), unique_handle("b")
+        fixture = make_fixture([user(a_id, a_handle, balance=1000), user(b_id, b_handle, balance=0)])
+        reset_ok(fixture)
+        token = login_token(fixture["users"][0]["email"])
+        r = api_post("/payments", json={"to_handle": b_handle, "amount": 10, "unexpected_field": "surprise!"},
+                     headers={**auth(token), **idem(unique("k"))})
+&gt;       assert r.status_code == 201, r.text
+E       AssertionError: {"error": {"code": "not_found", "message": "no such endpoint: POST /payments"}}
+E       assert 404 == 201
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_runtime.py:121: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_runtime" name="test_unknown_query_params_ignored" time="0.068" /><testcase classname="stage-1.tests.test_runtime" name="test_assigned_ids_are_opaque_and_bounded" time="0.069"><failure message="AssertionError: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /payments&quot;}}&#10;assert 404 == 201&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_assigned_ids_are_opaque_and_bounded():
+        """R-1-024"""
+        a_id, b_id = unique("u"), unique("u")
+        a_handle, b_handle = unique_handle("a"), unique_handle("b")
+        fixture = make_fixture([user(a_id, a_handle, balance=1000), user(b_id, b_handle, balance=0)])
+        reset_ok(fixture)
+        token = login_token(fixture["users"][0]["email"])
+        r = api_post("/payments", json={"to_handle": b_handle, "amount": 10},
+                     headers={**auth(token), **idem(unique("k"))})
+&gt;       assert r.status_code == 201, r.text
+E       AssertionError: {"error": {"code": "not_found", "message": "no such endpoint: POST /payments"}}
+E       assert 404 == 201
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_runtime.py:144: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_runtime" name="test_seeded_ids_used_verbatim" time="0.062"><failure message="AssertionError: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: GET /activity&quot;}}&#10;assert 404 == 200&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_seeded_ids_used_verbatim():
+        """R-1-025"""
+        a_id, b_id = unique("u"), unique("u")
+        a_handle, b_handle = unique_handle("a"), unique_handle("b")
+        pay_id = unique("p")
+        fixture = make_fixture(
+            [user(a_id, a_handle, balance=1000), user(b_id, b_handle, balance=0)],
+            payments=[{"id": pay_id, "from_user_id": a_id, "to_user_id": b_id, "amount": 50,
+                       "note": "", "visibility": "public"}],
+        )
+        reset_ok(fixture)
+        token = login_token(fixture["users"][0]["email"])
+        r = api_get("/activity", headers=auth(token))
+&gt;       assert r.status_code == 200, r.text
+E       AssertionError: {"error": {"code": "not_found", "message": "no such endpoint: GET /activity"}}
+E       assert 404 == 200
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_runtime.py:162: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_settlements" name="test_settlement_requires_operator_and_key" time="0.167"><failure message="AssertionError: expected 401 got 404: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /settlements&quot;}}&#10;assert 404 == 401&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_settlement_requires_operator_and_key():
+        """R-1-221"""
+        fixture, ids, handles, tokens = _setup()
+        no_auth = api_post("/settlements", json={"transfers": []}, headers={"Idempotency-Key": "k"})
+&gt;       assert_error(no_auth, 401, "unauthenticated")
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_settlements.py:22: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+resp = &lt;Response [404 Not Found]&gt;, status = 401, code = 'unauthenticated'
+
+    def assert_error(resp: httpx.Response, status: int, code: str):
+&gt;       assert resp.status_code == status, f"expected {status} got {resp.status_code}: {resp.text}"
+E       AssertionError: expected 401 got 404: {"error": {"code": "not_found", "message": "no such endpoint: POST /settlements"}}
+E       assert 404 == 401
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/conftest.py:165: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_settlements" name="test_operator_grants_only_settlement_execution" time="0.112"><failure message="KeyError: 'request_id'">def test_operator_grants_only_settlement_execution():
+        """R-1-222"""
+        fixture, ids, handles, tokens = _setup(n=3)
+        # a request between two non-operator users, private to them
+        other_a, other_b = tokens[1], tokens[2]
+        r = api_post("/requests", json={"payer_handle": handles[2], "amount": 10},
+                     headers={**auth(other_a), **idem(unique("k"))})
+&gt;       req_id = r.json()["request_id"]
+                 ^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'request_id'
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_settlements.py:38: KeyError</failure></testcase><testcase classname="stage-1.tests.test_settlements" name="test_settlement_body_shape_and_defaults" time="0.156"><failure message="AssertionError: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /settlements&quot;}}&#10;assert 404 == 201&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_settlement_body_shape_and_defaults():
+        """R-1-223"""
+        fixture, ids, handles, tokens = _setup()
+        r = api_post("/settlements", json={"transfers": [{"from_handle": handles[1], "to_handle": handles[2], "amount": 10}]},
+                     headers={**auth(tokens[0]), **idem(unique("k"))})
+&gt;       assert r.status_code == 201, r.text
+E       AssertionError: {"error": {"code": "not_found", "message": "no such endpoint: POST /settlements"}}
+E       assert 404 == 201
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_settlements.py:56: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_settlements" name="test_settlement_batch_shape_errors" time="0.139"><failure message="AssertionError: expected 422 got 404: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /settlements&quot;}}&#10;assert 404 == 422&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_settlement_batch_shape_errors():
+        """R-1-224"""
+        fixture, ids, handles, tokens = _setup()
+        for bad in (None, "not-array", [], [{"from_handle": handles[1], "to_handle": handles[2], "amount": 1}] * 33):
+            body = {} if bad is None else {"transfers": bad}
+            r = api_post("/settlements", json=body, headers={**auth(tokens[0]), **idem(unique("k"))})
+&gt;           assert_error(r, 422, "validation_failed")
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_settlements.py:68: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+resp = &lt;Response [404 Not Found]&gt;, status = 422, code = 'validation_failed'
+
+    def assert_error(resp: httpx.Response, status: int, code: str):
+&gt;       assert resp.status_code == status, f"expected {status} got {resp.status_code}: {resp.text}"
+E       AssertionError: expected 422 got 404: {"error": {"code": "not_found", "message": "no such endpoint: POST /settlements"}}
+E       assert 404 == 422
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/conftest.py:165: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_settlements" name="test_settlement_per_entry_errors" time="0.146"><failure message="AssertionError: expected 422 got 404: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /settlements&quot;}}&#10;assert 404 == 422&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_settlement_per_entry_errors():
+        """R-1-225"""
+        fixture, ids, handles, tokens = _setup(n=3)
+    
+        unknown = api_post("/settlements", json={"transfers": [{"from_handle": handles[1], "to_handle": unique_handle("ghost"), "amount": 10}]},
+                            headers={**auth(tokens[0]), **idem(unique("k"))})
+        assert_error(unknown, 404, "not_found")
+    
+        self_pay = api_post("/settlements", json={"transfers": [{"from_handle": handles[1], "to_handle": handles[1], "amount": 10}]},
+                             headers={**auth(tokens[0]), **idem(unique("k"))})
+&gt;       assert_error(self_pay, 422, "self_payment")
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_settlements.py:81: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+resp = &lt;Response [404 Not Found]&gt;, status = 422, code = 'self_payment'
+
+    def assert_error(resp: httpx.Response, status: int, code: str):
+&gt;       assert resp.status_code == status, f"expected {status} got {resp.status_code}: {resp.text}"
+E       AssertionError: expected 422 got 404: {"error": {"code": "not_found", "message": "no such endpoint: POST /settlements"}}
+E       assert 404 == 422
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/conftest.py:165: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_settlements" name="test_entry_errors_precede_insufficient_funds_in_input_order" time="0.156" /><testcase classname="stage-1.tests.test_settlements" name="test_affordable_net_zero_batch_succeeds_even_if_single_leg_would_not" time="0.090"><failure message="AssertionError: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /settlements&quot;}}&#10;assert 404 == 201&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_affordable_net_zero_batch_succeeds_even_if_single_leg_would_not():
+        """R-1-227"""
+        fixture, ids, handles, tokens = _setup(n=2, balance=0)
+        # handles[0] has balance 0; it sends 100 to handles[1] and receives 100 back in the same batch.
+        transfers = [
+            {"from_handle": handles[0], "to_handle": handles[1], "amount": 100},
+            {"from_handle": handles[1], "to_handle": handles[0], "amount": 100},
+        ]
+        r = api_post("/settlements", json={"transfers": transfers}, headers={**auth(tokens[0]), **idem(unique("k"))})
+&gt;       assert r.status_code == 201, r.text
+E       AssertionError: {"error": {"code": "not_found", "message": "no such endpoint: POST /settlements"}}
+E       assert 404 == 201
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_settlements.py:123: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_settlements" name="test_unaffordable_net_batch_rejected_and_changes_nothing" time="0.106"><failure message="AssertionError: expected 409 got 404: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /settlements&quot;}}&#10;assert 404 == 409&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_unaffordable_net_batch_rejected_and_changes_nothing():
+        """R-1-227, R-1-229"""
+        fixture, ids, handles, tokens = _setup(n=2, balance=50)
+        transfers = [{"from_handle": handles[0], "to_handle": handles[1], "amount": 100}]
+        r = api_post("/settlements", json={"transfers": transfers}, headers={**auth(tokens[0]), **idem(unique("k"))})
+&gt;       assert_error(r, 409, "insufficient_funds")
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_settlements.py:133: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+resp = &lt;Response [404 Not Found]&gt;, status = 409, code = 'insufficient_funds'
+
+    def assert_error(resp: httpx.Response, status: int, code: str):
+&gt;       assert resp.status_code == status, f"expected {status} got {resp.status_code}: {resp.text}"
+E       AssertionError: expected 409 got 404: {"error": {"code": "not_found", "message": "no such endpoint: POST /settlements"}}
+E       assert 404 == 409
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/conftest.py:165: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_settlements" name="test_settlement_atomic_all_or_nothing" time="0.130"><failure message="AssertionError: expected 409 got 404: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /settlements&quot;}}&#10;assert 404 == 409&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_settlement_atomic_all_or_nothing():
+        """R-1-228"""
+        fixture, ids, handles, tokens = _setup(n=3, balance=100)
+        transfers = [
+            {"from_handle": handles[1], "to_handle": handles[2], "amount": 50},
+            {"from_handle": handles[2], "to_handle": handles[1], "amount": 1000},  # unaffordable net
+        ]
+        r = api_post("/settlements", json={"transfers": transfers}, headers={**auth(tokens[0]), **idem(unique("k"))})
+&gt;       assert_error(r, 409, "insufficient_funds")
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_settlements.py:146: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+resp = &lt;Response [404 Not Found]&gt;, status = 409, code = 'insufficient_funds'
+
+    def assert_error(resp: httpx.Response, status: int, code: str):
+&gt;       assert resp.status_code == status, f"expected {status} got {resp.status_code}: {resp.text}"
+E       AssertionError: expected 409 got 404: {"error": {"code": "not_found", "message": "no such endpoint: POST /settlements"}}
+E       assert 404 == 409
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/conftest.py:165: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_settlements" name="test_failed_settlement_claims_no_key_and_creates_nothing" time="0.084"><failure message="AssertionError: expected 409 got 404: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /settlements&quot;}}&#10;assert 404 == 409&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_failed_settlement_claims_no_key_and_creates_nothing():
+        """R-1-229"""
+        fixture, ids, handles, tokens = _setup(n=2, balance=10)
+        key = unique("retry-after-fail")
+        bad = api_post("/settlements", json={"transfers": [{"from_handle": handles[0], "to_handle": handles[1], "amount": 1000}]},
+                       headers={**auth(tokens[0]), **idem(key)})
+&gt;       assert_error(bad, 409, "insufficient_funds")
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_settlements.py:157: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+resp = &lt;Response [404 Not Found]&gt;, status = 409, code = 'insufficient_funds'
+
+    def assert_error(resp: httpx.Response, status: int, code: str):
+&gt;       assert resp.status_code == status, f"expected {status} got {resp.status_code}: {resp.text}"
+E       AssertionError: expected 409 got 404: {"error": {"code": "not_found", "message": "no such endpoint: POST /settlements"}}
+E       assert 404 == 409
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/conftest.py:165: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_settlements" name="test_successful_settlement_response_shape" time="0.109"><failure message="AssertionError: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /settlements&quot;}}&#10;assert 404 == 201&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_successful_settlement_response_shape():
+        """R-1-230, R-1-231, R-1-232"""
+        fixture, ids, handles, tokens = _setup(n=3, balance=1000)
+        transfers = [
+            {"from_handle": handles[1], "to_handle": handles[2], "amount": 10},
+            {"from_handle": handles[2], "to_handle": handles[1], "amount": 3},
+        ]
+        r = api_post("/settlements", json={"transfers": transfers}, headers={**auth(tokens[0]), **idem(unique("k"))})
+&gt;       assert r.status_code == 201, r.text
+E       AssertionError: {"error": {"code": "not_found", "message": "no such endpoint: POST /settlements"}}
+E       assert 404 == 201
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_settlements.py:172: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_settlements" name="test_replaying_settlement_moves_no_additional_money" time="0.088"><failure message="AssertionError: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /settlements&quot;}}&#10;assert 404 == 201&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_replaying_settlement_moves_no_additional_money():
+        """R-1-233"""
+        fixture, ids, handles, tokens = _setup(n=2, balance=1000)
+        key = unique("settle-key")
+        body = {"transfers": [{"from_handle": handles[0], "to_handle": handles[1], "amount": 10}]}
+        r1 = api_post("/settlements", json=body, headers={**auth(tokens[0]), **idem(key)})
+&gt;       assert r1.status_code == 201, r1.text
+E       AssertionError: {"error": {"code": "not_found", "message": "no such endpoint: POST /settlements"}}
+E       assert 404 == 201
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_settlements.py:195: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_settlements" name="test_settlement_ignores_unknown_fields" time="0.104"><failure message="AssertionError: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /settlements&quot;}}&#10;assert 404 == 201&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_settlement_ignores_unknown_fields():
+        """R-1-234, R-1-022"""
+        fixture, ids, handles, tokens = _setup(n=2, balance=1000)
+        body = {"transfers": [{"from_handle": handles[0], "to_handle": handles[1], "amount": 10, "mystery": True}],
+                "another_unknown_field": 123}
+        r = api_post("/settlements", json=body, headers={**auth(tokens[0]), **idem(unique("k"))})
+&gt;       assert r.status_code == 201, r.text
+E       AssertionError: {"error": {"code": "not_found", "message": "no such endpoint: POST /settlements"}}
+E       assert 404 == 201
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_settlements.py:210: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_settlements" name="test_operator_self_transfer_entries_permitted" time="0.098"><failure message="AssertionError: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /settlements&quot;}}&#10;assert 404 == 201&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_operator_self_transfer_entries_permitted():
+        """R-1-236"""
+        fixture, ids, handles, tokens = _setup(n=2, balance=1000, operators=2)
+        # operator's own handle appears as from_handle in one entry and to_handle in another,
+        # but never both within the SAME entry.
+        body = {"transfers": [
+            {"from_handle": handles[0], "to_handle": handles[1], "amount": 10},
+            {"from_handle": handles[1], "to_handle": handles[0], "amount": 4},
+        ]}
+        r = api_post("/settlements", json=body, headers={**auth(tokens[0]), **idem(unique("k"))})
+&gt;       assert r.status_code == 201, r.text
+E       AssertionError: {"error": {"code": "not_found", "message": "no such endpoint: POST /settlements"}}
+E       assert 404 == 201
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_settlements.py:223: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_splits" name="test_split_creates_requests_for_everyone_but_caller" time="0.108"><failure message="AssertionError: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /splits&quot;}}&#10;assert 404 == 201&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_split_creates_requests_for_everyone_but_caller():
+        """R-1-170"""
+        fixture, handles, tokens = _n_user_fixture(3)
+        r = api_post("/splits", json={"amount": 300, "participant_handles": handles, "note": "dinner"},
+                     headers={**auth(tokens[0]), **idem(unique("k"))})
+&gt;       assert r.status_code == 201, r.text
+E       AssertionError: {"error": {"code": "not_found", "message": "no such endpoint: POST /splits"}}
+E       assert 404 == 201
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_splits.py:24: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_splits" name="test_split_response_shape" time="0.118"><failure message="AssertionError: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /splits&quot;}}&#10;assert 404 == 201&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_split_response_shape():
+        """R-1-171"""
+        fixture, handles, tokens = _n_user_fixture(3)
+        r = api_post("/splits", json={"amount": 300, "participant_handles": handles, "note": "dinner"},
+                     headers={**auth(tokens[0]), **idem(unique("k"))})
+&gt;       assert r.status_code == 201, r.text
+E       AssertionError: {"error": {"code": "not_found", "message": "no such endpoint: POST /splits"}}
+E       assert 404 == 201
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_splits.py:39: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_splits" name="test_shares_sum_exactly_to_amount" time="0.238"><failure message="AssertionError: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /splits&quot;}}&#10;assert 404 == 201&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_shares_sum_exactly_to_amount():
+        """R-1-172, R-1-004"""
+        fixture, handles, tokens = _n_user_fixture(7)
+        r = api_post("/splits", json={"amount": 1000, "participant_handles": handles},
+                     headers={**auth(tokens[0]), **idem(unique("k"))})
+&gt;       assert r.status_code == 201, r.text
+E       AssertionError: {"error": {"code": "not_found", "message": "no such endpoint: POST /splits"}}
+E       assert 404 == 201
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_splits.py:54: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_splits" name="test_share_arithmetic_matches_spec_examples[1000-3-expected0]" time="0.124"><failure message="AssertionError: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /splits&quot;}}&#10;assert 404 == 201&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">amount = 1000, n = 3, expected = [334, 333, 333]
+
+    @pytest.mark.parametrize("amount,n,expected", [
+        (1000, 3, [334, 333, 333]),
+        (1, 3, [1, 0, 0]),
+        (10, 3, [4, 3, 3]),
+        (999, 3, [333, 333, 333]),
+        (5, 5, [1, 1, 1, 1, 1]),
+    ])
+    def test_share_arithmetic_matches_spec_examples(amount, n, expected):
+        """R-1-173, R-1-174"""
+        fixture, handles, tokens = _n_user_fixture(n)
+        r = api_post("/splits", json={"amount": amount, "participant_handles": handles},
+                     headers={**auth(tokens[0]), **idem(unique("k"))})
+&gt;       assert r.status_code == 201, r.text
+E       AssertionError: {"error": {"code": "not_found", "message": "no such endpoint: POST /splits"}}
+E       assert 404 == 201
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_splits.py:71: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_splits" name="test_share_arithmetic_matches_spec_examples[1-3-expected1]" time="0.125"><failure message="AssertionError: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /splits&quot;}}&#10;assert 404 == 201&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">amount = 1, n = 3, expected = [1, 0, 0]
+
+    @pytest.mark.parametrize("amount,n,expected", [
+        (1000, 3, [334, 333, 333]),
+        (1, 3, [1, 0, 0]),
+        (10, 3, [4, 3, 3]),
+        (999, 3, [333, 333, 333]),
+        (5, 5, [1, 1, 1, 1, 1]),
+    ])
+    def test_share_arithmetic_matches_spec_examples(amount, n, expected):
+        """R-1-173, R-1-174"""
+        fixture, handles, tokens = _n_user_fixture(n)
+        r = api_post("/splits", json={"amount": amount, "participant_handles": handles},
+                     headers={**auth(tokens[0]), **idem(unique("k"))})
+&gt;       assert r.status_code == 201, r.text
+E       AssertionError: {"error": {"code": "not_found", "message": "no such endpoint: POST /splits"}}
+E       assert 404 == 201
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_splits.py:71: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_splits" name="test_share_arithmetic_matches_spec_examples[10-3-expected2]" time="0.113"><failure message="AssertionError: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /splits&quot;}}&#10;assert 404 == 201&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">amount = 10, n = 3, expected = [4, 3, 3]
+
+    @pytest.mark.parametrize("amount,n,expected", [
+        (1000, 3, [334, 333, 333]),
+        (1, 3, [1, 0, 0]),
+        (10, 3, [4, 3, 3]),
+        (999, 3, [333, 333, 333]),
+        (5, 5, [1, 1, 1, 1, 1]),
+    ])
+    def test_share_arithmetic_matches_spec_examples(amount, n, expected):
+        """R-1-173, R-1-174"""
+        fixture, handles, tokens = _n_user_fixture(n)
+        r = api_post("/splits", json={"amount": amount, "participant_handles": handles},
+                     headers={**auth(tokens[0]), **idem(unique("k"))})
+&gt;       assert r.status_code == 201, r.text
+E       AssertionError: {"error": {"code": "not_found", "message": "no such endpoint: POST /splits"}}
+E       assert 404 == 201
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_splits.py:71: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_splits" name="test_share_arithmetic_matches_spec_examples[999-3-expected3]" time="0.114"><failure message="AssertionError: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /splits&quot;}}&#10;assert 404 == 201&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">amount = 999, n = 3, expected = [333, 333, 333]
+
+    @pytest.mark.parametrize("amount,n,expected", [
+        (1000, 3, [334, 333, 333]),
+        (1, 3, [1, 0, 0]),
+        (10, 3, [4, 3, 3]),
+        (999, 3, [333, 333, 333]),
+        (5, 5, [1, 1, 1, 1, 1]),
+    ])
+    def test_share_arithmetic_matches_spec_examples(amount, n, expected):
+        """R-1-173, R-1-174"""
+        fixture, handles, tokens = _n_user_fixture(n)
+        r = api_post("/splits", json={"amount": amount, "participant_handles": handles},
+                     headers={**auth(tokens[0]), **idem(unique("k"))})
+&gt;       assert r.status_code == 201, r.text
+E       AssertionError: {"error": {"code": "not_found", "message": "no such endpoint: POST /splits"}}
+E       assert 404 == 201
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_splits.py:71: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_splits" name="test_share_arithmetic_matches_spec_examples[5-5-expected4]" time="0.194"><failure message="AssertionError: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /splits&quot;}}&#10;assert 404 == 201&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">amount = 5, n = 5, expected = [1, 1, 1, 1, 1]
+
+    @pytest.mark.parametrize("amount,n,expected", [
+        (1000, 3, [334, 333, 333]),
+        (1, 3, [1, 0, 0]),
+        (10, 3, [4, 3, 3]),
+        (999, 3, [333, 333, 333]),
+        (5, 5, [1, 1, 1, 1, 1]),
+    ])
+    def test_share_arithmetic_matches_spec_examples(amount, n, expected):
+        """R-1-173, R-1-174"""
+        fixture, handles, tokens = _n_user_fixture(n)
+        r = api_post("/splits", json={"amount": amount, "participant_handles": handles},
+                     headers={**auth(tokens[0]), **idem(unique("k"))})
+&gt;       assert r.status_code == 201, r.text
+E       AssertionError: {"error": {"code": "not_found", "message": "no such endpoint: POST /splits"}}
+E       assert 404 == 201
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_splits.py:71: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_splits" name="test_reordering_participants_changes_who_gets_extra_unit" time="0.112"><failure message="KeyError: 'shares'">def test_reordering_participants_changes_who_gets_extra_unit():
+        """R-1-175"""
+        fixture, handles, tokens = _n_user_fixture(3)
+        r1 = api_post("/splits", json={"amount": 10, "participant_handles": handles},
+                      headers={**auth(tokens[0]), **idem(unique("k1"))})
+&gt;       shares1 = {s["handle"]: s["amount"] for s in r1.json()["shares"]}
+                                                     ^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'shares'
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_splits.py:82: KeyError</failure></testcase><testcase classname="stage-1.tests.test_splits" name="test_zero_share_is_legal_and_still_creates_request" time="0.179"><failure message="AssertionError: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /splits&quot;}}&#10;assert 404 == 201&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_zero_share_is_legal_and_still_creates_request():
+        """R-1-175"""
+        fixture, handles, tokens = _n_user_fixture(5)
+        r = api_post("/splits", json={"amount": 1, "participant_handles": handles},
+                     headers={**auth(tokens[0]), **idem(unique("k"))})
+&gt;       assert r.status_code == 201, r.text
+E       AssertionError: {"error": {"code": "not_found", "message": "no such endpoint: POST /splits"}}
+E       assert 404 == 201
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_splits.py:98: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_splits" name="test_split_only_caller_participant" time="0.057"><failure message="AssertionError: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /splits&quot;}}&#10;assert 404 == 201&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_split_only_caller_participant():
+        """R-1-176"""
+        fixture, handles, tokens = _n_user_fixture(1)
+        r = api_post("/splits", json={"amount": 100, "participant_handles": handles},
+                     headers={**auth(tokens[0]), **idem(unique("k"))})
+&gt;       assert r.status_code == 201, r.text
+E       AssertionError: {"error": {"code": "not_found", "message": "no such endpoint: POST /splits"}}
+E       assert 404 == 201
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_splits.py:113: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_splits" name="test_split_checks_no_balance_and_moves_no_money" time="0.122"><failure message="AssertionError: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /splits&quot;}}&#10;assert 404 == 201&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_split_checks_no_balance_and_moves_no_money():
+        """R-1-177"""
+        fixture, handles, tokens = _n_user_fixture(3, balance=0)
+        r = api_post("/splits", json={"amount": 1_000_000, "participant_handles": handles},
+                     headers={**auth(tokens[0]), **idem(unique("k"))})
+&gt;       assert r.status_code == 201, r.text
+E       AssertionError: {"error": {"code": "not_found", "message": "no such endpoint: POST /splits"}}
+E       assert 404 == 201
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_splits.py:125: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_splits" name="test_split_errors" time="0.129"><failure message="AssertionError: expected 422 got 404: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /splits&quot;}}&#10;assert 404 == 422&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_split_errors():
+        """R-1-178"""
+        fixture, handles, tokens = _n_user_fixture(3)
+    
+        r = api_post("/splits", json={"amount": 0, "participant_handles": handles}, headers={**auth(tokens[0]), **idem(unique("k"))})
+&gt;       assert_error(r, 422, "validation_failed")
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_splits.py:135: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+resp = &lt;Response [404 Not Found]&gt;, status = 422, code = 'validation_failed'
+
+    def assert_error(resp: httpx.Response, status: int, code: str):
+&gt;       assert resp.status_code == status, f"expected {status} got {resp.status_code}: {resp.text}"
+E       AssertionError: expected 422 got 404: {"error": {"code": "not_found", "message": "no such endpoint: POST /splits"}}
+E       assert 404 == 422
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/conftest.py:165: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_splits" name="test_split_participant_handles_type_errors" time="0.087"><failure message="AssertionError: expected 422 got 404: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /splits&quot;}}&#10;assert 404 == 422&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_split_participant_handles_type_errors():
+        """R-1-179"""
+        fixture, handles, tokens = _n_user_fixture(2)
+    
+        r = api_post("/splits", json={"amount": 10}, headers={**auth(tokens[0]), **idem(unique("k"))})
+&gt;       assert_error(r, 422, "validation_failed")
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_splits.py:158: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+resp = &lt;Response [404 Not Found]&gt;, status = 422, code = 'validation_failed'
+
+    def assert_error(resp: httpx.Response, status: int, code: str):
+&gt;       assert resp.status_code == status, f"expected {status} got {resp.status_code}: {resp.text}"
+E       AssertionError: expected 422 got 404: {"error": {"code": "not_found", "message": "no such endpoint: POST /splits"}}
+E       assert 404 == 422
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/conftest.py:165: AssertionError</failure></testcase><testcase classname="stage-1.tests.test_splits" name="test_each_split_independent_balances_sum_preserved" time="0.150"><failure message="AssertionError: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such endpoint: POST /splits&quot;}}&#10;assert 404 == 201&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_each_split_independent_balances_sum_preserved():
+        """R-1-180, R-1-001"""
+        fixture, handles, tokens = _n_user_fixture(4, balance=1000)
+        seeded_total = sum(u["balance"] for u in fixture["users"])
+    
+        for round_i in range(3):
+            r = api_post("/splits", json={"amount": 100 + round_i, "participant_handles": handles},
+                         headers={**auth(tokens[0]), **idem(unique(f"split{round_i}"))})
+&gt;           assert r.status_code == 201, r.text
+E           AssertionError: {"error": {"code": "not_found", "message": "no such endpoint: POST /splits"}}
+E           assert 404 == 201
+E            +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-wt-ganqk_pz/stage-1/tests/test_splits.py:181: AssertionError</failure></testcase></testsuite></testsuites>
