@@ -276,7 +276,9 @@ def test_decline_and_cancel_move_no_money():
 
 
 def test_get_requests_visible_only_to_participants():
-    """R-1-163"""
+    """R-1-163, R-1-078: this is where R-1-078's hide-as-404 property still
+    lives for requests — a read, naming no 403 — now that pay/decline/cancel
+    are carved out of it under R-1-078a (see test_errors_precedence.py)."""
     a_id, b_id, c_id = unique("u"), unique("u"), unique("u")
     a_handle, b_handle, c_handle = unique_handle("a"), unique_handle("b"), unique_handle("c")
     fixture = make_fixture([user(a_id, a_handle, balance=0), user(b_id, b_handle, balance=0),

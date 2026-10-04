@@ -185,7 +185,10 @@ def test_activity_feed_shape_and_order():
 
 
 def test_activity_visibility_rule():
-    """R-1-191, R-1-192"""
+    """R-1-191, R-1-192, R-1-078: a private payment is hidden from a third
+    party exactly as R-1-078 requires — this endpoint names no 403, so the
+    hide-as-404-equivalent (here, simply absent from the feed) carve-out
+    from R-1-078a does not apply."""
     a_id, b_id, c_id = unique("u"), unique("u"), unique("u")
     a_handle, b_handle, c_handle = unique_handle("a"), unique_handle("b"), unique_handle("c")
     fixture = make_fixture([user(a_id, a_handle, balance=1000), user(b_id, b_handle, balance=0),

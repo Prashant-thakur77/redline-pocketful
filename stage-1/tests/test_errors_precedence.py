@@ -251,24 +251,38 @@ def test_handle_syntax_vs_not_found_vs_malformed():
     assert_error(non_string, 400, "malformed_request")
 
 
-def test_4xx_never_leaks_invisible_resource():
-    """R-1-078"""
+def test_non_party_403_vs_unknown_404_on_pay_decline_cancel():
+    """R-1-078a: an earlier version of this test asserted a non-party and an
+    unknown id got the SAME status on decline (i.e. both 404), reading
+    R-1-078's "do not leak a resource the caller may not see" as applying
+    here. The planner corrected that: R-1-078's own text carves out
+    "except where the spec names 403 forbidden", and R-1-158, R-1-160 and
+    R-1-161 each name it explicitly for pay/decline/cancel — R-1-158's
+    "(including a third party)" would be meaningless under a 404. So on
+    these three actions a non-party is 403 and an unknown id is 404, and
+    the two must be DIFFERENT. (R-1-078 itself has not gone away — see
+    test_get_requests_visible_only_to_participants in test_requests.py and
+    test_activity_visibility_rule in test_payments_activity.py for where it
+    still holds: reads, which name no 403.)"""
     a_id, b_id, c_id = unique("u"), unique("u"), unique("u")
     a_handle, b_handle, c_handle = unique_handle("a"), unique_handle("b"), unique_handle("c")
-    fixture = make_fixture([user(a_id, a_handle, balance=0), user(b_id, b_handle, balance=0),
-                             user(c_id, c_handle, balance=0)])
+    fixture = make_fixture([user(a_id, a_handle, balance=1000), user(b_id, b_handle, balance=1000),
+                             user(c_id, c_handle, balance=1000)])
     reset_ok(fixture)
     token_a = login_token(fixture["users"][0]["email"])
     token_c = login_token(fixture["users"][2]["email"])
-    r = api_post("/requests", json={"payer_handle": b_handle, "amount": 10}, headers={**auth(token_a), **idem(unique("k"))})
-    req_id = r.json()["request_id"]
 
-    not_party = api_post(f"/requests/{req_id}/decline", json={}, headers=auth(token_c))
-    nonexistent = api_post("/requests/totally-made-up-id/decline", json={}, headers=auth(token_c))
-    assert not_party.status_code == nonexistent.status_code
-    assert not_party.json() == nonexistent.json() or (
-        not_party.json()["error"]["code"] == nonexistent.json()["error"]["code"]
-    )
+    for action in ("pay", "decline", "cancel"):
+        r = api_post("/requests", json={"payer_handle": b_handle, "amount": 10},
+                     headers={**auth(token_a), **idem(unique("k"))})
+        req_id = r.json()["request_id"]
+        headers = auth(token_c) if action != "pay" else {**auth(token_c), **idem(unique("k"))}
+
+        not_party = api_post(f"/requests/{req_id}/{action}", json={}, headers=headers)
+        nonexistent = api_post(f"/requests/totally-made-up-id/{action}", json={}, headers=headers)
+        assert_error(not_party, 403, "forbidden")
+        assert_error(nonexistent, 404, "not_found")
+        assert not_party.status_code != nonexistent.status_code
 
 
 # ---------------------------------------------------------------------------
