@@ -50,6 +50,33 @@ def test_boundary_amount_and_captured_amount_round_trip_clean():
     assert r.status_code == 204, f"an unmodified boundary-value export must re-import clean: {r.status_code} {r.text}"
 
 
+def test_claimed_max_length_idempotency_key_round_trips_clean():
+    """A payment completed under a 255-character Idempotency-Key (the
+    exact R-1-072 maximum) must still be present in the export, must
+    not cause a false 422 on re-import, and the key must still replay
+    correctly to the byte-identical original body afterward (R-1-206)."""
+    a_id, b_id = unique("u"), unique("u")
+    a_handle, b_handle = unique_handle("ka"), unique_handle("kb")
+    reset_ok(make_fixture(
+        [user(a_id, a_handle, balance=1000, email=f"{a_id}@example.com"),
+         user(b_id, b_handle, balance=0, email=f"{b_id}@example.com")],
+    ))
+    a_token = login_token(f"{a_id}@example.com")
+    key255 = "k" * 255
+    r1 = api_post("/payments", json={"to_handle": b_handle, "amount": 100},
+                  headers=auth_idem(a_token, key255))
+    assert r1.status_code == 201, r1.text
+    first_body = r1.text
+
+    doc = api_get("/_test/export").json()
+    r2 = api_post("/_test/import", json=doc)
+    assert r2.status_code == 204, f"a claimed 255-char idempotency key must not cause a false reject: {r2.status_code} {r2.text}"
+
+    a_token2 = login_token(f"{a_id}@example.com")
+    r3 = api_post("/payments", json={"to_handle": b_handle, "amount": 100}, headers=auth_idem(a_token2, key255))
+    assert r3.status_code == 200 and r3.text == first_body, "the 255-char key must still replay the exact original body after import"
+
+
 def test_empty_and_sparse_collections_round_trip_clean():
     """A state with no payments, no requests, no settlements, no
     authorizations, no claimed idempotency keys, and an empty
