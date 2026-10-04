@@ -1,5 +1,18 @@
 # Stage-close procedure — all four stages
 
+## Verification is planner-triggered, not handoff-triggered (rule added 2026-10-04)
+
+@builder's handoff does **not** trigger a verification pass. The planner names a tip and
+asks @verifier for a pass when a batch of items is genuinely ready; until then @verifier
+runs nothing.
+
+Why: @builder names a per-item sha when it finishes an item, @verifier verifies what was
+named, and a fix landing two commits later means the pass judged a superseded commit. That
+happened four times in stage 1 — `eacec15`, `12cdcdb`, `223c1b4`, `540803a` — each a
+correct finding against a sha that was already obsolete. Nobody was wrong; the sequencing
+was, and the sequencing is the planner's. Per-item verification was an artefact of the
+per-item `GO` model, which `factory/record.py` cannot support anyway.
+
 Written once, applies to stage 1, 2, 3 and 4. The planner runs steps 1 and 6–8;
 @verifier runs steps 2–5 and owns every verdict.
 
