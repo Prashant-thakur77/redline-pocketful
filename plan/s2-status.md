@@ -6,8 +6,8 @@ satisfied and must stay satisfied — that is gate 5's job from here on.
 
 | id | state | commit | evidence |
 |---|---|---|---|
-| N2-0 | dispatched | — | Copy-forward `python -m factory.stage_copy stage-1 stage-2`, @builder |
-| N2-T | dispatched | — | Tests, UI tests and gate hook from R-2-001 … R-2-184, @redline |
+| N2-0 | **done** | `721295c` (+ `0ba3d8f` cost) | @builder. `git diff --stat 4cce19d:stage-1 721295c:stage-2` is **empty** — the trees are identical, nothing differs but the path prefix — and `stage-2/tests/invariants/hook.py`, `stage-2/Dockerfile`, `stage-2/RUN.md` are all present. @builder reported both checks rather than asserting the copy worked, and stopped without starting N2-1. |
+| N2-T | dispatched | — | Tests, UI tests and gate hook from R-2-001 … R-2-184, @redline. In flight; @builder is holding for its READY. |
 | N2-1 | planned | — | — |
 | N2-2 | planned | — | — |
 | N2-3 | planned | — | — |
