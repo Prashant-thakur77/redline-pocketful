@@ -37,6 +37,32 @@
 
 States: planned → dispatched → built → attacked → GO | NEEDS_WORK | blocked.
 
+## Disclosed: the N1-10.1 defect was never independently reproduced pre-fix (planner ruling, 2026-10-04)
+
+@adversary flagged, rather than hid, that its 30 passing N1-10.2 trials verify the **fixed**
+code at `8d818c1` only. Its 15-trial run against the pre-fix commit `881578c` was still in
+flight when I made committing the priority, so there is **no completed independent
+reproduction of the failure before the fix**. It offered to finish that run.
+
+**Ruled: do not.** The defect's existence does not rest on it:
+
+1. It was found by reading the code — `clear()` and `restore()` dropped claimed-but-incomplete
+   entries without setting their events, and `commit()` returns early when the entry is gone,
+   so no path existed to wake a parked waiter except the 4 s deadline, which answered `500`.
+2. @builder reproduced the race directly while fixing it: a thread claims and never
+   commits or releases, a second parks on the same key, `clear()` fires — pre-fix the waiter
+   had only the deadline; post-fix it wakes and returns `"claimed"`.
+3. @builder also verified the lost-wakeup property empirically (`set()` before `wait()`
+   returns in ~2 µs, because `threading.Event` latches).
+
+Against that, a historical reproduction would cost a long run on a box that must stay quiet
+for @builder's N1-10.3 verification and @verifier's close. **The honest statement for the final
+report:** the defect was established by code reading and by the builder's own reproduction, and
+the permanent regression test is verified against the fixed code only. @adversary's note that
+its pre-fix run "was running unusually long, which is itself suggestive the old 4 s timeout
+path was getting hit" is consistent with the diagnosis but is **not** cited as evidence,
+because it never completed.
+
 ## Suite flakiness observed, not yet acted on (planner, 2026-10-04)
 
 Two independent reports of tests passing and failing without a code change between runs:
