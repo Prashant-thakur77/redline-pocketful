@@ -76,5 +76,26 @@ class Store:
         # swap, under the write lock already held).
         IDEMPOTENCY.clear()
 
+    def apply_import(self, fields: dict) -> None:
+        """Replace all state with an imported document (R-1-201/203/205).
+        Unlike `apply_reset`, tokens and idempotency records are
+        RESTORED, not cleared — R-1-206 requires a retry after import to
+        still return the original response, and R-1-205 requires every
+        pre-import bearer token to keep working."""
+        self.reset_generation += 1
+        self._next_seq = fields["next_seq"]
+        self.currency = fields["currency"]
+        self.minor_units = fields["minor_units"]
+        self.users_by_id = fields["users"]
+        self.users_by_handle = fields["users_by_handle"]
+        self.users_by_email = fields["users_by_email"]
+        self.wallets = fields["wallets"]
+        self.payments = fields["payments"]
+        self.requests = fields["requests"]
+        self.settlement_operator_ids = fields["settlement_operator_ids"]
+        self.settlements = fields["settlements"]
+        self.tokens = fields["tokens"]
+        IDEMPOTENCY.restore(fields["idempotency_records"])
+
 
 STORE = Store()

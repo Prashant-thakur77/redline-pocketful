@@ -117,5 +117,33 @@ class IdempotencyStore:
         with self._lock:
             self._entries.clear()
 
+    def export_records(self) -> list[dict]:
+        """R-1-206/111: only *completed* records are meaningful to carry
+        across export/import — an in-flight claim has no caller waiting
+        on the other side of a process boundary."""
+        with self._lock:
+            return [
+                {"user_id": uid, "method": method, "path": path, "key": key,
+                 "request_body": entry.request_body,
+                 "response_status": entry.response_status,
+                 "response_body": entry.response_body}
+                for (uid, method, path, key), entry in self._entries.items()
+                if entry.state == "complete"
+            ]
+
+    def restore(self, records: list[dict]) -> None:
+        """R-1-201/203/206: import *replaces* the whole table with these
+        completed records — the mirror of `clear()`, which reset uses
+        instead (R-1-209: reset clears even imported state)."""
+        with self._lock:
+            self._entries.clear()
+            for rec in records:
+                composite = (rec["user_id"], rec["method"], rec["path"], rec["key"])
+                entry = _Entry(rec["request_body"])
+                entry.state = "complete"
+                entry.response_status = rec["response_status"]
+                entry.response_body = rec["response_body"]
+                self._entries[composite] = entry
+
 
 IDEMPOTENCY = IdempotencyStore()
