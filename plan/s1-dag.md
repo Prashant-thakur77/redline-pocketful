@@ -35,7 +35,16 @@ item's own scope passing.** Gates 2 and 4 become binding as listed below.
 | item | gate 1 | gate 2 | gate 4 | gate 8 | item-scope tests that must pass |
 |---|---|---|---|---|---|
 | N1-1 | PASS | advisory | advisory | PASS | `test_runtime.py`, and the `test_errors_precedence.py` cases not needing a later endpoint |
-| N1-2 | PASS | advisory | **PASS** | PASS | + `test_reset_fixture.py`, and `GET /me` (R-1-120) must answer, since gate 4's `invariant()` reads it per user to check conservation — @builder confirmed it by creating `stage-1/service/routes/me.py` in this item |
+| N1-2 | PASS | advisory | **PASS**¹ | PASS | + `test_reset_fixture.py`, and **both reads the hook's `invariant()` performs must answer**: `GET /me` (R-1-120) and `GET /requests` (R-1-163). @builder is landing both in this item (`routes/me.py`, `routes/requests_read.py`) |
+
+¹ **Gate 4 is vacuous at N1-2 and I am recording that rather than scoring it.** The
+hook's `operation()` calls money paths that do not exist yet, so every op 404s — the
+first N1-2 run logged `statuses {404: 1300}`. A storm in which nothing moves proves
+conservation trivially. Gate 4 at N1-2 therefore only proves the service survives 1,300
+concurrent requests with no 5xx and no dropped connection (R-1-005, R-1-079) and that
+the two invariant reads work. It becomes a real conservation check from **N1-5**, when
+`POST /payments` lands, and a full one at N1-8. @verifier should read a green gate 4
+before N1-5 as a load/liveness smoke test only.
 | N1-3 | PASS | advisory | PASS | PASS | + `test_auth.py` |
 | N1-4 | PASS | advisory | PASS | PASS | + `test_idempotency.py` |
 | N1-5 | PASS | advisory | PASS | PASS | + `test_payments_activity.py` |
