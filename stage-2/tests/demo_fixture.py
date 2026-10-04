@@ -8,10 +8,12 @@ mutate the result freely.
 from __future__ import annotations
 
 import copy
+from datetime import datetime, timedelta, timezone
 
 CURRENCY = "EUR"
 MINOR_UNITS = 2
 PASSWORD = "password123"
+AUTHORIZATION_TTL_SECONDS = 600
 
 USERS = [
     {"id": "u-alice", "email": "alice@example.com", "password": PASSWORD,
@@ -51,7 +53,35 @@ REQUESTS = [
 SETTLEMENT_OPERATOR_IDS = ["u-alice"]
 
 
+def _authorizations(now: datetime) -> list[dict]:
+    """alice is the primary demo user: one open outgoing hold, one open
+    incoming hold, one captured, one voided, and one seeded `open` whose
+    expires_at is already past (R-2-026: reads as expired, holds nothing).
+    Expiry times are kept at least an hour from "now" in either direction,
+    as R-2-026 requires."""
+    far_future = (now + timedelta(hours=2)).isoformat()
+    long_past = (now - timedelta(hours=1)).isoformat()
+    return [
+        {"id": "a-seed-open-out", "from_user_id": "u-alice", "to_user_id": "u-bob",
+         "amount": 1000, "note": "hotel hold", "visibility": "public",
+         "status": "open", "expires_at": far_future},
+        {"id": "a-seed-open-in", "from_user_id": "u-dave", "to_user_id": "u-alice",
+         "amount": 800, "note": "deposit", "visibility": "public",
+         "status": "open", "expires_at": far_future},
+        {"id": "a-seed-captured", "from_user_id": "u-alice", "to_user_id": "u-erin",
+         "amount": 500, "note": "settled hold", "visibility": "public",
+         "status": "captured", "expires_at": far_future},
+        {"id": "a-seed-voided", "from_user_id": "u-bob", "to_user_id": "u-alice",
+         "amount": 300, "note": "cancelled hold", "visibility": "public",
+         "status": "voided", "expires_at": far_future},
+        {"id": "a-seed-expired", "from_user_id": "u-alice", "to_user_id": "u-frank",
+         "amount": 600, "note": "lapsed hold", "visibility": "public",
+         "status": "open", "expires_at": long_past},
+    ]
+
+
 def build_demo_fixture() -> dict:
+    now = datetime.now(timezone.utc)
     return {
         "currency": CURRENCY,
         "minor_units": MINOR_UNITS,
@@ -59,8 +89,16 @@ def build_demo_fixture() -> dict:
         "payments": copy.deepcopy(PAYMENTS),
         "requests": copy.deepcopy(REQUESTS),
         "settlement_operator_ids": list(SETTLEMENT_OPERATOR_IDS),
+        "authorization_ttl_seconds": AUTHORIZATION_TTL_SECONDS,
+        "authorizations": _authorizations(now),
     }
 
 
 def seeded_total() -> int:
     return sum(u["balance"] for u in USERS)
+
+
+# alice's expected `held` right after reset: only a-seed-open-out (1000) counts —
+# a-seed-expired holds nothing (R-2-026), a-seed-captured/voided are closed, and
+# a-seed-open-in is incoming (R-2-004 counts outgoing holds only).
+ALICE_SEEDED_HELD = 1000

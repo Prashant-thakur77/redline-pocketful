@@ -17,23 +17,66 @@ from conftest import BASE_URL, url
 
 
 def _send_raw(request_bytes: bytes, timeout: float = 5.0) -> bytes:
+    """Read the full response: the header block, then exactly the body
+    `Content-Length` declares.
+
+    The previous version stopped as soon as it saw `\\r\\n\\r\\n` anywhere in
+    the accumulated bytes — i.e. the instant the header block was complete —
+    without reading the declared body length. That is only safe when a
+    single `recv()` happens to return the whole response in one segment; it
+    truncates the body whenever the body arrives in a later TCP read than
+    the headers (an everyday occurrence across a real network, and the
+    reason it was indistinguishable from correct against an in-process test
+    server that coalesces its writes into one segment). This nearly closed
+    stage 1 over a live R-1-060/R-1-079 breach that this exact test suite
+    could not see because of it.
+    """
     parsed = urllib.parse.urlsplit(BASE_URL)
     host, port = parsed.hostname, parsed.port or 80
     with socket.create_connection((host, port), timeout=timeout) as sock:
         sock.sendall(request_bytes)
         sock.settimeout(timeout)
-        chunks = []
+        buf = b""
+        header_end = -1
         try:
-            while True:
+            while header_end == -1:
+                chunk = sock.recv(8192)
+                if not chunk:
+                    return buf  # connection closed before the headers completed
+                buf += chunk
+                header_end = buf.find(b"\r\n\r\n")
+        except socket.timeout:
+            return buf
+
+        content_length = None
+        for line in buf[:header_end].split(b"\r\n")[1:]:
+            name, _, value = line.partition(b":")
+            if name.strip().lower() == b"content-length":
+                content_length = int(value.strip())
+                break
+
+        if content_length is None:
+            # no declared length: read until the connection closes.
+            try:
+                while True:
+                    chunk = sock.recv(8192)
+                    if not chunk:
+                        break
+                    buf += chunk
+            except socket.timeout:
+                pass
+            return buf
+
+        needed = header_end + 4 + content_length
+        try:
+            while len(buf) < needed:
                 chunk = sock.recv(8192)
                 if not chunk:
                     break
-                chunks.append(chunk)
-                if b"\r\n\r\n" in b"".join(chunks):
-                    break
+                buf += chunk
         except socket.timeout:
             pass
-        return b"".join(chunks)
+        return buf
 
 
 def _status_code(raw: bytes) -> int:

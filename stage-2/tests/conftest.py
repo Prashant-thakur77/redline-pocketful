@@ -86,6 +86,8 @@ def user(id: str, handle: str, balance: int = 0, email: str | None = None,
 def make_fixture(users: list[dict], payments: list[dict] | None = None,
                   requests: list[dict] | None = None,
                   settlement_operator_ids: list[str] | None = None,
+                  authorizations: list[dict] | None = None,
+                  authorization_ttl_seconds: int | None = None,
                   currency: str = "EUR", minor_units: int = 2) -> dict:
     fixture = {
         "currency": currency,
@@ -98,7 +100,25 @@ def make_fixture(users: list[dict], payments: list[dict] | None = None,
         fixture["requests"] = requests
     if settlement_operator_ids is not None:
         fixture["settlement_operator_ids"] = settlement_operator_ids
+    if authorizations is not None:
+        fixture["authorizations"] = authorizations
+    if authorization_ttl_seconds is not None:
+        fixture["authorization_ttl_seconds"] = authorization_ttl_seconds
     return fixture
+
+
+def authorization(id: str, from_user_id: str, to_user_id: str, amount: int, note: str = "",
+                   visibility: str = "public", status: str = "open", expires_at: str | None = None,
+                   captured_amount: int | None = None) -> dict:
+    from datetime import datetime, timedelta, timezone
+    entry = {
+        "id": id, "from_user_id": from_user_id, "to_user_id": to_user_id, "amount": amount,
+        "note": note, "visibility": visibility, "status": status,
+        "expires_at": expires_at or (datetime.now(timezone.utc) + timedelta(hours=2)).isoformat(),
+    }
+    if captured_amount is not None:
+        entry["captured_amount"] = captured_amount
+    return entry
 
 
 def login(email: str, password: str) -> httpx.Response:
@@ -149,7 +169,9 @@ def two_users():
 
 
 def two_user_fixture(balance_a: int = 10_000, balance_b: int = 10_000,
-                      settlement_operator_ids: list[str] | None = None):
+                      settlement_operator_ids: list[str] | None = None,
+                      authorizations: list[dict] | None = None,
+                      authorization_ttl_seconds: int | None = None):
     """The one shared two-user fixture used as a plain function call (not
     pytest-fixture injection) across several test files.
 
@@ -163,9 +185,32 @@ def two_user_fixture(balance_a: int = 10_000, balance_b: int = 10_000,
     a_id, b_id = unique("u"), unique("u")
     a_handle, b_handle = unique_handle("a"), unique_handle("b")
     fixture = make_fixture([user(a_id, a_handle, balance=balance_a), user(b_id, b_handle, balance=balance_b)],
-                            settlement_operator_ids=settlement_operator_ids)
+                            settlement_operator_ids=settlement_operator_ids,
+                            authorizations=authorizations, authorization_ttl_seconds=authorization_ttl_seconds)
     reset_ok(fixture)
     return fixture, login_token(fixture["users"][0]["email"]), login_token(fixture["users"][1]["email"])
+
+
+def n_user_fixture(n: int, balance: int = 10_000, operator_indexes: list[int] | None = None,
+                    authorization_ttl_seconds: int | None = None):
+    """A generic N-user fixture as a plain function call, shared across stage-2
+    test files that need more than two participants (e.g. capture-by-receiver
+    vs. a third party). One function, so a drifting default can't be copied
+    into only some of its callers (see two_user_fixture's docstring).
+
+    `operator_indexes` names settlement operators by position (0-based, into
+    the same `n` participants) rather than by id, because the ids are
+    generated inside this function — a caller cannot know them in advance to
+    pass as `settlement_operator_ids` directly."""
+    ids = [unique("u") for _ in range(n)]
+    handles = [unique_handle(f"p{i}") for i in range(n)]
+    operator_ids = [ids[i] for i in operator_indexes] if operator_indexes is not None else None
+    fixture = make_fixture([user(ids[i], handles[i], balance=balance) for i in range(n)],
+                            settlement_operator_ids=operator_ids,
+                            authorization_ttl_seconds=authorization_ttl_seconds)
+    reset_ok(fixture)
+    tokens = [login_token(fixture["users"][i]["email"]) for i in range(n)]
+    return fixture, ids, handles, tokens
 
 
 @pytest.fixture
@@ -191,3 +236,66 @@ def assert_error(resp: httpx.Response, status: int, code: str):
     assert body["error"].get("code") == code, f"expected code {code} got {body['error'].get('code')}: {resp.text}"
     assert isinstance(body["error"].get("message"), str) and body["error"]["message"], \
         f"error message must be a non-empty string: {resp.text}"
+
+
+def open_authorization(payer_token: str, receiver_handle: str, amount: int = 1000, **kw) -> dict:
+    """Create an authorization as `payer_token`'s owner, to `receiver_handle`.
+    Shared across every stage-2 test file that needs one, so a drifting copy
+    cannot be left behind in only some of them (the N1-T.5 lesson)."""
+    r = api_post("/authorizations", json={"to_handle": receiver_handle, "amount": amount, **kw},
+                 headers={**auth(payer_token), **idem(unique("k"))})
+    assert r.status_code == 201, r.text
+    return r.json()
+
+
+# ---------------------------------------------------------------------------
+# Browser fixtures — pytest-playwright is not installed, only the raw
+# `playwright` package, so the `browser`/`page` fixtures below are hand-rolled
+# rather than coming from a plugin. Shared here so no UI test file reinvents
+# them (the same duplicated-helper hazard as the API-side fixtures).
+# ---------------------------------------------------------------------------
+
+@pytest.fixture(scope="session")
+def browser():
+    from playwright.sync_api import sync_playwright
+    with sync_playwright() as p:
+        b = p.chromium.launch()
+        yield b
+        b.close()
+
+
+@pytest.fixture
+def page(browser):
+    context = browser.new_context()
+    pg = context.new_page()
+    yield pg
+    context.close()
+
+
+def tid(name: str) -> str:
+    return f'[data-testid="{name}"]'
+
+
+def ui_signup(page, email: str, password: str, display_name: str) -> None:
+    page.goto(url("/signup"), wait_until="load")
+    page.fill(tid("signup-email"), email)
+    page.fill(tid("signup-password"), password)
+    page.fill(tid("signup-display-name"), display_name)
+    page.click(tid("signup-submit"))
+    page.wait_for_load_state("load")
+
+
+def ui_login(page, email: str, password: str) -> None:
+    page.goto(url("/login"), wait_until="load")
+    page.fill(tid("login-email"), email)
+    page.fill(tid("login-password"), password)
+    page.click(tid("login-submit"))
+    page.wait_for_load_state("load")
+
+
+def ui_login_demo_user(page, fixture: dict, index: int = 0) -> dict:
+    """Reset to `fixture` and log the UI in as `fixture["users"][index]`."""
+    reset_ok(fixture)
+    u = fixture["users"][index]
+    ui_login(page, u["email"], u["password"])
+    return u

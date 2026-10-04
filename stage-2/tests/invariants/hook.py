@@ -65,12 +65,21 @@ def setup(base_url: str) -> dict:
         for req in fixture["requests"] if req["status"] == "pending"
     ]
 
+    # open-by-seed-status authorizations: targets for the storm's capture/void
+    # slices. Includes the seeded-open-but-already-expired one on purpose, so
+    # the storm actually exercises R-2-030's expiry path, not just R-2-181/182.
+    seed_auth_targets = [
+        {"id": a["id"], "from_user_id": a["from_user_id"], "to_user_id": a["to_user_id"]}
+        for a in fixture.get("authorizations", []) if a["status"] == "open"
+    ]
+
     return {
         "fixture": fixture,
         "users": users,
         "operator": operator,
         "seeded_total": sum(u["balance"] for u in fixture["users"]),
         "pending_requests": pending_requests,
+        "seed_auth_targets": seed_auth_targets,
         "n": len(users),
         "lock": threading.Lock(),
         "split_receipts": [],
@@ -120,6 +129,47 @@ def _payment_boundary_op(base_url, ctx, i, key):
     return r.status_code
 
 
+def _auth_create_op(base_url, ctx, i, key):
+    payer = _pick(ctx, i)
+    receiver = _pick(ctx, i, offset=1)
+    amount = 1 + (i % 40)
+    body = {"to_handle": receiver["handle"], "amount": amount, "note": f"auth-{i}"}
+    r = _post(base_url, "/authorizations", json=body, headers={**_auth(payer["token"]), "Idempotency-Key": key})
+    return r.status_code
+
+
+def _auth_capture_op(base_url, ctx, i, key):
+    """R-2-050..066: capture must be driven by the RECEIVER's token, or every
+    one of these is a 403 and the slice is vacuous."""
+    targets = ctx["seed_auth_targets"]
+    if not targets:
+        return 404
+    target = targets[i % len(targets)]
+    receiver = next(u for u in ctx["users"] if u["id"] == target["to_user_id"])
+    slot = i % 3
+    if slot == 0:
+        body = {}  # amount defaults to the remainder, final defaults to true
+    elif slot == 1:
+        body = {"final": False}
+    else:
+        body = {"amount": 1, "final": True}
+    r = _post(base_url, f"/authorizations/{target['id']}/capture", json=body,
+              headers={**_auth(receiver["token"]), "Idempotency-Key": key})
+    return r.status_code
+
+
+def _auth_void_op(base_url, ctx, i, key):
+    """R-2-070..075: void must be driven by the PAYER's token, and takes no
+    idempotency key."""
+    targets = ctx["seed_auth_targets"]
+    if not targets:
+        return 404
+    target = targets[i % len(targets)]
+    payer = next(u for u in ctx["users"] if u["id"] == target["from_user_id"])
+    r = _post(base_url, f"/authorizations/{target['id']}/void", json={}, headers=_auth(payer["token"]))
+    return r.status_code
+
+
 def operation(base_url: str, ctx: dict, i: int, rng) -> int:
     """A random-but-i-deterministic money-moving call. Same i => same request,
     so calling twice with the same i is a genuine retry (idempotency key is
@@ -127,6 +177,12 @@ def operation(base_url: str, ctx: dict, i: int, rng) -> int:
     users = ctx["users"]
     key = f"storm-{i}"
 
+    if i % 19 == 0:
+        return _auth_void_op(base_url, ctx, i, key)
+    if i % 17 == 0:
+        return _auth_capture_op(base_url, ctx, i, key)
+    if i % 13 == 0:
+        return _auth_create_op(base_url, ctx, i, key)
     if i % 11 == 0:
         return _settlement_boundary_op(base_url, ctx, i, key)
     if i % 7 == 0:
@@ -200,12 +256,60 @@ def invariant(base_url: str, ctx: dict) -> tuple[bool, str]:
         r = _get(base_url, "/me", headers=_auth(u["token"]))
         if r.status_code != 200:
             return False, f"GET /me failed for {u['handle']}: {r.status_code} {r.text}"
-        balance = r.json()["balance"]
+        body = r.json()
+        balance = body["balance"]
         if balance < 0:
             return False, f"negative balance for {u['handle']}: {balance}"
+        if body.get("total", balance) != balance:
+            return False, f"total != balance for {u['handle']}: {body}"
+        held = body.get("held", 0)
+        available = body.get("available", balance)
+        if held < 0:
+            return False, f"negative held for {u['handle']}: {held}"
+        if available < 0:
+            return False, f"negative available for {u['handle']}: {available}"  # R-2-002
+        if available != balance - held:
+            return False, f"available != total - held for {u['handle']}: {body}"
         total += balance
+
+        # R-2-004: held must equal the sum of remaining_amount over the
+        # caller's own open, unexpired OUTGOING authorizations — never the
+        # incoming ones.
+        outgoing_open = _get(base_url, "/authorizations", headers=_auth(u["token"]),
+                             params={"direction": "outgoing", "status": "open", "limit": 200})
+        if outgoing_open.status_code != 200:
+            return False, f"GET /authorizations failed for {u['handle']}: {outgoing_open.status_code} {outgoing_open.text}"
+        computed_held = sum(a["remaining_amount"] for a in outgoing_open.json()["authorizations"])
+        if computed_held != held:
+            return False, f"held {held} != sum(remaining_amount over open outgoing) {computed_held} for {u['handle']}"
     if total != ctx["seeded_total"]:
         return False, f"sum of balances {total} != seeded total {ctx['seeded_total']}"
+
+    # R-2-003, R-2-005, R-2-061: per-authorization invariants, checked once
+    # per distinct authorization even though it may show up in two users' lists.
+    seen_auth_ids: set[str] = set()
+    feeds: dict[str, list] = {}
+    for u in ctx["users"]:
+        r = _get(base_url, "/authorizations", headers=_auth(u["token"]), params={"limit": 200})
+        if r.status_code != 200:
+            return False, f"GET /authorizations failed for {u['handle']}: {r.status_code} {r.text}"
+        for a in r.json()["authorizations"]:
+            aid = a["authorization_id"]
+            if aid in seen_auth_ids:
+                continue
+            seen_auth_ids.add(aid)
+            if a["captured_amount"] > a["amount"]:
+                return False, f"authorization {aid} captured_amount {a['captured_amount']} > amount {a['amount']}"
+            if a["status"] != "open" and a["remaining_amount"] != 0:
+                return False, f"closed authorization {aid} (status={a['status']}) has nonzero remaining_amount"
+            if a["payment_ids"]:
+                if u["handle"] not in feeds:
+                    feed_resp = _get(base_url, "/activity", headers=_auth(u["token"]), params={"limit": 200})
+                    feeds[u["handle"]] = feed_resp.json()["payments"] if feed_resp.status_code == 200 else []
+                matched = [p["amount"] for p in feeds[u["handle"]] if p["payment_id"] in a["payment_ids"]]
+                if len(matched) == len(a["payment_ids"]) and sum(matched) != a["captured_amount"]:
+                    return False, (f"authorization {aid} captured_amount {a['captured_amount']} != "
+                                   f"sum of its payment_ids' amounts {sum(matched)}")
 
     valid_statuses = {"pending", "paid", "declined", "cancelled"}
     # R-1-051: a seeded `paid` request has no seeded payment to link (the fixture
@@ -245,24 +349,36 @@ def invariant(base_url: str, ctx: dict) -> tuple[bool, str]:
     return True, "ok"
 
 
-def transient(base_url: str, ctx: dict) -> tuple[bool, str]:
-    before = []
+def _read_wallets(base_url, ctx):
+    out = []
     for u in ctx["users"]:
         r = _get(base_url, "/me", headers=_auth(u["token"]))
         if r.status_code != 200:
-            return True, "skip: /me unreachable"
-        before.append(r.json()["balance"])
-    if any(b < 0 for b in before):
-        return False, f"negative balance observed mid-storm: {before}"
+            return None
+        out.append(r.json())
+    return out
 
-    after = []
-    for u in ctx["users"]:
-        r = _get(base_url, "/me", headers=_auth(u["token"]))
-        if r.status_code != 200:
-            return True, "skip: /me unreachable"
-        after.append(r.json()["balance"])
-    if any(b < 0 for b in after):
+
+def transient(base_url: str, ctx: dict) -> tuple[bool, str]:
+    before = _read_wallets(base_url, ctx)
+    if before is None:
+        return True, "skip: /me unreachable"
+    if any(w["balance"] < 0 for w in before):
+        return False, f"negative balance observed mid-storm: {before}"
+    if any(w.get("available", w["balance"]) < 0 for w in before):
+        return False, f"negative available observed mid-storm: {before}"  # R-2-002
+    if any(w.get("available", w["balance"]) > w["balance"] for w in before):
+        return False, f"available > total observed mid-storm: {before}"
+
+    after = _read_wallets(base_url, ctx)
+    if after is None:
+        return True, "skip: /me unreachable"
+    if any(w["balance"] < 0 for w in after):
         return False, f"negative balance observed mid-storm: {after}"
+    if any(w.get("available", w["balance"]) < 0 for w in after):
+        return False, f"negative available observed mid-storm: {after}"
+    if any(w.get("available", w["balance"]) > w["balance"] for w in after):
+        return False, f"available > total observed mid-storm: {after}"
     return True, "ok"
 
 
@@ -330,15 +446,58 @@ def populate(base_url: str) -> dict:
     known_requests.append((pending_request_id, requester["handle"]))
     known_requests += [(rid, caller["handle"]) for rid in split_request_ids]
 
+    # an open hold
+    auth_payer, auth_receiver = users[2], users[4]
+    r = _post(base_url, "/authorizations", json={"to_handle": auth_receiver["handle"], "amount": 200,
+                                                   "note": "populate-open"},
+              headers={**_auth(auth_payer["token"]), "Idempotency-Key": "populate-auth-open-1"})
+    assert r.status_code == 201, r.text
+    open_auth_id = r.json()["authorization_id"]
+
+    # a partially captured hold (final: false), with a claimed capture key remembered
+    part_payer, part_receiver = users[3], users[5]
+    r = _post(base_url, "/authorizations", json={"to_handle": part_receiver["handle"], "amount": 400,
+                                                   "note": "populate-partial"},
+              headers={**_auth(part_payer["token"]), "Idempotency-Key": "populate-auth-partial-1"})
+    assert r.status_code == 201, r.text
+    partial_auth_id = r.json()["authorization_id"]
+    capture_key = "populate-capture-partial-1"
+    capture_body = {"amount": 150, "final": False}
+    cap = _post(base_url, f"/authorizations/{partial_auth_id}/capture", json=capture_body,
+                headers={**_auth(part_receiver["token"]), "Idempotency-Key": capture_key})
+    assert cap.status_code == 201, cap.text
+
+    # a voided hold
+    void_payer, void_receiver = users[4], users[0]
+    r = _post(base_url, "/authorizations", json={"to_handle": void_receiver["handle"], "amount": 90,
+                                                   "note": "populate-void"},
+              headers={**_auth(void_payer["token"]), "Idempotency-Key": "populate-auth-void-1"})
+    assert r.status_code == 201, r.text
+    void_auth_id = r.json()["authorization_id"]
+    voided = _post(base_url, f"/authorizations/{void_auth_id}/void", json={}, headers=_auth(void_payer["token"]))
+    assert voided.status_code == 200, voided.text
+
+    known_authorizations = [(a["id"], id_to_handle[a["from_user_id"]]) for a in fixture.get("authorizations", [])]
+    known_authorizations += [
+        (open_auth_id, auth_payer["handle"]),
+        (partial_auth_id, part_payer["handle"]),
+        (void_auth_id, void_payer["handle"]),
+    ]
+
     _UPGRADE.clear()
     _UPGRADE.update({
         "tokens": {u["handle"]: u["token"] for u in users},
         "known_requests": known_requests,
+        "known_authorizations": known_authorizations,
         "settlement_id": settlement_id,
         "settlement_participant_handle": a["handle"],
         "remembered_key": pay_key,
         "remembered_body": pay_body,
         "remembered_payer_handle": payer["handle"],
+        "remembered_capture_key": capture_key,
+        "remembered_capture_body": capture_body,
+        "remembered_capture_authorization_id": partial_auth_id,
+        "remembered_capture_receiver_handle": part_receiver["handle"],
     })
     return {"ctx": ctx, "settlement_id": settlement_id, "pending_request_id": pending_request_id}
 
@@ -352,6 +511,7 @@ def snapshot(base_url: str) -> dict:
 
     balances = {}
     identities = {}
+    wallets = {}
     for handle in sorted(tokens):
         token = tokens[handle]
         r = _get(base_url, "/me", headers=_auth(token))
@@ -359,6 +519,7 @@ def snapshot(base_url: str) -> dict:
         body = r.json()
         balances[handle] = body["balance"]
         identities[handle] = (body["user_id"], body["handle"])
+        wallets[handle] = (body["balance"], body.get("held", 0), body.get("available", body["balance"]))
 
     requests_state = []
     for req_id, viewer_handle in sorted(set(_UPGRADE["known_requests"])):
@@ -384,13 +545,35 @@ def snapshot(base_url: str) -> dict:
     assert replay.status_code == 200, \
         f"replay of the remembered payment must stay a 200 replay: {replay.status_code} {replay.text}"
 
+    auth_state = []
+    for auth_id, viewer_handle in sorted(set(_UPGRADE["known_authorizations"])):
+        token = tokens[viewer_handle]
+        r = _get(base_url, "/authorizations", headers=_auth(token), params={"limit": 200})
+        assert r.status_code == 200, f"GET /authorizations failed for {viewer_handle}: {r.status_code} {r.text}"
+        match = next((x for x in r.json()["authorizations"] if x["authorization_id"] == auth_id), None)
+        assert match is not None, f"known authorization {auth_id} is no longer visible to {viewer_handle}"
+        auth_state.append((auth_id, match["status"], match["captured_amount"], match["remaining_amount"],
+                            tuple(match["payment_ids"]), match["closed_at"]))
+    auth_state.sort()
+
+    capture_replay_token = tokens[_UPGRADE["remembered_capture_receiver_handle"]]
+    capture_replay = _post(
+        base_url, f"/authorizations/{_UPGRADE['remembered_capture_authorization_id']}/capture",
+        json=_UPGRADE["remembered_capture_body"],
+        headers={**_auth(capture_replay_token), "Idempotency-Key": _UPGRADE["remembered_capture_key"]})
+    assert capture_replay.status_code == 200, \
+        f"replay of the remembered capture must stay a 200 replay: {capture_replay.status_code} {capture_replay.text}"
+
     return {
         "balances": balances,
         "identities": identities,
+        "wallets": wallets,
         "requests": requests_state,
+        "authorizations": auth_state,
         "settlement_id": _UPGRADE["settlement_id"],
         "settlement_members": settlement_members,
         "retry_identity": (replay.status_code, replay.json()),
+        "capture_retry_identity": (capture_replay.status_code, capture_replay.json()),
     }
 
 
@@ -400,3 +583,26 @@ def carry(old_url: str, new_url: str) -> None:
     document = export.json()
     r = _post(new_url, "/_test/import", json=document)
     assert r.status_code == 204, r.text
+
+
+# ---------------------------------------------------------------------------
+# UI_ROUTES / ui_login — required by gate 7, load-bearing from stage 2 on
+# ---------------------------------------------------------------------------
+
+UI_ROUTES = ["/", "/requests", "/split", "/signup", "/login", "/authorizations"]
+
+
+def ui_login(page, base_url: str) -> None:
+    """Reset to the demo fixture (so every route has real content per
+    R-2-111) and sign the primary demo user (alice) in through the actual
+    login form, by its data-testid contract (R-2-121), so gate 7 sees real
+    screens rather than a login wall on every one of UI_ROUTES."""
+    fixture = build_demo_fixture()
+    r = httpx.post(base_url.rstrip("/") + "/_test/reset", json=fixture, timeout=TIMEOUT)
+    assert r.status_code == 204, f"reset failed: {r.status_code} {r.text}"
+    primary = fixture["users"][0]
+    page.goto(base_url.rstrip("/") + "/login", wait_until="load")
+    page.fill('[data-testid="login-email"]', primary["email"])
+    page.fill('[data-testid="login-password"]', primary["password"])
+    page.click('[data-testid="login-submit"]')
+    page.wait_for_load_state("load")
