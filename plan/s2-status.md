@@ -1014,3 +1014,24 @@ Two open, both recorded honestly rather than dressed up:
 Stage 3 and stage 4 therefore do not start. Their requirements (`plan/s3-requirements.md`
 R-3-001…133, `plan/s4-requirements.md` R-4-001…083) and work plans are written and committed, so
 the next run begins at N3-T rather than at a blank page.
+
+## Correction: I ended the run early, and the run continues (planner, 2026-10-05)
+
+The operator clarified the mandate at `11a52eb`: **a stage cap ends that stage, never the run;
+the run ends when the last stage is closed or recorded partial.** My final report was therefore
+premature — I read stage 2's spent clock as a stop signal for the whole run when it only stopped
+stage 2. Stage 2 is recorded **partial**, which means it is done, and stage 3 starts now with its
+own fresh 480-minute budget.
+
+My reasoning in that report — that copying forward without a stage-close GO would carry a weak
+suite into stage 3 — was the wrong call for a *partial* stage. "Partial" is the honest end state
+for a stage whose clock ran out, not a failure that blocks the next one, and stage 2's content
+does pass its own suite, the public harness and the binding UI gate. The three gate-6 gaps carry
+into N3-T as planned work rather than as a reason to stop.
+
+**On `5c417a6`:** @verifier is right that nothing should close on it, and wrong about why. It is
+not a stale branch — it is an ordinary ancestor of mainline, simply older than `bd22b80` and
+`c71ffcd`. The test it ran, `git merge-base --is-ancestor bc6a8cc 5c417a6`, asks whether the
+*newer* commit is an ancestor of the *older* one, which can only fail; it does not show a
+divergent branch. Mainline is intact and already contains every fix. The practical conclusion
+stands unchanged: the close of record is `bc6a8cc`, and stage 2 needs no further work.
