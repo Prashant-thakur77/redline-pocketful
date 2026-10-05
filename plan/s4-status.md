@@ -976,3 +976,64 @@ stage-5 copy-forward or any new call site that forgets `store=` would otherwise 
 money check with no signal. But the close run is in flight, and changing a money path to improve a
 property that is currently satisfied is not a trade I will make at this point in the stage. It goes in
 the final report as a known fragility with the one-line fix named.
+
+---
+
+## TICK 2026-10-06T02:45Z — N4-H3 closed in detail; close sequencing handed to @verifier; scratch cleanup queued as the last step
+
+### N4-H3's part 1 was a harder problem than I framed it as
+
+I told @redline to apply "the same condition-wait pattern" to 11 sleeps. It found that the 11 needed
+**four different signals**, not one, and built shared helpers rather than forcing the balance-change
+pattern everywhere:
+
+- `wait_for_response_to` where the dependency is just "the request resolved" — and it checked
+  empirically, via `page.on("request")`, that resubmitting an unchanged form actually fires a network
+  request **before** relying on `expect_response`, which would otherwise hang forever.
+- `wait_for_present` / `wait_for_absent` where the assertion is itself about DOM presence — including
+  the `route.abort()` cases, where `expect_response` *would* hang by construction, and the idempotent
+  replay that has no balance change to key off.
+- `wait_for_dom_change` generalised to diff an attribute as well as text.
+
+My instruction would have produced a hang in at least two of the 11. 46 UI tests green across three
+consecutive runs; the 6 correctly-triaged non-defect waits untouched.
+
+### Part 2 found 20 status-code-only money assertions
+
+Across 6 of the 7 new files — the exact gap stage 3's surviving `revisions.py:158` sign-flip exploited.
+Two judgements worth recording:
+
+- For `test_batch_replay_returns_original_response` and the two concurrency tests, response-body
+  equality and a bare status code **cannot** catch a double-apply or a wrong-amount win. It added
+  balance checks that read back actual server state, and for the concurrency cases read back
+  *whichever side won* via `GET …/revisions` rather than assuming a winner.
+- It left pure permission/validation tests alone (401/403/404/422 before anything moves) — no
+  arithmetic there for a mutation to corrupt. That restraint is as useful as the additions.
+
+61/61 across the 7 files, twice. Suite now **680**.
+
+### The close: sequencing is @verifier's call now
+
+@verifier judged it better to hold the close until N4-5.1 clears, against my "run it now". **It is
+right and I withdrew my instruction.** A full `--gates all` close with a 30-minute g6 is the most
+expensive run in the factory, and `b6715d7` is the stage's last money change with no attack pass on it.
+This is my own rule — sequence the costliest step after the decision has survived one further check —
+which I failed to apply to my own dispatch. Bound given: run it anyway if the governor tightens or
+N4-5.1 goes quiet, disclosing that `b6715d7` went ungated by attack. That call does not come back to me.
+
+### Scratch: no deliverable risk, but 34 files to clear as the final step
+
+@redline hit a collision on `stage-4/_restart_server.py` — two seats using one scratch path with one
+hard-coded port, overwriting each other's pidfile mid-session. Recorded as a lesson: scratch must be
+seat-namespaced (`_<seat>_<purpose>.py`) with a per-seat base port, stated in a stage's first dispatch
+rather than after a collision.
+
+**Checked whether this can reach the delivered artifact: it cannot.** `stage-4/Dockerfile` copies
+explicitly — `COPY main.py ./main.py` and `COPY service ./service` — not `COPY . .`, so root scratch is
+outside the image regardless. There is no `.dockerignore` and none is needed.
+
+But **34 untracked files** now sit at `stage-4/`'s root. The close run is pinned to a commit and runs in
+a private worktree, so untracked files cannot affect it — which is why cleanup is sequenced **after**
+the close, not before: clearing 34 files while the most expensive run in the stage is in flight buys
+nothing and risks exactly the kind of mid-run disturbance the pin exists to prevent. Each owning seat
+clears its own with `git clean -f -- <explicit paths>`, and **nothing under `stage-*/tests/`**.
