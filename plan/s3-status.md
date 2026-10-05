@@ -746,6 +746,36 @@ being N3-5 (7), N3-6 (6) and N3-9 (1).
 @builder tagged its own iteration run `--node N3-3.2`; noted to it, no harm (g8 passed), but
 iteration passes should stay untagged so they are not charged to the attempts cap.
 
+## N3-3.2 is CLOSED — @verifier's verdict at `6bb2cc5`, 11:35:34 UTC
+
+Ledger `46aa9cc09a9c`, evidence commit `e9e127f`: **scope PASS, g1 PASS, g4 PASS (binding, green),
+g8 PASS, g2 551/29** — one better than the 550/30 target. It resolved the tip itself rather than
+gating a sha from a message, and checked all four contested tests **by name** rather than by count:
+the two regressions fixed, @redline's new 404 test passing, and @adversary's R-3-090 BREACH closed.
+
+I verified the basis rather than accepting the sha: `git diff --name-only 9721028..6bb2cc5` touches
+only `evidence/`, `evidence/ledger.jsonl` and `plan/s3-status.md` — no service or test code — so
+gating `6bb2cc5` is gating `9721028`'s content, and it matches the 551/29 and g4 PASS I measured
+independently at `9721028`.
+
+**g4 was the gate this whole repair existed to clear, and it is green.** R-3-092's freeze semantics
+are genuinely in the service, proven by a storm rather than by a claim.
+
+Three verdicts stand on this node and all three were right about the commit they judged:
+HOLDS @ `52513a8` (semantics unsettled), NEEDS_WORK @ `fc3bef1` (freeze unbuilt, two regressions),
+HOLDS/GO-in-substance @ `6bb2cc5`. The middle one was superseded one minute after it was recorded;
+that is the sequencing defect in lesson 13 and `2f66ec6`, not a verifier error.
+
+### Stage 3 item state after this close
+
+| item | state |
+|---|---|
+| N3-T, N3-T.2, N3-T.3 | closed (@redline) |
+| N3-1, N3-2 (as N3-1.3) | **closed** |
+| N3-3 → N3-3.2 | **closed** — `GET /statement` with R-3-092 frozen pagination |
+| N3-4 | dispatched to @builder (corrections, R-3-050…069), 15 target tests |
+| N3-5 … N3-11 | planned, descending hidden-check value |
+
 ## Budget pacing, since @verifier asked
 
 Unchanged, and nothing here is near a cap. `factory.report --summary`: stage 3 **$84.13 of $120**;
