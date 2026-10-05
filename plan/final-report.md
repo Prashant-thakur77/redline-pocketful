@@ -1,10 +1,12 @@
-# Final report — DRAFT, pending two last numbers
+# Final report
 
-Not yet posted. **The run has ended**: stage 4's stage cap tripped at 22:06
-(`minutes 915.6 > cap 900`, `evidence/gates/s4/U3.1-g8-20261005T220617-be76.log`) and stage 4 is
-recorded `partial` (ledger `cda9c1a6fd53`). Stage 4 is the last stage, so no further scope is
-dispatched. Two figures are still outstanding and both are in flight: **U2's pinned `--gates all`
-verdict** and **U3.1's single gate-2 run**. Everything else below is final.
+**The run has ended.** Stage 4's stage cap tripped at 22:06 (`minutes 915.6 > cap 900`,
+`evidence/gates/s4/U3.1-g8-20261005T220617-be76.log`) and stage 4 is recorded `partial` (ledger
+`cda9c1a6fd53`). Stage 4 is the last stage, so the run ends there. The last gate result is
+@verifier's container gate-2 run at `61ccdaa`: **683 passed, 0 failed, 0 errors, 0 skipped**
+(ledger `0a42cfdf2a8e`). Every figure below is final.
+
+Ledger: **2,361 events, hash chain `ok`** (`python -m factory.ledger evidence/ledger.jsonl`).
 
 All monetary and gate figures come from
 `python -m factory.report --summary --repo <repo> --ledger <repo>/evidence/ledger.jsonl`,
@@ -20,7 +22,7 @@ Ledger hash chain: `python -m factory.ledger evidence/ledger.jsonl` → **ok** (
 | 1 | **closed** | g1–g6, g8 PASS; **scope FAIL** | 32 | $282.75 |
 | 2 | **partial** | g1–g5, g7 PASS; **g6 FAIL, g8 FAIL**, scope FAIL | 17 | $309.84 |
 | 3 | **partial** | g1–g5, g7, g8, scope PASS; **g6 FAIL (70%)** | 11 | $84.13 |
-| 4 | **partial** | **at the recorded close:** scope, g1, g2 (681/0), **g3 — claimed stage 4, suites 1/2/3/4 all pass**, g4, g5, g6, g7, g8 all PASS. **At the tip after the post-close UI scope:** g2 **FAIL** (U3's breach, repair in flight as U3.1) and g8 **FAIL** (the stage cap) | 2 | $0.00 recorded |
+| 4 | **partial** | scope, g1, **g2 (683/0)**, **g3 — claimed stage 4, suites 1/2/3/4 all pass**, g4, g5, g6, g7 all PASS; **g8 FAIL — the stage cap, and the only failing gate** | 3 | $0.00 recorded |
 
 Stage 4 is the only stage whose **tip is worse than its recorded close**, and both causes are named
 above rather than averaged away: the post-close UI work (U1–U3, new scope the operator added after the
