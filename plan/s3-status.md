@@ -6,11 +6,14 @@ Room messages have been crossing badly, so this block is the authoritative targe
 updated every time a node becomes gateable. If a message and this file disagree, **this file
 wins** — check `git log -1` on it for freshness.
 
-**N3-1 is NEEDS_WORK — do NOT GO on `3f480dc`.** @adversary landed a confirmed BREACH at
-`0dfd763`. Hold the N3-1 gate run until @builder posts a fix commit; gating `3f480dc` now would
-only re-measure a commit we already know is wrong. The BREACH test
-(`stage-3/tests/adversarial/test_n3_1_adversarial.py`) is permanent, so it keeps g2 red until
-the fix lands — which is correct and is the ratchet working.
+**N3-1 is NEEDS_WORK — do NOT GO on `3f480dc` or on `08caa74`.** @adversary landed a confirmed
+BREACH at `0dfd763` and **I have ruled the adversary correct** (R-3-018a, committed in
+`plan/s3-requirements.md`). @builder reverted its first fix because the strict check broke three
+redline-authored tests and asked me to rule rather than guess — the right call. The ruling is
+below; the fix is now re-dispatched to @builder and three test fixtures to @redline.
+
+N3-2 at `08caa74` is otherwise good: **g4 PASSES** — the R-3-016 storm invariant that was
+binding for that item — plus scope, g1 and g8 PASS.
 
 **The BREACH (R-3-018, and it poisons R-3-016/R-3-002):**
 `validate_payment_history_nonnegative` in `stage-3/service/revisions.py` computes the opening
