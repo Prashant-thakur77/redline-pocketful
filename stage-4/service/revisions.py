@@ -196,19 +196,24 @@ def balance_before(opening_balances: dict, payments: dict, payment_revisions: di
     return total
 
 
-def would_cause_historical_overdraft(opening_balances: dict, payments: dict, payment_revisions: dict,
-                                      payment_id: str, candidate_amount: int, candidate_effective_at: str,
-                                      affected_user_ids: tuple[str, str]) -> bool:
-    """R-3-060: a correction is illegal if either party's balance would be
-    negative at ANY effective-time boundary, not just the final state —
-    checked by replaying each affected user's own payment history in
-    effective-time order (their current, latest-revision amount for every
-    payment except the one being corrected, which uses the CANDIDATE
-    amount/effective_at), batching simultaneous movements at the same
-    instant together before checking nonnegativity, exactly as a
-    statement's entries would show it. Only the payment's two parties can
-    be affected by this one payment's revision changing — no other user's
-    history depends on it."""
+def would_candidates_cause_historical_overdraft(opening_balances: dict, payments: dict, payment_revisions: dict,
+                                                 candidates: dict, affected_user_ids) -> bool:
+    """R-3-060/R-4-050: the general, multi-payment form -- a set of
+    proposed revisions (one `(amount, effective_at)` candidate per
+    payment id in `candidates`) is illegal if ANY affected user's
+    balance would be negative at any effective-time boundary once ALL
+    of them are applied TOGETHER, not just the final state. Replays
+    each affected user's own payment history in effective-time order,
+    using every candidate that applies to that payment and the current
+    latest revision for every other payment, batching simultaneous
+    movements at the same instant before checking nonnegativity.
+
+    A single correction is the one-candidate case of this; checking
+    each of a batch's candidates against everyone else's CURRENT
+    (unchanged) revision instead of against the batch's OTHER
+    candidates is exactly the gap that lets two individually-boundary-
+    safe corrections combine into a real historical negative that
+    neither one alone would reveal."""
     for user_id in affected_user_ids:
         events = []
         for p in payments.values():
@@ -216,8 +221,8 @@ def would_cause_historical_overdraft(opening_balances: dict, payments: dict, pay
             is_to = p["to_user_id"] == user_id
             if not (is_from or is_to):
                 continue
-            if p["id"] == payment_id:
-                amount, effective_at = candidate_amount, candidate_effective_at
+            if p["id"] in candidates:
+                amount, effective_at = candidates[p["id"]]
             else:
                 rev = latest_revision(payment_revisions.get(p["id"], []))
                 if rev is None:
@@ -239,6 +244,18 @@ def would_cause_historical_overdraft(opening_balances: dict, payments: dict, pay
             if running < 0:
                 return True
     return False
+
+
+def would_cause_historical_overdraft(opening_balances: dict, payments: dict, payment_revisions: dict,
+                                      payment_id: str, candidate_amount: int, candidate_effective_at: str,
+                                      affected_user_ids: tuple[str, str]) -> bool:
+    """R-3-060: the single-correction case of
+    `would_candidates_cause_historical_overdraft` -- one payment's
+    proposed revision, checked against everyone else's current latest
+    revision."""
+    return would_candidates_cause_historical_overdraft(
+        opening_balances, payments, payment_revisions,
+        {payment_id: (candidate_amount, candidate_effective_at)}, affected_user_ids)
 
 
 def validate_payment_history_nonnegative(wallets: dict, payments: dict) -> None:

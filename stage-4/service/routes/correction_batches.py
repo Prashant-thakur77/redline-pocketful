@@ -18,11 +18,14 @@ R-4-049's precedence, implemented as four stages run in that order:
        insufficient_funds, R-4-050) -- net delta per user across every
        item, not each item in isolation, mirroring settlements.py's own
        net-position check.
-    4. historical boundaries (409 historical_overdraft) -- per item,
-       reusing the single-correction primitive; a true cross-item
-       historical merge is out of scope here (no test in this item
-       exercises it) and is named as a known simplification, not
-       silently assumed complete.
+    4. historical boundaries (409 historical_overdraft) -- ALL of the
+       batch's candidates applied TOGETHER, via
+       would_candidates_cause_historical_overdraft(), not each item
+       checked against everyone else's unchanged current revision.
+       Two items can each land exactly on a boundary against the
+       SIBLING's unchanged value while applying both at once drives
+       that instant negative; a per-item check misses exactly that
+       combination (confirmed exploitable, N4-3.1 BREACH).
 
 Like corrections.py and refunds.py, this overrides handle() because the
 dynamic checks in stages 1(partial)/3/4 read mutable store state
@@ -45,7 +48,7 @@ from ..holds import available_for
 from ..idempotency import IDEMPOTENCY
 from ..json_utils import epoch_to_rfc3339, parse_json_object, parse_rfc3339
 from ..pipeline import Endpoint, RequestCtx
-from ..revisions import latest_revision, would_cause_historical_overdraft
+from ..revisions import latest_revision, would_candidates_cause_historical_overdraft
 from ..store import STORE
 from ..validation import parse_amount, validate_idempotency_key
 
@@ -218,16 +221,21 @@ class CorrectionBatchEndpoint(Endpoint):
             if user_delta < 0 and available_for(STORE, user_id) + user_delta < 0:
                 raise insufficient_funds()
 
-        # Stage 4: historical boundaries, per item -- reusing the
-        # single-correction primitive. A true cross-item historical
-        # merge (accounting for every OTHER item's candidate amount at
-        # once) is not built here; no test in this item exercises it.
+        # Stage 4: historical boundaries, checked with ALL of the
+        # batch's candidates applied TOGETHER (R-4-050) -- two items can
+        # each land exactly on a boundary when checked against the
+        # SIBLING's unchanged current revision, while applying both at
+        # once drives that same instant negative. A per-item check
+        # against everyone else's current value misses exactly that
+        # combination.
+        candidates = {plan["payment_id"]: (plan["new_amount"], plan["effective_at"]) for plan in plans}
+        affected_user_ids = set()
         for plan in plans:
-            payer_id, payee_id = plan["payment"]["from_user_id"], plan["payment"]["to_user_id"]
-            if would_cause_historical_overdraft(STORE.opening_balances, STORE.payments, STORE.payment_revisions,
-                                                 plan["payment_id"], plan["new_amount"], plan["effective_at"],
-                                                 (payer_id, payee_id)):
-                raise historical_overdraft()
+            affected_user_ids.add(plan["payment"]["from_user_id"])
+            affected_user_ids.add(plan["payment"]["to_user_id"])
+        if would_candidates_cause_historical_overdraft(STORE.opening_balances, STORE.payments,
+                                                         STORE.payment_revisions, candidates, affected_user_ids):
+            raise historical_overdraft()
 
         # R-4-053: one shared recorded_at, strictly LATER than every
         # touched payment's own previous recorded_at -- never derived
