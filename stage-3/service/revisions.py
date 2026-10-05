@@ -82,6 +82,38 @@ def balance_as_of(opening_balances: dict, payments: dict, payment_revisions: dic
     return total
 
 
+def latest_revision(revisions: list[dict]) -> dict | None:
+    """R-3-038/040/041: the single revision that currently contributes to
+    a statement (no `as_of`/`known_at` involved) is the most recently
+    recorded one, regardless of its own `effective_at` — with no
+    corrections yet (every payment has exactly one revision), this is
+    simply that revision, so behaviour is unchanged from before this
+    stage's revision machinery existed (R-3-041)."""
+    if not revisions:
+        return None
+    return max(revisions, key=lambda r: r["revision"])
+
+
+def balance_before(opening_balances: dict, payments: dict, payment_revisions: dict,
+                    user_id: str, instant_epoch: float) -> int:
+    """A statement's `opening_balance` (strictly before `from`) and
+    `closing_balance` (strictly before `to`, R-3-034) — always through
+    each payment's current (latest) revision, never an `as_of`-style
+    selection (R-3-038), and strictly `<` rather than `<=` since the
+    instant itself is the excluded edge of a half-open window."""
+    total = opening_balances.get(user_id, 0)
+    for p in payments.values():
+        is_from = p["from_user_id"] == user_id
+        is_to = p["to_user_id"] == user_id
+        if not (is_from or is_to):
+            continue
+        rev = latest_revision(payment_revisions.get(p["id"], []))
+        if rev is None or parse_rfc3339(rev["effective_at"]) >= instant_epoch:
+            continue
+        total += -rev["amount"] if is_from else rev["amount"]
+    return total
+
+
 def validate_payment_history_nonnegative(wallets: dict, payments: dict) -> None:
     """R-3-018/R-3-002/R-3-016: replaying the seeded payments in R-3-019
     order from the opening balance must never drive a wallet negative at

@@ -36,6 +36,9 @@ class Store:
         self.authorization_ttl_seconds: int = 600
         self.payment_revisions: dict[str, list[dict]] = {}
         self.opening_balances: dict[str, int] = {}
+        # Statement snapshot tokens (R-3-005, R-3-032/079): scoped to one
+        # reset generation, never carried across one.
+        self.statement_snapshots: dict[str, dict] = {}
         self._next_seq = 0
 
     def next_seq(self) -> int:
@@ -88,6 +91,8 @@ class Store:
         # payments, carried through unchanged.
         self.payment_revisions = seed_revisions(fields["payments"])
         self.opening_balances = fields["opening_balances"]
+        # Statement snapshot tokens never survive a reset (R-3-079).
+        self.statement_snapshots = {}
         # R-1-040: nothing from before this reset is visible afterwards,
         # including a key claimed or completed under the old fixture — a
         # replay must never resolve against a payment/request that no
@@ -132,6 +137,7 @@ class Store:
         # resynthesizing them here.)
         self.payment_revisions = seed_revisions(fields["payments"])
         self.opening_balances = compute_opening_balances(fields["wallets"], fields["payments"])
+        self.statement_snapshots = {}
         IDEMPOTENCY.restore(fields["idempotency_records"])
 
 

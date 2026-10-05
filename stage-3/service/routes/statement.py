@@ -1,0 +1,151 @@
+"""GET /statement — R-3-030..044, R-3-079.
+
+Statements ignore activity-feed visibility entirely (R-3-037): a payment
+is in scope iff the caller sent or received it, full stop. They also
+always use each payment's current (latest) revision (R-3-038/040/041),
+never the as_of-style backdating selection `/me` uses — `balance_before`/
+`latest_revision` in `revisions.py` are the shared primitives for that.
+
+Paging is over a frozen snapshot of the full window's entries (R-3-036):
+the first call (no `snapshot` param) computes the whole window once,
+freezes its entry list and opening/closing balances under a fresh token,
+and slices from offset 0; a later call passing that token back slices the
+same frozen list from the offset encoded in the token, so limit/offset
+convenience never re-derives opening/closing from a partial slice.
+"""
+from __future__ import annotations
+
+import secrets
+
+from ..errors import validation_failed
+from ..json_utils import parse_rfc3339
+from ..pipeline import Endpoint, RequestCtx
+from ..revisions import balance_before, latest_revision
+from ..store import STORE
+from ..validation import parse_limit, parse_offset
+
+_FAR_FUTURE_EPOCH = 253402300799.0  # 9999-12-31T23:59:59+00:00
+
+
+class StatementEndpoint(Endpoint):
+    def validate_fields(self, ctx: RequestCtx) -> dict:
+        from_raw = ctx.query.get("from")
+        to_raw = ctx.query.get("to")
+        from_epoch = None
+        to_epoch = None
+        if from_raw is not None:
+            try:
+                from_epoch = parse_rfc3339(from_raw)
+            except (ValueError, TypeError):
+                raise validation_failed("from must be an RFC 3339 timestamp with an explicit offset")
+        if to_raw is not None:
+            try:
+                to_epoch = parse_rfc3339(to_raw)
+            except (ValueError, TypeError):
+                raise validation_failed("to must be an RFC 3339 timestamp with an explicit offset")
+        return {
+            "from_epoch": from_epoch,
+            "to_epoch": to_epoch,
+            "limit": parse_limit(ctx.query.get("limit")),
+            "offset": parse_offset(ctx.query.get("offset")),
+            "snapshot": ctx.query.get("snapshot"),
+        }
+
+    def _compute_window(self, ctx: RequestCtx, fields: dict) -> dict:
+        user_id = ctx.user["id"]
+        from_epoch = fields["from_epoch"]
+        to_epoch = fields["to_epoch"] if fields["to_epoch"] is not None else _FAR_FUTURE_EPOCH
+
+        if from_epoch is not None and from_epoch > to_epoch:
+            # R-3-043: from later than to is an empty window by construction,
+            # not an error — both balances describe the same instant (`to`)
+            # so the R-3-035 invariant still closes over zero entries.
+            balance = balance_before(STORE.opening_balances, STORE.payments, STORE.payment_revisions,
+                                      user_id, to_epoch) if fields["to_epoch"] is not None \
+                else STORE.wallets.get(user_id, 0)
+            return {"entries": [], "opening_balance": balance, "closing_balance": balance}
+
+        rows = []
+        for p in STORE.payments.values():
+            is_from = p["from_user_id"] == user_id
+            is_to = p["to_user_id"] == user_id
+            if not (is_from or is_to):
+                continue
+            rev = latest_revision(STORE.payment_revisions.get(p["id"], []))
+            if rev is None:
+                continue
+            effective_epoch = parse_rfc3339(rev["effective_at"])
+            if from_epoch is not None and effective_epoch < from_epoch:
+                continue
+            if effective_epoch >= to_epoch:
+                continue
+            rows.append((effective_epoch, p, rev))
+
+        rows.sort(key=lambda row: (row[0], row[1]["id"]))
+
+        opening_balance = (balance_before(STORE.opening_balances, STORE.payments, STORE.payment_revisions,
+                                           user_id, from_epoch)
+                            if from_epoch is not None else STORE.opening_balances.get(user_id, 0))
+        closing_balance = balance_before(STORE.opening_balances, STORE.payments, STORE.payment_revisions,
+                                          user_id, to_epoch) if fields["to_epoch"] is not None \
+            else STORE.wallets.get(user_id, 0)
+
+        entries = []
+        running = opening_balance
+        for effective_epoch, p, rev in rows:
+            is_from = p["from_user_id"] == user_id
+            delta = -rev["amount"] if is_from else rev["amount"]
+            running += delta
+            entries.append({
+                "payment_id": p["id"],
+                "payment": p["id"],
+                "amount": delta,
+                "delta": delta,
+                "balance_after": running,
+                "revision": rev["revision"],
+                "effective_at": rev["effective_at"],
+                "recorded_at": rev["recorded_at"],
+                "authorization_id": p.get("authorization_id"),
+            })
+
+        return {"entries": entries, "opening_balance": opening_balance, "closing_balance": closing_balance}
+
+    def apply(self, ctx: RequestCtx, resource, fields: dict):
+        snapshot_param = fields["snapshot"]
+        limit, offset = fields["limit"], fields["offset"]
+
+        frozen = None
+        start_offset = offset
+        if snapshot_param is not None:
+            snapshot_id, _, offset_part = snapshot_param.partition(".")
+            candidate = STORE.statement_snapshots.get(snapshot_id)
+            if candidate is not None and candidate["user_id"] == ctx.user["id"]:
+                frozen = candidate
+                try:
+                    start_offset = int(offset_part)
+                except ValueError:
+                    start_offset = offset
+
+        if frozen is None:
+            snapshot_id = secrets.token_urlsafe(16)
+            frozen = {"user_id": ctx.user["id"], **self._compute_window(ctx, fields)}
+            STORE.statement_snapshots[snapshot_id] = frozen
+            start_offset = offset
+
+        all_entries = frozen["entries"]
+        page = all_entries[start_offset:start_offset + limit]
+        has_more = start_offset + limit < len(all_entries)
+        next_token = f"{snapshot_id}.{start_offset + limit}" if has_more else None
+
+        body = {
+            "entries": page,
+            "opening_balance": frozen["opening_balance"],
+            "closing_balance": frozen["closing_balance"],
+            "has_more": has_more,
+            "snapshot": next_token,
+        }
+        return 200, body
+
+
+def register(router) -> None:
+    router.add("GET", "/statement", StatementEndpoint())
