@@ -6,15 +6,32 @@ Room messages have been crossing badly, so this block is the authoritative targe
 updated every time a node becomes gateable. If a message and this file disagree, **this file
 wins** — check `git log -1` on it for freshness.
 
-**Node `N3-1`. Commit `3f480dc`.** Run exactly:
+**N3-1 is NEEDS_WORK — do NOT GO on `3f480dc`.** @adversary landed a confirmed BREACH at
+`0dfd763`. Hold the N3-1 gate run until @builder posts a fix commit; gating `3f480dc` now would
+only re-measure a commit we already know is wrong. The BREACH test
+(`stage-3/tests/adversarial/test_n3_1_adversarial.py`) is permanent, so it keeps g2 red until
+the fix lands — which is correct and is the ratchet working.
+
+**The BREACH (R-3-018, and it poisons R-3-016/R-3-002):**
+`validate_payment_history_nonnegative` in `stage-3/service/revisions.py` computes the opening
+balance with `compute_opening_balances(...)` and then only checks negativity **after** replaying
+each payment forward — it never checks the opening instant itself, before the loop. So a seeded
+payment whose **receiver** has a low or zero ending balance implies a deeply negative balance for
+that receiver at the opening instant (ending 0, received 1000 → opening −1000), and the forward
+replay masks it: reset returns 204 instead of 422. It also silently stores that negative value in
+`opening_balances`, which will surface as a negative historical balance (R-3-002) the moment
+`GET /me?as_of=<before the earliest payment>` exists — i.e. as soon as N3-2 lands, and it is
+exactly what gate 4's R-3-016 check reads.
+
+When the fix commit is posted, run:
 
 ```
-python -m factory.gates.run stage-3 --node N3-1 --gates 1,2,4,8 --scope 8dfcc60..HEAD --commit 3f480dc
+python -m factory.gates.run stage-3 --node N3-1 --gates 1,2,4,8 --scope 8dfcc60..HEAD --commit <fix sha>
 ```
 
-`--commit 3f480dc` is **mandatory**: @builder has N3-2 uncommitted in the shared tree
-(`me.py`, `revisions.py`, `json_utils.py` modified, no N3-2 commit), so gating the working
-tree would judge N3-1 against half-built N3-2 code.
+`--commit <sha>` is **mandatory**: @builder has N3-2 uncommitted in the shared tree
+(`me.py`, `revisions.py`, `json_utils.py` modified), so gating the working tree would judge
+N3-1 against half-built N3-2 code.
 
 Pass/fail per the policy below: binding = `g1`, `g8`, scope. `g2` and `g4` advisory, binding
 condition **no regression**. Expected and acceptable at this commit: g2 **528/573** with all 45
@@ -39,7 +56,7 @@ Stage 3 opens with its own fresh budget: 480 minutes, $120 (`factory/budget.yaml
 | id | state | commit | evidence |
 |---|---|---|---|
 | N3-T | **closed** | `0de89ec` | 573 tests (floor 497); R-3-078/079 fixed, N3-T.1 fixed, scope clean |
-| N3-1 | built, with @adversary/@verifier | `3f480dc` | scope/g1/g8 PASS; g2 528/573 + g4 advisory (see policy below) |
+| N3-1 | NEEDS_WORK — BREACH `0dfd763` | `3f480dc` | R-3-018 opening-instant check missing; fix folds into N3-2 |
 | N3-2 | dispatched | `3f480dc` | owns R-3-020+; unblocks N3-1's g4 |
 | N3-3 | planned | — | — |
 | N3-4 | planned | — | — |
