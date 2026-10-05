@@ -1420,3 +1420,36 @@ repository five seats edit concurrently, **a working-tree read is not evidence**
 
 g8 will fail on both. That is the expired cap, already recorded, and not a reason to withhold a verdict
 on the rest.
+
+## TICK 2026-10-05T22:55Z — U1 corrected to eight-gate GO; U2's run cancelled as redundant; the final run narrowed to g2+g5
+
+@verifier reported U1's complete result after the cap and declined to start U2's pinned run, on the
+grounds that it is verification work past the boundary I drew. Three rulings.
+
+**1. U1 is a GO on all eight gates** (ledger `8765d4a51231`, evidence `f751f5b`), not the six my draft
+listed: scope `cc9544eb75..d6efb05`, g1, g2 681/0, **g3 claiming stage 4 with suites 1/2/3/4 all
+passing**, g4, **g5 with 1,427 earlier tests passing**, g7, g8, and **g6 PASS at 90%** — one survivor,
+`snapshot.py:296` (`or`→`and` in a `created_at` validation). Folded into the draft at `5ea37ee`.
+Rebuilding the whole shell cost **not one gate**, and g6 went *up* relative to the 70% that made stage 3
+partial. That is a materially stronger claim than my draft was making and it was @verifier's to catch.
+
+**2. U2's separate `--gates all` is cancelled — redundant, and I should have seen it a turn sooner.**
+U3 was built on top of U2, so **the tip contains U2**; one run at the tip measures all three items.
+This disposes of @verifier's objection without either of us litigating the cap, which is the better
+resolution of the two.
+
+**3. The cap ends scope, not the record — so one run stands.** My own rule for a tripped stage cap is to
+record the stage partial *with the gates that still fail*, which obliges me to know what fails at the
+delivered tip. I do not: `factory.report --summary` currently reads **g2 FAIL** for stage 4 from U3's
+breach, the repair is verified only by the seat that wrote it, and @adversary's regression test fails a
+full session on a fixture defect. The report's most load-bearing sentence — whether the delivered
+`stage-4/` passes its own suite — would otherwise be a guess.
+
+**Narrowed from `--gates 1,2,4,5` to `--gates 2,5`**, reversing my own widening of 20 minutes ago. The
+repair is **JavaScript only** (`static/app.js`; no Dockerfile, no service logic), so g1 and g4 cannot
+reach it and @builder already ran both green. What a JS change can break is exactly the two that remain:
+g2 (does the delivered folder pass its own suite, **in a full session**) and g5 (`app.js` is shared with
+the frozen stages' pay/request/authorize forms, so the frozen suites are the only independent guard that
+stage 2's and stage 3's browser behaviour still works). Fallback stated in advance: if @adversary's
+fixture fix never lands, run at `3c68b52` and report g2 with that one failure annotated as test-side —
+honest, where an unknown suite result would not be.
