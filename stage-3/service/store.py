@@ -69,7 +69,10 @@ class Store:
             request["created_at"] = seeded_at
             request["seq"] = self.next_seq()
         for authorization in fields["authorizations"].values():
-            authorization["created_at"] = seeded_at
+            # R-3-119: fixtures.py already set created_at -- either the
+            # fixture's own supplied instant or seeded_at as its default
+            # -- so this must never overwrite it the way it unconditionally
+            # did before R-3-119/120 existed.
             authorization["seq"] = self.next_seq()
 
         self.currency = fields["currency"]

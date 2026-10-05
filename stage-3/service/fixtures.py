@@ -204,10 +204,30 @@ def validate_fixture(body: dict) -> dict:
             # the seeded status is already "captured".
             captured_amount = amount if status == "captured" else 0
 
+        # R-3-119/120: a seeded open hold is assumed created at reset
+        # unless the fixture supplies created_at; a supplied value later
+        # than reset time, or later than the authorization's own
+        # expires_at, is 422 -- the same shape as R-3-013's payment
+        # created_at rule, so a fixture can place a hold at a chosen past
+        # instant, the only way to exercise a historical hold timeline.
+        if "created_at" in raw:
+            try:
+                auth_created_epoch = parse_rfc3339(raw["created_at"])
+            except (ValueError, TypeError):
+                raise validation_failed("authorization.created_at must be an RFC 3339 timestamp")
+            if auth_created_epoch > seeded_epoch:
+                raise validation_failed("authorization.created_at must not be in the future")
+            if auth_created_epoch > expires_at:
+                raise validation_failed("authorization.created_at must not be later than expires_at")
+            auth_created_at = raw["created_at"]
+        else:
+            auth_created_at = seeded_at
+
         authorizations[aid] = {
             "id": aid, "from_user_id": from_user_id, "to_user_id": to_user_id,
             "amount": amount, "note": note, "visibility": visibility, "status": status,
             "expires_at": expires_at, "captured_amount": captured_amount,
+            "created_at": auth_created_at,
         }
 
     wallets = {uid: u["balance"] for uid, u in users.items()}
