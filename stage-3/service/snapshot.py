@@ -13,6 +13,7 @@ from .errors import validation_failed
 from .fixtures import VALID_AUTHORIZATION_STATUSES, VALID_REQUEST_STATUSES, _require_id, _require_str
 from .idempotency import IDEMPOTENCY
 from .invariants import check_holds_within_balance, check_nonnegative_balances
+from .revisions import validate_payment_history_nonnegative
 from .validation import HANDLE_RE, parse_amount, validate_note, validate_visibility
 
 TRACK = "pocketful"
@@ -378,6 +379,12 @@ def validate_import_document(body: dict) -> dict:
     # through the other.
     check_nonnegative_balances(wallets)
     check_holds_within_balance(wallets, authorizations, time.time())
+    # R-3-018/R-1-204a: the same opening-instant nonnegativity reset
+    # enforces (R-3-018a/b) applies to import too — an imported state
+    # implying a negative balance at any point (including the opening
+    # instant, before any payment is replayed) is illegal through this
+    # door exactly as it is through reset's.
+    validate_payment_history_nonnegative(wallets, payments)
 
     return {
         "currency": currency, "minor_units": minor_units,
