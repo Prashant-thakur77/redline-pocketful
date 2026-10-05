@@ -1094,6 +1094,30 @@ one shape @adversary found.
 **So this does NOT go in the final report as a known gap.** The `store=None` fragility is separate and
 still stands.
 
+### The N4-6 surface is now provably complete, and I checked the claim rather than relaying it
+
+@builder reported that `statement.py`'s frozen dict is exactly
+`{user_id, known_at_raw, entries, opening_balance, closing_balance}` — no stored `from`/`to`,
+default-`to`, or selected-revision fields, because the window is baked into `entries` and the two
+balances at freeze time and never re-derived from stored bounds. That claim decides whether the two
+guards are complete or merely cover the one shape @adversary happened to find, so I verified it:
+
+```
+statement.py:188-189   frozen = {"user_id": …, "known_at_raw": …, **self._compute_window(ctx, fields)}
+_compute_window        BOTH return paths → {"entries", "opening_balance", "closing_balance"}
+```
+
+Five keys, confirmed at both return sites. So the import validator (`9cf1126`) and the lookup guard
+(`64919dc`) between them cover **every** field, and `user_id`/`known_at_raw` are `.get()`-accessed.
+There is nothing further to validate on either side of this endpoint.
+
+**Consequence for @adversary's N4-6.2 brief:** the sub-target I gave it — "fields the read path may touch
+only on a *later* page rather than the first" — is **moot**; no such stored fields exist. Its other
+sub-targets (internally inconsistent but well-typed `entries`, a token owned by a known user who is not
+the caller, and the same crafted shapes through `reset` now that R-1-204a claims both doors enforce the
+same invariants) remain live. Not interrupting its in-flight pass to say so — it will reach the same
+conclusion from one grep, and a mid-attack turn costs more than the duplication saves.
+
 ### Reversing my own hold: the close runs now, with the attack in parallel
 
 I told @verifier twice to hold the close for an attack pass. **Changing that, for a reason that has
