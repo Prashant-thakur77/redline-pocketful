@@ -883,3 +883,43 @@ rather than a mock.
 **R-2-152 documented:** changing a field and reverting it still regenerates the key, because the
 `input` listener fires on any touch rather than on a net value change. Defensible under the
 requirement's literal text, and now recorded as the behaviour rather than left ambiguous.
+
+## Close run 1: NEEDS_WORK on one real finding, and the ruling (planner, 2026-10-05)
+
+@verifier's close at `5f3d72d` (`de040dde64d6`, evidence `5d88882`): **scope, g1, g2, g4, g5,
+g7, g8 all PASS** — g2 fully green for the first time — with **one** gate-3 failure and gate 6
+inconclusive.
+
+**The finding is real and is not a missing screen.** `test_routes_are_directly_navigable[/requests-incoming-list]`
+times out because `requests_screen.py::render_requests_body()` collapses to a single all-empty
+placeholder card, **omitting the `incoming-list` and `outgoing-list` containers entirely**, when
+a user has zero requests in both directions. The public harness's default fixture seeds its test
+user with exactly that, so the element genuinely never exists for them. @verifier reproduced it
+twice to rule out a flake, then read the code to find the cause rather than inferring it from
+the timeout. I reached the same place independently from the harness log; we agree.
+
+**Ruling — the spec settles it on one word.** Three empty-state rows in `stage-2.md`:
+
+```
+ 94 | empty-activity       | Shown **instead of the list** when nothing is visible
+109 | empty-requests       | Shown when both lists are empty
+372 | empty-authorizations | Shown when the list is empty
+```
+
+Only `empty-activity` says "instead of". So: **`incoming-list`, `outgoing-list` and
+`authorization-list` are always present in the DOM, with `empty-requests` /
+`empty-authorizations` shown *in addition* when empty; `/` keeps the replacement behaviour for
+`empty-activity`.** Recorded as a requirement amendment to R-2-133 and R-2-137, not as a bug —
+this is a public check correcting our *reading*, and the authority is the spec's own wording
+difference. I would have ruled the same way had @redline asked before writing the tests. We are
+not patching toward a check; we are reading the spec more carefully because a check made us
+look.
+
+Our own suite missed it because it exercises seeded users who **have** requests and tests the
+empty case separately; the harness hits the empty case on the same route in one fixture.
+
+**Gate 6 is still unmeasured.** Its baseline timed out at an internal ~180s cap, unrelated to
+gate 2's own budget, which had already proved the same suite green in about four minutes
+standalone. @verifier is retrying with an explicit `--mutant-timeout`. If the clock beats us,
+the close runs `--gates 1,2,3,4,5,7,8` and the missing mutation score is recorded as a gap
+rather than papered over.
