@@ -152,7 +152,7 @@ screens anyway, which is theirs to require. Both statements stand.
 |---|---|---|
 | U1 | design system, shell, wallet figures, 375 px tab bar, empty states | landed `d6efb05`; @adversary HOLDS; **@verifier GO on all eight gates** (ledger `8765d4a51231`) |
 | U2 | primary Pay/Request toggle, review step, signed activity lines with day grouping, split chips | landed `3995d78`; @adversary HOLDS (g5 pre-flight 92/92, suite 681/0, four Playwright probes); no separate gate run — **covered by the final run at the tip, which contains U2** |
-| U3 | statement screen, payment detail + revision timeline, refund, correct, operator batch table | landed `7f94146`, **BREACHED**, repaired at `3c68b52`; **`[PENDING]`** one final g2+g5 at the tip |
+| U3 | statement screen, payment detail + revision timeline, refund, correct, operator batch table | landed `7f94146`, **BREACHED twice**, repaired at `3c68b52` → `8aac58e` → `8ebe8d2`; measured clean at `d472f0f` (g2 682/0, g5 1,427 tests, g7 6 routes); **`[PENDING]`** one final g2 at 683/0 over @adversary's second test |
 
 **U1's gate result is the strongest single data point in the post-close scope**, and it deserves full
 strength because it was reported after the cap and is easy to lose: `scope PASS (cc9544eb75..d6efb05)`,
@@ -190,6 +190,38 @@ seat, the sixth such entry.
 other two, it was not found by a gate at all. It needed an attacker who changed the *origin*. Gate 7
 drives the same screens and passed, because it, too, reaches them in ways that do not exercise a
 non-secure-context origin for these three buttons.
+
+### The second U3 breach: a stable key over an unstable body
+
+Found by @adversary **after** the stage cap had expired, and fixed anyway. Once the key became a stable
+`randomKey()`, `app.js` was still computing the default `effective_at` with `new Date().toISOString()`
+*inside* the click handler (`:966` correct form, `:1073` batch rows). A genuinely rapid double-click on
+an unchanged form therefore sent **one key with two bodies** differing by about a millisecond — `201`
+then `409 idempotency_key_reuse`, where R-U-042 promises a clean replay. Reproducing it required
+dispatching both clicks inside a single `page.evaluate`; two `page.click()` calls are too slow.
+
+Three things about this one are worth more than the defect:
+
+1. **@adversary checked the consequence before claiming severity** — exactly one revision lands, no
+   double-spend, conservation intact. The server was correct throughout; the browser was handing it two
+   different bodies. A money bug and a contract bug were correctly distinguished under time pressure.
+2. **It is a defect in a requirement I wrote.** R-U-042 specifies the *key* must be stable across an
+   unchanged resubmit. I never wrote that the *body* must be. A stable key over an unstable body is the
+   same bug seen from the other end, and my own dispatch's worked example (`sha256(amount)`) hid it,
+   because hashing the content would have made the body's instability visible as a changing key.
+3. **Three seats independently established that the remaining red was test-side, from three different
+   kinds of evidence**: @builder by running it 5× (5/5 `[201, 200]`, 0/5 with a `409`), the planner from
+   the source (`idempotency.py:86` returns `(200, …)` on every replay, and the assertion contradicted
+   its own failure message), and @verifier from captured network responses in a gate run nobody asked it
+   to interpret. The assertion `responses == [201]` could not pass against correct behaviour.
+
+The fix snapshots the default instant alongside the key and refreshes the two together. Coarse-grained
+rounding was considered and **rejected**: it narrows the window instead of closing it, and a slow
+double-click would still straddle a boundary.
+
+**Weakest evidence in the item, named rather than glossed:** the batch-row half of that fix
+(`batchDefaultEffective`) is exercised by no test — it is verified by code inspection alone, by the seat
+that wrote it. `[Resolved / still inspection-only at report time.]`
 
 ## What was not done, stated as plainly as what was
 
@@ -261,4 +293,26 @@ instrument before blaming its subject. And once @verifier's own escalation was w
 recording: it read code in the working tree to explain a gate failure from an earlier commit, which
 would have sent @builder debugging a bug that no longer existed.
 
-`plan/lessons.md` carries the generic root cause of each, including five entries against the planner.
+`plan/lessons.md` carries the generic root cause of each, including eight entries against the planner.
+
+## The most reproducible failure mode of this method: a repository that moves under a reader
+
+Three independent occurrences in one run, each caught by a different seat, each resolved identically:
+
+| who | what | how it surfaced |
+|---|---|---|
+| @verifier | explained a gate failure from an earlier commit by reading current working-tree code | would have sent @builder debugging a bug that no longer existed |
+| planner | read @builder's `app.js` mid-edit and began writing up a half-converted state as a fresh breakage | two greps seconds apart disagreed |
+| @adversary | ran a probe against a server it had started *before* `8aac58e` landed | confusing result; restarted fresh and it resolved |
+
+Five seats share one working tree, so **a working-tree read is not evidence**. The correction is always
+the same — re-derive from a named commit (`git show <sha>:<path>`, a tool's `--commit`, or a freshly
+started instance). Two of the three cost a seat turns; none reached a verdict. It is a property of the
+design, not three separate mistakes, and the gates' own use of pinned private worktrees is the part of
+the system that already got this right.
+
+A second pattern worth naming, because it is the inverse and it is cultural rather than technical:
+**twice a seat declined to produce a misleading artifact without being asked.** @verifier refused to
+commit after-images under a "before" label, and @builder held a gate run rather than spend the last
+cycle on a commit it knew would read red for a test-side reason. Neither was instructed to; both were
+right; both saved a cycle.
