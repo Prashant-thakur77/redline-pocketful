@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import sys
 import threading
+import time
 from pathlib import Path
 
 import httpx
@@ -198,3 +199,82 @@ def test_cookie_invalidated_by_reset_degrades_to_clean_login_redirect():
                         follow_redirects=False, timeout=10.0)
         assert rp.status_code != 500, f"{path} must never 500 on a cookie killed by reset: {rp.status_code}"
         assert rp.status_code == 302 and rp.headers.get("location") == "/login", (path, rp.status_code)
+
+
+def _login_form(email: str, password: str):
+    return httpx.post(BASE_URL + "/login", data={"email": email, "password": password},
+                       headers={"Accept": "text/html"}, follow_redirects=False, timeout=10.0)
+
+
+def test_signup_precedence_shows_validation_before_conflict():
+    """R-1-088's precedence (422 validation_failed before 409
+    email_taken) must survive routing the form through
+    SignupEndpoint().handle(ctx): a signup with both a too-short
+    password AND an already-registered email must render the
+    validation-failure message, never the email-taken message."""
+    taken_email = f"{unique('taken')}@example.com"
+    r1 = _signup_form(taken_email)
+    assert r1.status_code == 302, r1.text
+
+    r2 = _signup_form(taken_email, password="short")
+    assert r2.status_code == 200, r2.text
+    lowered = r2.text.lower()
+    assert "character" in lowered or "at least" in lowered, (
+        "a signup with a too-short password AND a taken email must show the validation failure first, "
+        f"got: {r2.text[:300]}"
+    )
+    assert "already registered" not in lowered and "taken" not in lowered
+
+
+def test_login_error_is_timing_and_markup_indistinguishable_in_rendered_page():
+    """R-1-086 in the rendered HTML, not just the JSON API: a wrong
+    password for a real account and a login for a nonexistent account
+    must render byte-identical pages (same message, same markup), and
+    must cost the same wall-clock time (checked via the minimum of
+    several samples, the cleanest estimator of real work done — noise
+    only ever adds time)."""
+    real_email = f"{unique('timing')}@example.com"
+    r = _signup_form(real_email)
+    assert r.status_code == 302, r.text
+
+    r_wrong = _login_form(real_email, "totallywrongpassword")
+    r_unknown = _login_form(f"{unique('neverexists')}@example.com", "totallywrongpassword")
+    assert r_wrong.status_code == r_unknown.status_code == 200
+    assert r_wrong.text == r_unknown.text, "wrong-password and unknown-email must render byte-identical pages"
+
+    def min_elapsed(email: str, n: int = 12) -> float:
+        best = float("inf")
+        for _ in range(n):
+            t0 = time.monotonic()
+            _login_form(email, "totallywrongpassword")
+            best = min(best, time.monotonic() - t0)
+        return best
+
+    t_wrong = min_elapsed(real_email)
+    t_unknown = min_elapsed(f"{unique('neverexists2')}@example.com")
+    ratio = max(t_wrong, t_unknown) / max(min(t_wrong, t_unknown), 1e-9)
+    assert ratio < 3.0, (
+        f"wrong-password ({t_wrong*1000:.2f}ms) and unknown-email ({t_unknown*1000:.2f}ms) login must cost "
+        f"roughly the same wall-clock time, ratio={ratio:.2f}"
+    )
+
+
+def test_accept_q_zero_and_malformed_q_never_5xx():
+    """R-2-187's truth table: `text/html;q=0` is an explicit zero
+    preference and must NOT get the UI (falls through to the JSON
+    route, which then correctly 401s since the cookie never
+    authenticates it). A malformed or empty q-value must never crash
+    the server, regardless of what it resolves to."""
+    email = f"{unique('acceptq')}@example.com"
+    r = _signup_form(email)
+    assert r.status_code == 302, r.text
+    cookie_val = r.headers.get("set-cookie", "").split(";")[0]
+
+    r_zero = httpx.get(BASE_URL + "/requests", headers={"Cookie": cookie_val, "Accept": "text/html;q=0"}, timeout=10.0)
+    assert "application/json" in r_zero.headers.get("content-type", ""), (
+        f"Accept: text/html;q=0 must not get the UI: {r_zero.status_code} {r_zero.headers.get('content-type')}"
+    )
+
+    for bad_q in ("text/html;q=notanumber", "text/html;q="):
+        r_bad = httpx.get(BASE_URL + "/requests", headers={"Cookie": cookie_val, "Accept": bad_q}, timeout=10.0)
+        assert r_bad.status_code != 500, f"a malformed q-value must never 500: Accept={bad_q!r} -> {r_bad.status_code}"
