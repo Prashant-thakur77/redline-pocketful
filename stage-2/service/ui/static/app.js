@@ -448,11 +448,20 @@
     if (action === "capture") {
       headers["Idempotency-Key"] = randomKey();
       var amountEl = document.querySelector('[data-testid="authorization-capture-amount-' + id + '"]');
-      if (amountEl) {
+      // R-2-051: an OMITTED amount defaults to the full remaining amount —
+      // a blank field is that, intentionally. A non-blank field that
+      // fails to parse is not an omission, it's a mistake, and must
+      // refuse to submit with a visible error (R-2-186: the same
+      // never-silently-send-garbage discipline every other amount field
+      // in bindForm already has) rather than silently falling through to
+      // the same default and capturing far more than was typed.
+      if (amountEl && amountEl.value.trim() !== "") {
         var parsed = Pocketful.parseAmountToMinorUnits(amountEl.value, SESSION.minor_units);
-        if (parsed !== null) {
-          body.amount = parsed;
+        if (parsed === null) {
+          showSlot(slotPrefix, "error", "Enter a valid amount.");
+          return;
         }
+        body.amount = parsed;
       }
     }
     fetch(path, {method: "POST", headers: headers, body: JSON.stringify(body)})
