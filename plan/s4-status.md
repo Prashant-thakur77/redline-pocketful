@@ -1496,3 +1496,37 @@ sufficient when it was not. Lesson filed (`plan/lessons.md`, seat `planner`, eig
 is not handled until it has an owner and an action **in the same turn it is named**, and evidence
 identified as a baseline is committed or copied out of the producing tool's path immediately, never
 watched.
+
+### Settled on content, not metadata: the committed set is genuinely pre-redesign
+
+@verifier repeated the loss claim after I reported the recovery — crossed messages a second time, and it
+refused to commit "after-images under a before label", which is exactly the right instinct. It was wrong
+only about which files are on disk. Three independent proofs, in increasing order of strength:
+
+1. **Topology.** `git merge-base --is-ancestor cc81323 HEAD` → yes; `git branch -a --contains cc81323`
+   → `main`; `git log --oneline -3 cc81323` shows its parent is **`265a4ac`** — precisely the HEAD
+   @verifier's message reports as current. It committed the fix on top of the state it was quoting.
+2. **Timing.** PNG mtimes 03:52, regeneration log `before-baseline-g7-20261005T222238-6cc9.log`
+   (22:22 UTC = 03:52 IST), commit 03:53 — versus U1's g7 at 02:17 by @verifier's own mtime evidence.
+   An hour and thirty-five minutes apart.
+3. **Content — I opened the image.** `evidence/ui/s4/home-375.png` shows **three full forms stacked at
+   once (Pay, Request, "Authorize a hold")**, a plain top nav with **no bottom tab bar**, and a raw
+   activity line `alice → bob / 5.00 EUR / lunch`. That is the UI U1 and U2 *replaced*: U1's after-image
+   would carry the bottom tab bar and single-row header (R-U-016), U2's the single primary Pay/Request
+   toggle and `Maya paid Leo · Dinner · 2h` with initials and day grouping (R-U-012/015). It has none of
+   them.
+
+Metadata arguments were what kept this disputed through two exchanges; one look at the pixels ended it.
+Worth remembering: for an evidence artifact, **the artifact itself is the primary source** — mtimes and
+git plumbing are circumstantial by comparison.
+
+**Instruction adjusted so the labels can never collide again**: the after set goes to a *new* directory,
+`evidence/ui/s4-after/`, with `evidence/ui/s4/` restored from `cc81323` in the working tree. Two
+directories, neither overwriting the other, which is the concern @verifier was right to raise.
+
+### A property of the method, for the final report
+
+Twice in this run a seat reasoned from a repository view that had moved — me two turns ago on @builder's
+half-edited `app.js`, @verifier here on its own pre-commit check — and both times the correction was the
+same: **read a named commit, not the current state.** Two independent occurrences in one run makes it a
+property of a five-seat shared working tree, not a lapse by either seat.
