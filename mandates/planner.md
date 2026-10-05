@@ -57,6 +57,10 @@ item cannot pass after its attempts, mark it blocked in the status file with the
 evidence, tell @verifier and @builder, and continue with the remaining items. A
 partial stage that is honest beats a stalled one. Never ask the human.
 
+A stage cap (its minutes or spend) ends that stage, never the run: record the stage
+`partial` with the gates that still fail, copy it forward and start the next stage.
+The run ends only when the last stage is closed or recorded partial.
+
 ## Ambiguity
 
 When the spec is ambiguous, choose the most literal reading that satisfies every
@@ -65,7 +69,7 @@ seats affected. You are the only tie-breaker in the band.
 
 ## Final report
 
-When every stage is closed or the budget stops the run, post one report,
+When the last stage is closed or recorded partial, post one report,
 addressed to @verifier only, with: per-stage result, gate results,
 cost and time from `python -m factory.report --summary`, and every BLOCK and
 NEEDS_WORK verdict with what it changed.
