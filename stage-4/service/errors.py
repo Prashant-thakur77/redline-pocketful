@@ -95,6 +95,10 @@ def historical_overdraft(message: str = "correction would make a balance negativ
     return ApiError(409, "historical_overdraft", message)
 
 
+def incomplete_settlement(message: str = "a correction batch must include every member of any settlement it touches") -> ApiError:
+    return ApiError(422, "incomplete_settlement", message)
+
+
 def invalid_refund_target(message: str = "a refund cannot itself be refunded") -> ApiError:
     return ApiError(422, "invalid_refund_target", message)
 

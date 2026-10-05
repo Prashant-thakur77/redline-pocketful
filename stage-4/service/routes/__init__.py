@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from ..server import ROUTER
 from . import (activity, auth, authorization_actions, authorizations, authorizations_read,
-               corrections, health, me, payments, refunds, requests, requests_read, revisions,
-               settlements, splits, statement, test_control)
+               correction_batches, corrections, health, me, payments, refunds, requests,
+               requests_read, revisions, settlements, splits, statement, test_control)
 
 
 def register_all() -> None:
@@ -26,3 +26,4 @@ def register_all() -> None:
     statement.register(ROUTER)
     corrections.register(ROUTER)
     refunds.register(ROUTER)
+    correction_batches.register(ROUTER)
