@@ -15,7 +15,35 @@ Ledger hash chain: `python -m factory.ledger evidence/ledger.jsonl` → **ok** (
 | 1 | **closed** | g1–g6, g8 PASS; **scope FAIL** | 32 | $282.75 |
 | 2 | **partial** | g1–g5, g7 PASS; **g6 FAIL, g8 FAIL**, scope FAIL | 17 | $309.84 |
 | 3 | **partial** | g1–g5, g7, g8, scope PASS; **g6 FAIL (70%)** | 11 | $84.13 |
-| 4 | `[PENDING close]` | g1, g2, g4, g8, scope PASS; g5 stale-FAIL (pre-fix) | 1 | $0.00 recorded |
+| 4 | `[PENDING g6]` | scope, g1, g2 (681/0), **g3 — claimed stage 4, suites 1/2/3/4 all pass**, g4, g7, g8 PASS; g5 ruled test-side then fixed; **g6 in progress** | 1 | $0.00 recorded |
+
+### Stage 4 close detail (g6 still drawing at the time of writing)
+
+| gate | result |
+|---|---|
+| scope | PASS `cc9544eb75..5c99bb4` |
+| g1 | PASS — built and healthy offline |
+| g2 | PASS — 681 passed, 0 failed, 0 errors, 0 skipped |
+| **g3** | **PASS — exit 0; claimed stage 4; suites `{1: pass, 2: pass, 3: pass, 4: pass}`** |
+| g4 | PASS — invariant held over 1300 ops |
+| g7 | PASS — 6 routes clean at 375/768/1280 |
+| g5 | FAIL, **ruled test-side**, fixed at `1417531`, re-run pending |
+| g6 | drawing — mutant 7 of ~12, 6 verdicts banked |
+| g8 | PASS |
+
+**g3 is the headline of the whole run**: the task harness, run isolated, claims stage 4, and every
+earlier stage's suite still passes — no overshoot, no regression. Service content for every behaviour
+gate was measured at `5c99bb4`; g5 is re-measured at `1417531`, and
+`git diff 5c99bb4..1417531 -- stage-4/service stage-4/main.py stage-4/Dockerfile` is **empty**, so the
+two compose.
+
+**Why g5 failed and why it is not a product defect.** The gate's upgrade check carries from the latest
+earlier folder — frozen `stage-3/` — and `grep -c statement_snapshots stage-3/service/snapshot.py` is
+**0**: stage 3's export never carried snapshot tokens, so no stage-4 behaviour can make a
+stage-3-created token survive. R-2-170's own precedent governs ("a stage-1 export with no
+`authorizations` yields zero holds"). The hook now branches on the **exported document** — an
+independent fact — and reports a visible `not_applicable` rather than skipping silently; a stage-4 →
+stage-4 self-carry still reports `verified` with real content, so the real guarantee is intact.
 
 Total recorded spend: **$676.72**. By seat: planner $236.17, builder $212.02, verifier $118.83,
 redline $110.99, adversary $90.51 (seat figures are list-price estimates from seat evidence blocks,
@@ -81,6 +109,26 @@ corrections") and N4-C5 ("statement and correction UI") were scope I invented** 
 deferred. Reporting them as shortfalls would have understated the result; building them would have
 spent the last of the stage budget on surface no check asks for.
 
+## Stage 4's two BREACHes, both found by attack, both in code a green suite had passed
+
+1. **Correction batches checked historical boundaries per item.** Two corrections could each land
+   exactly on zero against the sibling's *unchanged* amount while applying both drove a real past
+   instant negative. @adversary demonstrated the consequence, not just the missing rejection:
+   `GET /me?as_of=<T>` returned `{"total": -10}` — a negative balance on a plain read. Fixed at
+   `05565a3` with a combined-candidate walk; I had independently constructed the same counterexample.
+   **The suite was fully green (679/0) while this was live.**
+2. **A malformed imported snapshot 500'd `GET /statement`** (R-1-005). Import validated a
+   `statement_snapshots` entry's `user_id` and nothing else, while the read path dereferenced three
+   keys bare. Fixed in both halves: `9cf1126` validates shape at the import door, `64919dc` guards at
+   the snapshot lookup so an unservable record is unresolvable like an unknown token (`404`). **This
+   one landed in code @verifier and I had both read and neither had questioned for completeness** —
+   seeing a validator and checking a validator are different acts.
+
+Attack coverage of the last money change: `b6715d7` was probed with six probes including the
+**false-rejection near-miss** (a smaller hold that keeps available ≥ 0 must still return `201`, or the
+check is merely refusing anything with a hold in its history) and a mechanistic defence of my
+`held_at` single-axis ruling. HOLDS. Zero open adversary findings at close.
+
 ## Known gaps, stated plainly
 
 1. **`store` is an optional parameter on the historical-overdraft primitives**, and its absence
@@ -89,9 +137,21 @@ spent the last of the stage budget on surface no check asks for.
    today** — but a new call site or a stage-5 copy-forward that forgets `store=` would get a quietly
    weaker money check with no signal. One-line fix: make the parameter required. Not applied because
    the close run was in flight and the property is currently satisfied.
-2. **Gate 6 remains a 12-mutant spot check**, not mutation testing.
-3. `factory.report` prints `stage 4: blocked` from a stale gate-8 artefact created when stage 4 was
+2. **A demonstrated flaky test in `stage-4/tests/adversarial/`** —
+   `test_n2_6_adversarial.py::test_latest_refresh_wins_against_a_real_out_of_order_network_response`
+   failed a gate-2 run at 680/1 and passed on an isolated rerun. Nine fixed `wait_for_timeout` sleeps
+   remain in that directory (6 in `test_n2_6`, 3 in `test_n2_7`). **This is a scoping miss of mine:** I
+   scoped the fixed-sleep sweep as "the UI suite" and operationalised it as `test_ui_*.py`, so a
+   different seat's directory was never triaged. Dispatched as N4-A1; `[landed / outstanding at report
+   time]`.
+3. **Gate 6 remains a 12-mutant spot check**, not mutation testing — and in stage 4 it ran for hours
+   under host contention from concurrent container gates, which is why its result arrived last.
+4. `factory.report` prints `stage 4: blocked` from a stale gate-8 artefact created when stage 4 was
    opened prematurely at 12:30 and withdrawn; the live record is `plan/s4-status.md`.
+5. **34 untracked scratch files sit at `stage-4/`'s root.** They cannot reach the delivered image —
+   `stage-4/Dockerfile` copies `main.py` and `service/` explicitly, not `COPY . .` — but the folder is
+   untidy. Cleanup is sequenced after the close, by each owning seat, with
+   `git clean -f -- <explicit paths>` and never under `stage-*/tests/`.
 
 ## What the record shows about the method
 
