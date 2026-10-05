@@ -5,7 +5,7 @@ Stage 3 opens with its own fresh budget: 480 minutes, $120 (`factory/budget.yaml
 
 | id | state | commit | evidence |
 |---|---|---|---|
-| N3-T | accepted (one residual fix N3-T.1) | `846862a` | 573 tests (floor 497); R-3-078/079 fixed, verified in tree |
+| N3-T | **closed** | `0de89ec` | 573 tests (floor 497); R-3-078/079 fixed, N3-T.1 fixed, scope clean |
 | N3-1 | dispatched | `900d36d` | ledger `0be7e8f6d051`, g8 PASS |
 | N3-2 | planned | — | — |
 | N3-3 | planned | — | — |
@@ -63,11 +63,25 @@ never blocked on the test fix.
   `/statement`, plus new tests that `/revisions` ignores `known_at` including a malformed value.
 - Scope `8dfcc60..HEAD` clean; 573 tests.
 
-**N3-T.1, residual, non-blocking.** `hook.py:511` reads
-`if r.status_code == 200 and r.json() != ctx["statement_first_page"]`. A **non-200** on the
-snapshot re-fetch therefore passes silently — a service that invalidated or mis-scoped its
-tokens would return 404 and the R-3-005 invariant would report green. Same silent-pass class as
-the original defect, one layer in. Gate 5's path already asserts 200; gate 4's must too.
+**N3-T.1 — fixed at `0de89ec`, and it found a fourth instance.** `hook.py:509` had
+`if r.status_code == 200 and r.json() != ctx["statement_first_page"]`, so a **non-200** snapshot
+re-fetch fell through to `return True, "ok"` — a service that invalidated, mis-scoped or dropped
+its tokens would have passed gate 4's R-3-005 check. Now split into a status check that fails
+with status+body naming R-3-082, then the body comparison, matching gate 5's existing
+`assert snap.status_code == 200`.
+
+@redline then audited the whole file on its own initiative and found one more of the same class,
+**pre-existing from the stage-2 hook**: the holds/captured-amount reconciliation fell back to an
+empty `/activity` feed on a non-200, which made the reconciliation vacuously skip rather than
+catch a real defect. Also fixed to hard-fail. That was a good catch and not something I asked for.
+
+Verification at `0de89ec`: `grep -n "status_code == 200 and"` over `hook.py` prints **nothing**;
+the other ten response checks in the file all use `!= 200`. Scope `8dfcc60..HEAD` clean.
+
+**Four instances of "a check that cannot fail" in one hook** — wrong field name, truthiness
+guard, conditional comparison, and the feed fallback. That is why `plan/lessons.md` states the
+rule generically: it is the failure mode most likely to let a hidden check through, and it is
+invisible to a green test run by construction.
 
 ## Carried into this stage from stage 2's partial close
 
