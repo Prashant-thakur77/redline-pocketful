@@ -392,7 +392,13 @@ def invariant(base_url: str, ctx: dict) -> tuple[bool, str]:
             if a["payment_ids"]:
                 if u["handle"] not in feeds:
                     feed_resp = _get(base_url, "/activity", headers=_auth(u["token"]), params={"limit": 200})
-                    feeds[u["handle"]] = feed_resp.json()["payments"] if feed_resp.status_code == 200 else []
+                    # same class as the statement re-fetch fix: a non-200 here
+                    # must fail the invariant, not silently fall back to an
+                    # empty feed that happens to make the reconciliation
+                    # below vacuously skip instead of catching a real defect.
+                    if feed_resp.status_code != 200:
+                        return False, f"GET /activity failed for {u['handle']}: {feed_resp.status_code} {feed_resp.text}"
+                    feeds[u["handle"]] = feed_resp.json()["payments"]
                 matched = [p["amount"] for p in feeds[u["handle"]] if p["payment_id"] in a["payment_ids"]]
                 if len(matched) == len(a["payment_ids"]) and sum(matched) != a["captured_amount"]:
                     return False, (f"authorization {aid} captured_amount {a['captured_amount']} != "
@@ -506,7 +512,13 @@ def invariant(base_url: str, ctx: dict) -> tuple[bool, str]:
         token = next(u["token"] for u in ctx["users"] if u["handle"] == ctx["statement_snapshot_user"])
         r = _get(base_url, "/statement", headers=_auth(token),
                  params={"limit": 5, "snapshot": ctx["statement_snapshot"]})
-        if r.status_code == 200 and r.json() != ctx["statement_first_page"]:
+        # R-3-082: the token must keep resolving to that exact frozen page —
+        # a non-200 re-fetch (expired/scoped-wrong/dropped-on-write) is a
+        # violation, never a silent pass, same as a 200 with a changed body.
+        if r.status_code != 200:
+            return False, (f"statement page re-fetch with the pre-storm snapshot failed: "
+                            f"{r.status_code} {r.text}")
+        if r.json() != ctx["statement_first_page"]:
             return False, (f"statement page re-fetched with the pre-storm snapshot changed: "
                             f"before={ctx['statement_first_page']} after={r.json()}")
 
