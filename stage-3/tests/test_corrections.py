@@ -30,6 +30,13 @@ from datetime import datetime, timedelta, timezone
 from conftest import (api_get, api_post, assert_error, auth, idem, login_token, make_fixture,
                        reset_ok, two_user_fixture, unique, unique_handle, user)
 
+# Computed once at import time, not per call: a caller relying on the
+# default must get the exact same value every time, or a genuine replay
+# (same key, intentionally identical body) would silently send a
+# different body each call and legitimately 409 idempotency_key_reuse
+# instead of replaying.
+_DEFAULT_EFFECTIVE_AT = datetime.now(timezone.utc).isoformat()
+
 
 def _make_payment(token_from, to_handle, amount=1000, note="corr-target"):
     r = api_post("/payments", json={"to_handle": to_handle, "amount": amount, "note": note},
@@ -40,7 +47,7 @@ def _make_payment(token_from, to_handle, amount=1000, note="corr-target"):
 
 def _correct(token, payment_id, expected_revision, amount, effective_at=None, reason="correction", key=None):
     body = {"expected_revision": expected_revision, "amount": amount,
-            "effective_at": effective_at or datetime.now(timezone.utc).isoformat(), "reason": reason}
+            "effective_at": effective_at or _DEFAULT_EFFECTIVE_AT, "reason": reason}
     return api_post(f"/payments/{payment_id}/corrections", json=body,
                      headers={**auth(token), **idem(key or unique("k"))})
 
@@ -83,7 +90,7 @@ def test_correction_stale_expected_revision_is_409():
     """R-3-053: the FIRST correction with a stale expected_revision (not
     matching the payment's current revision) must be rejected, leaving the
     payment at its prior revision."""
-    fixture, token_a, token_b = two_user_fixture()
+    fixture, token_a, token_b = two_user_fixture(balance_a=10_000, balance_b=0)
     b_handle = fixture["users"][1]["handle"]
     pay_id = _make_payment(token_a, b_handle, amount=500)
 
@@ -110,6 +117,24 @@ def test_correction_insufficient_funds_rejected():
 
     assert api_get("/me", headers=auth(token_a)).json()["balance"] == 500
     assert api_get("/me", headers=auth(token_b)).json()["balance"] == 500
+
+
+def test_rejected_correction_leaves_idempotency_key_reusable():
+    """R-3-061: a key whose correction was rejected (409 here) is a first
+    use, not a claimed one — the same key must work normally afterward,
+    exactly like R-1-107 for every other write path."""
+    fixture, token_a, token_b = two_user_fixture(balance_a=1000, balance_b=0)
+    b_handle = fixture["users"][1]["handle"]
+    pay_id = _make_payment(token_a, b_handle, amount=500)
+    key = unique("retry-after-rejection")
+
+    rejected = _correct(token_a, pay_id, expected_revision=1, amount=1000 + 1, key=key)
+    assert_error(rejected, 409, "insufficient_funds")
+
+    retried = _correct(token_a, pay_id, expected_revision=1, amount=800, key=key)
+    assert retried.status_code == 201, retried.text
+    assert api_get("/me", headers=auth(token_a)).json()["balance"] == 1000 - 800
+    assert api_get("/me", headers=auth(token_b)).json()["balance"] == 800
 
 
 def test_correction_zero_amount_is_legal_and_distinct_from_rejection():

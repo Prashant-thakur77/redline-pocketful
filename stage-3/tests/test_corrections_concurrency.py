@@ -12,10 +12,10 @@ import threading
 from conftest import api_get, api_post, auth, idem, two_user_fixture, unique
 
 
-def _correct(token, payment_id, expected_revision, amount, key, results, index):
+def _correct(token, payment_id, expected_revision, amount, key, results, index, reason="correction"):
     r = api_post(f"/payments/{payment_id}/corrections",
                 json={"expected_revision": expected_revision, "amount": amount,
-                      "effective_at": "2026-01-01T00:00:00+00:00", "reason": f"race-{index}"},
+                      "effective_at": "2026-01-01T00:00:00+00:00", "reason": reason},
                 headers={**auth(token), **idem(key)})
     results[index] = (r.status_code, r.text)
 
@@ -33,9 +33,13 @@ def test_two_concurrent_corrections_from_the_same_base_revision_exactly_one_wins
 
     n = 8
     results = [None] * n
+    # each racer has its own key AND its own reason: the keys already make
+    # these distinct requests regardless of reason, so a distinct reason
+    # per racer is harmless here (unlike the shared-key replay test below,
+    # where every thread must send a byte-identical body).
     threads = [
         threading.Thread(target=_correct, args=(token_a, pay_id, 1, 100 + i * 10,
-                                                  unique(f"race-{i}"), results, i))
+                                                  unique(f"race-{i}"), results, i, f"race-{i}"))
         for i in range(n)
     ]
     for t in threads:
@@ -70,8 +74,11 @@ def test_concurrent_identical_retries_of_the_same_key_apply_exactly_once():
     key = unique("shared-retry-key")
     n = 8
     results = [None] * n
+    # a genuine replay: every thread must send the exact same body (same
+    # reason too), or the shared key legitimately produces 409
+    # idempotency_key_reuse instead of a clean single-application replay.
     threads = [
-        threading.Thread(target=_correct, args=(token_a, pay_id, 1, 500, key, results, i))
+        threading.Thread(target=_correct, args=(token_a, pay_id, 1, 500, key, results, i, "shared-retry-reason"))
         for i in range(n)
     ]
     for t in threads:
