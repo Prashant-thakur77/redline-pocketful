@@ -798,3 +798,56 @@ N4-5; if the clock ends first it is recorded as a known gap with this scenario, 
 
 I asked @redline for a combined-historical-overdraft test. @adversary's permanent test already covers it
 and sits in gate 2's collection, so the duplicate buys nothing. Withdrawn before it was started.
+
+---
+
+## TICK 2026-10-06T01:50Z — N4-7 and N4-C5 cancelled: I invented them. N4-8 is already satisfied. The endgame is one gap and the close.
+
+### Two items in my own plan are not requirements
+
+I checked the specs instead of my plan:
+
+| file | `data-testid` | `browser` / `screen` / `route` |
+|---|---|---|
+| `stage-2.md` | 7 | present |
+| `stage-3.md` | **0** | **0** |
+| `stage-4.md` | **0** | **0** |
+
+**Every UI requirement in the pocketful track comes from `stage-2.md`** and is carried forward intact —
+which is exactly what gate 7 checks, and g7 has been PASS throughout stage 4. So:
+
+- **N4-7 ("UI for refunds and batch corrections") is cancelled.** Not deferred, not partial —
+  it was never a requirement. I wrote it into `plan/s4-dag.md` myself.
+- **N4-C5 ("statement and correction UI", re-homed from N3-10) is cancelled** for the same reason:
+  `stage-3.md` specifies no UI either.
+
+This matters for the final report, which would otherwise have claimed stage 3 and stage 4 shipped with
+UI work undone. The honest statement is the opposite: **stages 3 and 4 add no UI surface, and the
+stage-2 UI they carry is intact and verified by g7.** Reporting invented scope as a shortfall would have
+understated the result and misled anyone reading it.
+
+It also would have cost the last of the clock. Had I dispatched N4-7 instead of checking, @builder would
+have spent the remaining stage budget building screens no check asks for, while the one demonstrated
+money gap went unfixed.
+
+### N4-8 is already satisfied
+
+At N4-3's gate-2 run (`N4-3-g2-20261005T184705-a864.log`): **678 passed, 1 failed**, and that single
+failure was @adversary's own BREACH test. So all three of `test_concurrency_s4.py`'s tests — R-4-081
+(concurrent refunds beyond the cumulative ceiling), R-4-082 (refund racing a correction), R-4-083 /
+R-4-059 (concurrent batches sharing a payment) — were **already green**. The existing global write-lock
+discipline satisfies them; no N4-8 build item is needed, and g4's 1300-op storm passing repeatedly is
+independent corroboration.
+
+As with N4-5's first three stages, the work was done inside an earlier item rather than left undone. I am
+recording it as satisfied-by-evidence, not assuming it.
+
+### What is actually left
+
+1. **N4-5's `available`-at-historical-boundaries half** — the one demonstrated, reachable gap
+   (released-hold scenario, two ticks up). @builder has it.
+2. **The stage close** — `--gates all --track pocketful --kickoff /home/prashant/projects/dark-factory-wearedevs`,
+   with `--scope cc9544e..<tip>`.
+
+That is the whole remaining stage. Everything else has either landed or turned out not to be a
+requirement.

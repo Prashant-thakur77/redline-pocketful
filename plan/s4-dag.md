@@ -17,7 +17,7 @@ something already built rather than a new subsystem.
 | N4-4 | Batch commit semantics: shared `recorded_at`, `correction_batch_id` on revisions, input-order response, all-or-nothing, replay | R-4-003, R-4-004, R-4-052…058 | N4-3 | builder |
 | N4-5 | Batch error precedence and combined affordability, current then historical | R-4-049, R-4-050, R-4-051 | N4-4 | builder |
 | N4-6 | Import of stage-1/2/3 exports, retaining settlement membership, corrections and snapshots | R-4-070, R-4-072 | N4-1 | builder |
-| N4-7 | UI for refunds and batch corrections, carried screens intact | carried R-2-090…188 | N4-2 | builder |
+| N4-7 | ~~UI for refunds and batch corrections~~ **CANCELLED 2026-10-06T01:50Z — not a requirement.** `stage-4.md` and `stage-3.md` contain **zero** occurrences of `data-testid`, `browser`, `screen` or `route`; every UI requirement in the track comes from `stage-2.md` (7 `data-testid` mentions) and is carried forward intact, which gate 7 verifies and which is already PASS. Building refund or statement screens would be inventing surface the specification does not ask for. Only the carried R-2-090…188 apply. | carried R-2-090…188 (satisfied, g7 PASS) | — | none |
 | N4-8 | Hardening: concurrent refunds, refund-vs-correction races, concurrent batches sharing a payment | R-4-059, R-4-080…083 | N4-5, N4-6 | builder |
 
 Dispatch order: N4-T → N4-1 → N4-2 → N4-3 → N4-4 → N4-5 → (N4-6, N4-7) → N4-8.
