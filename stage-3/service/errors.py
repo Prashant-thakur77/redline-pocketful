@@ -83,6 +83,18 @@ def capture_exceeds_authorization(message: str = "capture amount exceeds the rem
     return ApiError(422, "capture_exceeds_authorization", message)
 
 
+def stale_revision(message: str = "expected_revision does not match the payment's current revision") -> ApiError:
+    return ApiError(409, "stale_revision", message)
+
+
+def linked_payment_immutable(message: str = "a settlement- or capture-produced payment cannot be corrected") -> ApiError:
+    return ApiError(422, "linked_payment_immutable", message)
+
+
+def historical_overdraft(message: str = "correction would make a balance negative at some effective instant") -> ApiError:
+    return ApiError(409, "historical_overdraft", message)
+
+
 def internal_error(message: str = "unexpected server error") -> ApiError:
     """R-1-080a: a genuine uncaught exception is a server defect, not the
     caller's fault — it must answer loudly, not hide behind a 4xx."""

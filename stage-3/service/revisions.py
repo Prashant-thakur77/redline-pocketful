@@ -114,6 +114,51 @@ def balance_before(opening_balances: dict, payments: dict, payment_revisions: di
     return total
 
 
+def would_cause_historical_overdraft(opening_balances: dict, payments: dict, payment_revisions: dict,
+                                      payment_id: str, candidate_amount: int, candidate_effective_at: str,
+                                      affected_user_ids: tuple[str, str]) -> bool:
+    """R-3-060: a correction is illegal if either party's balance would be
+    negative at ANY effective-time boundary, not just the final state —
+    checked by replaying each affected user's own payment history in
+    effective-time order (their current, latest-revision amount for every
+    payment except the one being corrected, which uses the CANDIDATE
+    amount/effective_at), batching simultaneous movements at the same
+    instant together before checking nonnegativity, exactly as a
+    statement's entries would show it. Only the payment's two parties can
+    be affected by this one payment's revision changing — no other user's
+    history depends on it."""
+    for user_id in affected_user_ids:
+        events = []
+        for p in payments.values():
+            is_from = p["from_user_id"] == user_id
+            is_to = p["to_user_id"] == user_id
+            if not (is_from or is_to):
+                continue
+            if p["id"] == payment_id:
+                amount, effective_at = candidate_amount, candidate_effective_at
+            else:
+                rev = latest_revision(payment_revisions.get(p["id"], []))
+                if rev is None:
+                    continue
+                amount, effective_at = rev["amount"], rev["effective_at"]
+            delta = -amount if is_from else amount
+            events.append((parse_rfc3339(effective_at), delta))
+        events.sort(key=lambda e: e[0])
+
+        running = opening_balances.get(user_id, 0)
+        i, n = 0, len(events)
+        while i < n:
+            batch_epoch = events[i][0]
+            batch_delta = 0
+            while i < n and events[i][0] == batch_epoch:
+                batch_delta += events[i][1]
+                i += 1
+            running += batch_delta
+            if running < 0:
+                return True
+    return False
+
+
 def validate_payment_history_nonnegative(wallets: dict, payments: dict) -> None:
     """R-3-018/R-3-002/R-3-016: replaying the seeded payments in R-3-019
     order from the opening balance must never drive a wallet negative at
