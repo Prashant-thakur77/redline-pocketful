@@ -344,3 +344,71 @@ terms that remove the question.
 **Resolved at 18:36:** @builder committed the floor check at **`ab99464`** without being asked twice,
 and its message crossed with the ruling above. `test_refund_correction_interaction.py` is 24/25, the
 one red being the R-4-036 test bug now with @redline. N4-2's remaining work is R-4-037 only.
+
+---
+
+## TICK 2026-10-05T19:00Z — R-4-037 stands; the accepted N3-6 test is wrong; the spec sentence settles it
+
+@builder implemented R-4-037, found it regresses `test_historical_overdraft.py::test_historical_overdraft_rejection_reports_the_distinct_error_code`
+(accepted N3-6 content, green until now), and refused to pick a side. Right call — this is the third
+round on the same question and it deserved a decisive answer rather than a third opinion.
+
+### The ruling: R-4-037 stands, the test's expectation is wrong
+
+`stage-3.md:106-110`, quoted in full because paraphrase is what caused this:
+
+> "The difference from the previous amount moves between the **same two wallets** in the same atomic
+> step. Increasing the amount debits the original sender; decreasing it debits the original receiver.
+> **A currently unaffordable debit gives 409 `insufficient_funds`. Otherwise,** if any user's corrected
+> balance is negative at any effective-time boundary, return 409 `historical_overdraft`."
+
+Three things are fixed by that sentence and none of them is ambiguous: the **debit is the difference**
+(not the new amount); **"currently"** means against present funds (there is no "in isolation"
+anywhere); and **"Otherwise"** makes the historical check reachable only when the debit *is* currently
+affordable. In the test's scenario A holds 50 and the delta is +100 — a currently unaffordable debit —
+so `insufficient_funds` is the specified answer and the test asserts the wrong code.
+
+### But the repair is a re-scenario, not a code flip
+
+@builder's option 1 was to change the expected code. That would be wrong in a second way: this is the
+only test proving the two codes are **distinguishable**, which is its stated purpose and a good one.
+Flipping it to `insufficient_funds` would leave nothing asserting `historical_overdraft` is reachable
+at all. The repair keeps the purpose and fixes the scenario — a delta the payer *can* currently
+afford, over a past boundary that still goes negative:
+
+| step | effect |
+|---|---|
+| fixture | A=500, B=0, C=10000 |
+| T1 | A pays B 100 → A=400 |
+| T2 | C pays A 10000 → A=10400 |
+| correct | pay1 100 → 600, **`effective_at` pinned to pay1's `created_at`** |
+
+delta=+500 against A's available 10400 → affordable now, so the historical check runs; replaying at
+T1 gives A `500 − 600 = −100` → `historical_overdraft`. **The pin is mandatory**: dated `now()`, the
+corrected payment lands after C's credit, no boundary is negative, and the answer is `201`. So this
+and R-4-036 are the same lesson arriving twice in one item.
+
+### Back-port required, and I checked the mechanics rather than assuming
+
+`factory/gates/g5_regression.py:52` runs **every earlier stage folder's tests against this stage's
+service**. So stage-3's copy of the stale expectation would fail g5 at stage-4's close.
+`grep -rl` says the test exists in exactly two places: `stage-3/tests/test_historical_overdraft.py`
+and `stage-4/tests/test_historical_overdraft.py`. Both need the re-scenario; stage-1 and stage-2 do
+not carry it. Same pattern as N3-9A.
+
+### This is a defect in stage 3's accepted content, and it goes in the final report
+
+Stage 3 is closed `partial` and is not reopenable, so the fix lands in `stage-4/` (plus the stage-3
+test copy for g5). The honest statement for the report: **stage 3 shipped an incorrect
+`insufficient_funds` / `historical_overdraft` split** — it falsely rejected affordable increases and
+never funds-checked decreases — and stage 4 found and fixed it. It is a wrong-error-code and
+false-rejection defect, not a conservation defect; no money could be created or destroyed by it.
+
+### My share of this
+
+I praised N3-6's "isolated, replay-free ceiling" when it landed. That comment was a *reinterpretation*
+of "currently unaffordable", not an implementation of it, and praising it meant @builder then defended
+it across two rounds and @redline encoded it in a test. Three artefacts now have to change because I
+complimented a paraphrase instead of checking it against the sentence. Recorded in `plan/lessons.md`:
+when an implementation comment restates a spec phrase in different words, treat the restatement as a
+proposed spec change and rule on it before approving anything.
