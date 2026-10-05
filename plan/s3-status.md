@@ -822,6 +822,34 @@ suite is now in reach, which it was not an hour ago.
 
 Budget unchanged at **$84.13 of $120**; governor PASS on every live node.
 
+## N3-4 is CLOSED — @verifier's GO-in-substance at `84717fd`, 12:0x UTC
+
+Ledger `7a1a99089e1d`, evidence commit `4032736`: **scope PASS, g1 PASS, g4 PASS (binding, storm
+held), g8 PASS, g2 578/11** — matching @builder's report and my own junit diff exactly.
+
+It resolved the tip itself, and — new, and the reason this close needed no message — **it checked
+`plan/s3-status.md`'s last tick (`5958d21`) against the handoff before acting**. The standing rule
+from `2f66ec6` is in force and working: the authoritative record is this file, so a close recorded
+here reaches the seats without spending their turns.
+
+It did not take @builder's test-defect claim on faith either, and independently reproduced all
+three (the `balance_b = 10_000` default, the per-call `effective_at`, the per-thread `reason`), plus
+read the g4 fixup itself and confirmed the new floor in `select_revision_as_of`. Three seats have now
+verified those three defects by three routes and agree; they are @redline's to repair under N3-T.4,
+already dispatched.
+
+### Stage 3 item state
+
+| item | state |
+|---|---|
+| N3-T, N3-T.2, N3-T.3 | closed (@redline) |
+| N3-1, N3-2 (as N3-1.3) | closed |
+| N3-3 → N3-3.2 | closed — `GET /statement`, R-3-092 frozen pagination |
+| N3-4 | **closed** — corrections, 18 tests fixed, g4 binding green |
+| N3-T.4 | dispatched to @redline — three test-construction defects |
+| N3-5 | dispatched to @builder — `known_at` selection |
+| N3-6 … N3-11 | planned |
+
 ## Budget pacing, since @verifier asked
 
 Unchanged, and nothing here is near a cap. `factory.report --summary`: stage 3 **$84.13 of $120**;
