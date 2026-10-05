@@ -7,7 +7,7 @@ from __future__ import annotations
 from ..routes.authorizations_read import AuthorizationsListEndpoint
 from ..store import STORE
 from .calls import call_authed
-from .layout import esc, format_amount
+from .layout import empty_state_html, esc, format_amount
 
 _AUTHORIZATIONS_LIST = AuthorizationsListEndpoint()
 
@@ -61,7 +61,8 @@ def render_authorizations_body(user: dict, token: str) -> str:
     # no holds times out waiting for an element that never existed.
     empty_marker = ""
     if not authorizations:
-        empty_marker = '<p data-testid="empty-authorizations" class="empty-state">No authorizations yet.</p>'
+        empty_marker = empty_state_html("empty-authorizations", "No authorizations yet.",
+                                         cta_label="Go to Home to authorize a hold", cta_href="/")
     items_html = "".join(_authorization_item_html(a, user["id"], minor_units) for a in authorizations)
     return f"""<section class="placeholder-card">
   <h1>Authorizations</h1>

@@ -4,9 +4,11 @@
   --color-border: #d8dee6;
   --color-text: #1b2430;
   --color-muted: #4b5563;
-  --color-primary: #156a4a;
-  --color-primary-contrast: #ffffff;
-  --color-accent: #0f5fa8;
+  /* One accent colour, used consistently everywhere (R-U-019): links,
+     the headline wallet figure, primary buttons and the active tab all
+     share this single hue rather than two unrelated ones. */
+  --color-accent: #0f6a4a;
+  --color-accent-contrast: #ffffff;
   --color-danger: #a4232f;
   --space-1: 4px;
   --space-2: 8px;
@@ -16,6 +18,21 @@
   --space-6: 32px;
   --radius: 10px;
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* R-U-019/R-2-xxx: prefers-color-scheme: dark, contrast kept AA in both
+   schemes -- only the variables change, every rule below reads them. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #0f1115;
+    --color-surface: #1a1d23;
+    --color-border: #30343c;
+    --color-text: #eef1f5;
+    --color-muted: #a7afbc;
+    --color-accent: #4fd68c;
+    --color-accent-contrast: #06231a;
+    --color-danger: #ff8a8a;
+  }
 }
 
 * {
@@ -35,6 +52,9 @@ html, body {
 body {
   min-height: 100vh;
   overflow-x: hidden;
+  /* room for the fixed bottom tab bar at narrow widths; harmless no-op
+     above 480px since the bar is hidden there. */
+  padding-bottom: 64px;
 }
 
 a {
@@ -52,10 +72,18 @@ a {
 }
 
 .brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
   font-weight: 700;
   font-size: 1.1rem;
   text-decoration: none;
   color: var(--color-text);
+}
+
+.brand-mark {
+  color: var(--color-accent);
+  flex-shrink: 0;
 }
 
 .main-nav {
@@ -189,8 +217,8 @@ a:focus {
 }
 
 .btn-primary {
-  background: var(--color-primary);
-  color: var(--color-primary-contrast);
+  background: var(--color-accent);
+  color: var(--color-accent-contrast);
 }
 
 .btn-ghost {
@@ -253,7 +281,7 @@ a:focus {
 .wallet-available {
   font-size: 2.25rem;
   font-weight: 700;
-  color: var(--color-primary);
+  color: var(--color-accent);
 }
 
 .wallet-balance {
@@ -337,7 +365,7 @@ a:focus {
 }
 
 .list-item-captured {
-  color: var(--color-primary);
+  color: var(--color-accent);
   font-weight: 600;
 }
 
@@ -373,6 +401,65 @@ a:focus {
   margin: 0;
 }
 
+/* ---------------------------------------------------------------------
+ * Bottom tab bar (R-U-016): an ADDITIONAL nav surface, always present in
+ * the DOM so nothing depends on JS to appear, shown only under 480px --
+ * the top .main-nav's links point at the identical routes and are not
+ * form fields any frozen suite fills, so hiding one in favour of the
+ * other at narrow widths changes no DOM a test depends on (R-U-005).
+ * --------------------------------------------------------------------- */
+.bottom-tab-bar {
+  display: none;
+}
+
+.wallet-label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  margin: 0 0 2px;
+}
+
+.wallet-line {
+  margin: var(--space-2) 0;
+}
+
+.wallet-line-primary {
+  margin: 0 0 var(--space-3);
+}
+
+/* ---------------------------------------------------------------------
+ * Empty states (R-U-017): an icon, one sentence, a call to action --
+ * the same `data-testid` every frozen suite already locates by presence
+ * only, never by its text, so the content inside is free to change.
+ * --------------------------------------------------------------------- */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-bg);
+}
+
+.empty-state-icon {
+  color: var(--color-muted);
+  opacity: 0.6;
+}
+
+.empty-state-text {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+.empty-state-cta {
+  margin-top: 0;
+}
+
 @media (max-width: 480px) {
   .app-header {
     padding: var(--space-3) var(--space-4);
@@ -380,5 +467,47 @@ a:focus {
 
   .app-main {
     padding: var(--space-4);
+  }
+
+  /* R-U-016: single-row header at 375px -- the nav links move to the
+     bottom tab bar, the header keeps only the brand and the user chip. */
+  .main-nav {
+    display: none;
+  }
+
+  .bottom-tab-bar {
+    display: flex;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10;
+    background: var(--color-surface);
+    border-top: 1px solid var(--color-border);
+    padding: var(--space-1) var(--space-2);
+    padding-bottom: max(var(--space-1), env(safe-area-inset-bottom));
+  }
+
+  .tab-link {
+    flex: 1 1 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    min-height: 48px;
+    padding: var(--space-1);
+    text-decoration: none;
+    color: var(--color-muted);
+    border-radius: var(--radius);
+  }
+
+  .tab-label {
+    font-size: 0.68rem;
+    font-weight: 600;
+  }
+
+  .tab-link-active {
+    color: var(--color-accent);
   }
 }

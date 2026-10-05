@@ -8,7 +8,7 @@ from __future__ import annotations
 from ..routes.requests_read import RequestsListEndpoint
 from ..store import STORE
 from .calls import call_authed
-from .layout import esc, format_amount
+from .layout import empty_state_html, esc, format_amount
 
 _REQUESTS_LIST = RequestsListEndpoint()
 
@@ -57,7 +57,8 @@ def render_requests_body(user: dict, token: str) -> str:
     # timed out waiting for an element that genuinely never existed.
     empty_marker = ""
     if not incoming and not outgoing:
-        empty_marker = '<p data-testid="empty-requests" class="empty-state">No requests yet.</p>'
+        empty_marker = empty_state_html("empty-requests", "No requests yet.",
+                                         cta_label="Go to Home to request money", cta_href="/")
     incoming_html = "".join(_request_item_html(r, user["id"], minor_units) for r in incoming)
     outgoing_html = "".join(_request_item_html(r, user["id"], minor_units) for r in outgoing)
     return f"""<section class="placeholder-card">

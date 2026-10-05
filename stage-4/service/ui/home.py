@@ -17,26 +17,41 @@ from __future__ import annotations
 from ..routes.activity import ActivityEndpoint
 from ..routes.me import MeEndpoint
 from .calls import call_authed as _call_authed
-from .layout import esc, format_amount
+from .layout import empty_state_html, esc, format_amount
 
 _ME_ENDPOINT = MeEndpoint()
 _ACTIVITY_ENDPOINT = ActivityEndpoint()
 
 
 def _wallet_html(me: dict) -> str:
+    """R-U-010: Available is the headline figure, with labelled Total and
+    On-hold lines beneath it. The label spans are ADDITIONAL elements
+    beside each testid'd amount (R-U-011) -- `wallet-balance`/
+    `wallet-available`/`wallet-held` keep their existing `data-testid`,
+    exact `"<decimal> <CODE>"` text and `data-amount` attribute
+    untouched; only the DOM order and the added labels change. Held
+    stays conditional on being present at all (R-2-xxx: absent, not
+    zeroed, when there is nothing on hold)."""
     currency, minor_units = me["currency"], me["minor_units"]
     balance_fmt = esc(format_amount(me["total"], currency, minor_units))
     available_fmt = esc(format_amount(me["available"], currency, minor_units))
     held_html = ""
     if me["held"] > 0:
         held_fmt = esc(format_amount(me["held"], currency, minor_units))
-        held_html = (f'<p data-testid="wallet-held" data-amount="{me["held"]}" '
-                      f'class="wallet-amount wallet-held">{held_fmt}</p>')
+        held_html = (f'<p class="wallet-line"><span class="wallet-label">On hold</span>'
+                      f'<span data-testid="wallet-held" data-amount="{me["held"]}" '
+                      f'class="wallet-amount wallet-held">{held_fmt}</span></p>')
     return f"""<section class="wallet-card" aria-label="Wallet">
   <h1>Wallet</h1>
-  <p data-testid="wallet-balance" data-amount="{me["total"]}" class="wallet-amount wallet-balance">{balance_fmt}</p>
-  <p data-testid="wallet-available" data-amount="{me["available"]}"
-     class="wallet-amount wallet-available">{available_fmt}</p>
+  <p class="wallet-line-primary">
+    <span class="wallet-label">Available</span>
+    <span data-testid="wallet-available" data-amount="{me["available"]}"
+       class="wallet-amount wallet-available">{available_fmt}</span>
+  </p>
+  <p class="wallet-line">
+    <span class="wallet-label">Total</span>
+    <span data-testid="wallet-balance" data-amount="{me["total"]}" class="wallet-amount wallet-balance">{balance_fmt}</span>
+  </p>
   {held_html}
   <button type="button" data-testid="wallet-refresh" class="btn btn-ghost">Refresh</button>
 </section>"""
@@ -51,7 +66,7 @@ def _field(label: str, testid: str, *, name: str, type_: str = "text", required:
 
 
 def _pay_form_html() -> str:
-    return f"""<section class="form-card">
+    return f"""<section class="form-card" id="pay-form">
   <h2>Pay</h2>
   <form data-testid="pay-form" data-state="idle" class="form" novalidate>
     {_field("To (handle)", "pay-handle", name="handle")}
@@ -117,7 +132,8 @@ def _activity_item_html(p: dict, minor_units: int) -> str:
 
 def _activity_html(payments: list[dict], minor_units: int) -> str:
     if not payments:
-        inner = '<p data-testid="empty-activity" class="empty-state">No activity yet.</p>'
+        inner = empty_state_html("empty-activity", "No activity yet.",
+                                  cta_label="Send your first payment", cta_href="#pay-form")
     else:
         # R-2-132: already newest-first (ActivityEndpoint sorts by seq
         # descending) — rendered in the order given, never re-sorted here.
