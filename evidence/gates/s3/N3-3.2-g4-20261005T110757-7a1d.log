@@ -1,0 +1,5 @@
+ops 1300 (1000 unique, 300 replays), concurrency 50, 1.8s
+statuses {201: 600, 200: 264, 409: 387, 404: 49}
+invariant: False — GET /statement is available but returned no 'snapshot' token (R-3-080)
+
+RESULT: FAIL — invariant broken after storm: GET /statement is available but returned no 'snapshot' token (R-3-080)
