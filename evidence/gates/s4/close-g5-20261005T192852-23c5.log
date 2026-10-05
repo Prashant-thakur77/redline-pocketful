@@ -1,0 +1,129 @@
+$ docker build --label redline-gate=1 -t redline-gate-89010cc2a7 /tmp/redline-wt-bahc3l4c/stage-4  (exit 0)
+
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 176B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/4] FROM docker.io/library/python:3.12-slim
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 2.17kB done
+#5 DONE 0.0s
+
+#6 [3/4] COPY main.py ./main.py
+#6 CACHED
+
+#7 [2/4] WORKDIR /app
+#7 CACHED
+
+#8 [4/4] COPY service ./service
+#8 CACHED
+
+#9 exporting to image
+#9 exporting layers done
+#9 writing image sha256:1e92f19bf85945c7de61283b7dddaa573a95d3eec33e758a438c21173d4cfdb5 done
+#9 naming to docker.io/library/redline-gate-89010cc2a7 done
+#9 DONE 0.0s
+
+$ docker network create --internal redline-net-1e40efdb57  (exit 0)
+1f7886d1d4f06bf663a3ede4e53eb7e7f94d6118c98438eefc0cacf0d0fad691
+
+
+$ docker run -d --network redline-net-1e40efdb57 --cpus 2 --memory 2g -e PORT=8080 redline-gate-89010cc2a7  (exit 0)
+016bbe9a9fba72ff6cc84d4535bb740d03b8ce40a9b5792db7795f43992f3763
+
+
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /tmp/redline-wt-bahc3l4c/stage-1/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s4/close-g5-20261005T192852-23c5.junit.xml  (exit 0)
+........................................................................ [ 22%]
+........................................................................ [ 45%]
+........................................................................ [ 68%]
+........................................................................ [ 91%]
+..........................                                               [100%]
+314 passed in 197.40s (0:03:17)
+
+
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /tmp/redline-wt-bahc3l4c/stage-2/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s4/close-g5-20261005T192852-23c5.junit.xml  (exit 0)
+........................................................................ [ 14%]
+........................................................................ [ 28%]
+........................................................................ [ 43%]
+........................................................................ [ 57%]
+........................................................................ [ 72%]
+........................................................................ [ 86%]
+.................................................................        [100%]
+497 passed in 270.35s (0:04:30)
+
+
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /tmp/redline-wt-bahc3l4c/stage-3/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s4/close-g5-20261005T192852-23c5.junit.xml  (exit 0)
+........................................................................ [ 11%]
+........................................................................ [ 23%]
+........................................................................ [ 35%]
+........................................................................ [ 46%]
+........................................................................ [ 58%]
+........................................................................ [ 70%]
+........................................................................ [ 81%]
+........................................................................ [ 93%]
+........................................                                 [100%]
+616 passed in 282.81s (0:04:42)
+
+
+$ docker build --label redline-gate=1 -t redline-gate-0702228ebb /tmp/redline-wt-bahc3l4c/stage-3  (exit 0)
+
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 176B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/4] FROM docker.io/library/python:3.12-slim
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 2.07kB done
+#5 DONE 0.0s
+
+#6 [2/4] WORKDIR /app
+#6 CACHED
+
+#7 [3/4] COPY main.py ./main.py
+#7 CACHED
+
+#8 [4/4] COPY service ./service
+#8 CACHED
+
+#9 exporting to image
+#9 exporting layers done
+#9 writing image sha256:5184a0148e4b224454679d97ea155381fa0523f1ebbb6a667194a6ed92b63c65 done
+#9 naming to docker.io/library/redline-gate-0702228ebb 0.0s done
+#9 DONE 0.0s
+
+$ docker network create --internal redline-net-7b0a95d944  (exit 0)
+4dcc97e41971e91a6c67f91e7e7792b112a68c4b344703d398d011d32e04c100
+
+
+$ docker run -d --network redline-net-7b0a95d944 --cpus 2 --memory 2g -e PORT=8080 redline-gate-0702228ebb  (exit 0)
+e8864fccd2d88e473013cf3cd88034971c773f9110c936ae9c1a2277a7525f46
+
+
+--- service log (tail) ---
+
+
+RESULT: FAIL — upgrade check failed: AssertionError: remembered statement snapshot stopped resolving: 404 {"error": {"code": "not_found", "message": "no such snapshot"}}
+--- service log (tail) ---
+

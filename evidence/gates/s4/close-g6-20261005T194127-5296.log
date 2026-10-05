@@ -1,0 +1,918 @@
+$ docker build --label redline-gate=1 -t redline-mut-436eb769-base /tmp/redline-mut-i9ib28a4/stage-4  (exit 0)
+
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 176B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/4] FROM docker.io/library/python:3.12-slim
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 269.44kB done
+#5 DONE 0.0s
+
+#6 [2/4] WORKDIR /app
+#6 CACHED
+
+#7 [3/4] COPY main.py ./main.py
+#7 CACHED
+
+#8 [4/4] COPY service ./service
+#8 CACHED
+
+#9 exporting to image
+#9 exporting layers done
+#9 writing image sha256:1e92f19bf85945c7de61283b7dddaa573a95d3eec33e758a438c21173d4cfdb5
+#9 writing image sha256:1e92f19bf85945c7de61283b7dddaa573a95d3eec33e758a438c21173d4cfdb5 0.0s done
+#9 naming to docker.io/library/redline-mut-436eb769-base 0.0s done
+#9 DONE 0.1s
+
+$ docker network create --internal redline-net-5fd22524f2  (exit 0)
+d0f7c6c82f10a9ef070af9da49b2f44e5b0d80be21635f33579f999c011b0d4f
+
+
+$ docker run -d --network redline-net-5fd22524f2 --cpus 2 --memory 2g -e PORT=8080 redline-mut-436eb769-base  (exit 0)
+6da90c108eace6d5e5dbdf30f4178583aef34509b6a09ac254c24a138dc94ab8
+
+
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /tmp/redline-mut-i9ib28a4/stage-4/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s4/close-g6-20261005T194127-5296.junit.xml  (exit 0)
+........................................................................ [ 10%]
+........................................................................ [ 21%]
+........................................................................ [ 31%]
+........................................................................ [ 42%]
+........................................................................ [ 52%]
+........................................................................ [ 63%]
+........................................................................ [ 74%]
+........................................................................ [ 84%]
+........................................................................ [ 95%]
+.................................                                        [100%]
+681 passed in 299.67s (0:04:59)
+
+
+--- service log (tail) ---
+
+baseline green in 302s; mutant time limit 664s
+$ docker build --label redline-gate=1 -t redline-mut-436eb769-1 /tmp/redline-mut-i9ib28a4/stage-4  (exit 0)
+
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 176B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/4] FROM docker.io/library/python:3.12-slim
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 269.44kB done
+#5 DONE 0.0s
+
+#6 [2/4] WORKDIR /app
+#6 CACHED
+
+#7 [3/4] COPY main.py ./main.py
+#7 CACHED
+
+#8 [4/4] COPY service ./service
+#8 DONE 0.0s
+
+#9 exporting to image
+#9 exporting layers 0.0s done
+#9 writing image sha256:edcd6fef6a5e0fa77e1d1872302e949893f5f45f72c51274b976ea6501052601 done
+#9 naming to docker.io/library/redline-mut-436eb769-1 done
+#9 DONE 0.1s
+
+$ docker network create --internal redline-net-f0ad89f482  (exit 0)
+fcf2bc35624d5bb3b4446bd35da98cb893f1af0c99e0720e51af7b606d7e303b
+
+
+$ docker run -d --network redline-net-f0ad89f482 --cpus 2 --memory 2g -e PORT=8080 redline-mut-436eb769-1  (exit 0)
+e7680f0696d68fb38a754abb27c7a5ba4ff7f349e4b8f2db98f0920865a03e90
+
+
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /tmp/redline-mut-i9ib28a4/stage-4/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s4/close-g6-20261005T194127-5296.junit.xml -x  (exit 1)
+........................................................................ [ 10%]
+........................................................................ [ 21%]
+........................................................................ [ 31%]
+........................................................................ [ 42%]
+........................................................................ [ 52%]
+........................................................................ [ 63%]
+............................................F
+=================================== FAILURES ===================================
+_______ test_refund_appears_in_activity_and_statement_with_own_revision ________
+
+    def test_refund_appears_in_activity_and_statement_with_own_revision():
+        """R-4-023: a refund is an ordinary payment in /activity and has its
+        own revision 1 (R-3-015), nothing exempts it."""
+        fixture, token_a, token_b = two_user_fixture(balance_a=1000, balance_b=0)
+        b_handle = fixture["users"][1]["handle"]
+        pay = _make_payment(token_a, b_handle, amount=500, visibility="public")
+    
+        r = _refund(token_b, pay["payment_id"], 200)
+        assert r.status_code == 201, r.text
+        refund_id = r.json()["payment_id"]
+    
+        feed_a = api_get("/activity", headers=auth(token_a)).json()["payments"]
+        assert any(p["payment_id"] == refund_id for p in feed_a)
+    
+        revisions = api_get(f"/payments/{refund_id}/revisions", headers=auth(token_a))
+>       assert revisions.status_code == 200, revisions.text
+E       AssertionError: {"error": {"code": "not_found", "message": "no such payment"}}
+E       assert 404 == 200
+E        +  where 404 = <Response [404 Not Found]>.status_code
+
+/tmp/redline-mut-i9ib28a4/stage-4/tests/test_refunds.py:356: AssertionError
+=========================== short test summary info ============================
+FAILED ../../../../../tmp/redline-mut-i9ib28a4/stage-4/tests/test_refunds.py::test_refund_appears_in_activity_and_statement_with_own_revision
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+1 failed, 476 passed in 243.70s (0:04:03)
+
+
+--- service log (tail) ---
+
+#1 service/routes/revisions.py:27 [ne to eq]: killed
+   - if resource["from_user_id"] != user_id and resource["to_user_id"] != user_id:
+   + if resource["from_user_id"] != user_id and resource["to_user_id"] == user_id:
+$ docker build --label redline-gate=1 -t redline-mut-436eb769-2 /tmp/redline-mut-i9ib28a4/stage-4  (exit 0)
+
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 176B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/4] FROM docker.io/library/python:3.12-slim
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 269.44kB done
+#5 DONE 0.0s
+
+#6 [2/4] WORKDIR /app
+#6 CACHED
+
+#7 [3/4] COPY main.py ./main.py
+#7 CACHED
+
+#8 [4/4] COPY service ./service
+#8 DONE 0.0s
+
+#9 exporting to image
+#9 exporting layers 0.0s done
+#9 writing image sha256:655ba38936a892bde9d60415fd2c0d91291576dccb24446b1aba18f8b738335b done
+#9 naming to docker.io/library/redline-mut-436eb769-2 done
+#9 DONE 0.0s
+
+$ docker network create --internal redline-net-fc7626cd14  (exit 0)
+d49a9ae48b9f297d19291d1e87690d702a7fbbff5b0ddb5a766149737dc18b42
+
+
+$ docker run -d --network redline-net-fc7626cd14 --cpus 2 --memory 2g -e PORT=8080 redline-mut-436eb769-2  (exit 0)
+0e5ab75444bbcb8898859b054b7dba6d5359896920ebbe98f64d4af6aab1adc3
+
+
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /tmp/redline-mut-i9ib28a4/stage-4/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s4/close-g6-20261005T194127-5296.junit.xml -x  (exit 1)
+........................................................................ [ 10%]
+..............................................................F
+=================================== FAILURES ===================================
+_______ test_stale_pay_button_disappears_after_another_client_pays_first _______
+
+page = <Page url='http://192.168.160.2:8080/requests'>
+
+    def test_stale_pay_button_disappears_after_another_client_pays_first(page):
+        """R-2-156: a request paid by another client while this page's pay
+        button is still visible must show request-error on the refused
+        retry and the stale button must disappear after the refresh."""
+        a_id, b_id = unique("u"), unique("u")
+        a_handle, b_handle = unique_handle("ra"), unique_handle("rb")
+        fixture = make_fixture([user(a_id, a_handle, balance=1000), user(b_id, b_handle, balance=0)])
+        reset_ok(fixture)
+        a_token = httpx.post(url("/auth/login"), json={"email": fixture["users"][0]["email"], "password": "password123"}, timeout=10.0).json()["token"]
+        b_token = httpx.post(url("/auth/login"), json={"email": fixture["users"][1]["email"], "password": "password123"}, timeout=10.0).json()["token"]
+        rreq = httpx.post(url("/requests"), json={"payer_handle": a_handle, "amount": 50},
+                           headers={"Authorization": f"Bearer {b_token}", "Idempotency-Key": unique("mkreq")}, timeout=10.0)
+        assert rreq.status_code == 201, rreq.text
+        req_id = rreq.json()["request_id"]
+    
+        page.goto(url("/login"), wait_until="load")
+        page.fill(tid("login-email"), fixture["users"][0]["email"])
+        page.fill(tid("login-password"), "password123")
+        page.click(tid("login-submit"))
+        page.wait_for_load_state("load")
+        page.goto(url("/requests"), wait_until="load")
+>       assert page.locator(f'[data-testid="request-pay-{req_id}"]').count() == 1
+E       assert 0 == 1
+E        +  where 0 = count()
+E        +    where count = <Locator frame=<Frame name= url='http://192.168.160.2:8080/requests'> selector='[data-testid="request-pay-5BHTdRNvxIawabiGOZe8bQ"]'>.count
+E        +      where <Locator frame=<Frame name= url='http://192.168.160.2:8080/requests'> selector='[data-testid="request-pay-5BHTdRNvxIawabiGOZe8bQ"]'> = locator('[data-testid="request-pay-5BHTdRNvxIawabiGOZe8bQ"]')
+E        +        where locator = <Page url='http://192.168.160.2:8080/requests'>.locator
+
+/tmp/redline-mut-i9ib28a4/stage-4/tests/adversarial/test_n2_7_adversarial.py:176: AssertionError
+=========================== short test summary info ============================
+FAILED ../../../../../tmp/redline-mut-i9ib28a4/stage-4/tests/adversarial/test_n2_7_adversarial.py::test_stale_pay_button_disappears_after_another_client_pays_first
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+1 failed, 134 passed in 197.22s (0:03:17)
+
+
+--- service log (tail) ---
+
+#2 service/routes/requests_read.py:56 [eq to ne]: killed
+   - is_payer = r["payer_id"] == user_id
+   + is_payer = r["payer_id"] != user_id
+$ docker build --label redline-gate=1 -t redline-mut-436eb769-3 /tmp/redline-mut-i9ib28a4/stage-4  (exit 0)
+
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 176B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/4] FROM docker.io/library/python:3.12-slim
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 9.76kB done
+#5 DONE 0.0s
+
+#6 [2/4] WORKDIR /app
+#6 CACHED
+
+#7 [3/4] COPY main.py ./main.py
+#7 CACHED
+
+#8 [4/4] COPY service ./service
+#8 DONE 0.0s
+
+#9 exporting to image
+#9 exporting layers 0.0s done
+#9 writing image sha256:48d15fe66cc495bc28b820c7d63752b4b76592940028de4d1bbbfcdd63c798be done
+#9 naming to docker.io/library/redline-mut-436eb769-3 done
+#9 DONE 0.0s
+
+$ docker network create --internal redline-net-d9c7ab38df  (exit 0)
+bbf8736673482021f5e47ea42e6f4ef4e76d1ff84e7a6aa0f89b237ad446de25
+
+
+$ docker run -d --network redline-net-d9c7ab38df --cpus 2 --memory 2g -e PORT=8080 redline-mut-436eb769-3  (exit 0)
+ab7ce4550ec6a8b66693e967b97284125c31e09469577e23b4eaca0cff106c18
+
+
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /tmp/redline-mut-i9ib28a4/stage-4/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s4/close-g6-20261005T194127-5296.junit.xml -x  (exit 1)
+....F
+=================================== FAILURES ===================================
+_____ test_r_1_244_reset_under_load_no_torn_state_and_idempotency_cleared ______
+
+    def test_r_1_244_reset_under_load_no_torn_state_and_idempotency_cleared():
+        """Target 2: a reset concurrent with other traffic never produces a
+        5xx, and after it returns 204 only the new fixture is visible,
+        including the idempotency table (R-1-040, R-1-244) — the defect
+        @verifier found at b78abac (IDEMPOTENCY.clear() defined but never
+        called) is exactly what this guards against regressing to."""
+        op_id, op_handle = unique("u"), unique_handle("preop")
+        op_email = f"{op_handle}@example.com"
+        bob_id, bob_handle = unique("u"), unique_handle("prebob")
+        bob_email = f"{bob_handle}@example.com"
+        reset_ok(make_fixture([user(op_id, op_handle, balance=10_000, email=op_email),
+                                user(bob_id, bob_handle, balance=0, email=bob_email)]))
+        old_token = login_token(op_email)
+    
+        pre_reset_key = unique("pre-reset-claim")
+        r_claim = api_post("/payments", json={"to_handle": bob_handle, "amount": 10},
+                            headers=auth_idem(old_token, pre_reset_key))
+>       assert r_claim.status_code == 201, r_claim.text
+E       AssertionError: {"error": {"code": "validation_failed", "message": "to_handle and amount are required"}}
+E       assert 422 == 201
+E        +  where 422 = <Response [422 Unprocessable Entity]>.status_code
+
+/tmp/redline-mut-i9ib28a4/stage-4/tests/adversarial/test_n1_10_adversarial.py:190: AssertionError
+=========================== short test summary info ============================
+FAILED ../../../../../tmp/redline-mut-i9ib28a4/stage-4/tests/adversarial/test_n1_10_adversarial.py::test_r_1_244_reset_under_load_no_torn_state_and_idempotency_cleared
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+1 failed, 4 passed in 154.47s (0:02:34)
+
+
+--- service log (tail) ---
+
+#3 service/routes/payments.py:45 [true to false]: killed
+   - has_body = True
+   + has_body = False
+$ docker build --label redline-gate=1 -t redline-mut-436eb769-4 /tmp/redline-mut-i9ib28a4/stage-4  (exit 0)
+
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 176B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/4] FROM docker.io/library/python:3.12-slim
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 269.44kB done
+#5 DONE 0.0s
+
+#6 [2/4] WORKDIR /app
+#6 CACHED
+
+#7 [3/4] COPY main.py ./main.py
+#7 CACHED
+
+#8 [4/4] COPY service ./service
+#8 DONE 0.0s
+
+#9 exporting to image
+#9 exporting layers 0.0s done
+#9 writing image sha256:5a6e432d4304ce56de69327b9cb64ee4c458f928e2d24da9e5422be45545832e done
+#9 naming to docker.io/library/redline-mut-436eb769-4 done
+#9 DONE 0.0s
+
+$ docker network create --internal redline-net-e2cf69bf50  (exit 0)
+b08437802b52f02340f8fb067cb39b8f9af42d5aaa4c700ddb23c9d16b03fb88
+
+
+$ docker run -d --network redline-net-e2cf69bf50 --cpus 2 --memory 2g -e PORT=8080 redline-mut-436eb769-4  (exit 0)
+1e36d188e04b470605e6774961da6b74aedd6fdceb8908dc47813bd9a7fb7ccd
+
+
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /tmp/redline-mut-i9ib28a4/stage-4/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s4/close-g6-20261005T194127-5296.junit.xml -x  (exit 1)
+........................................................................ [ 10%]
+........................................................................ [ 21%]
+........................................................................ [ 31%]
+........F
+=================================== FAILURES ===================================
+_____ test_batch_completeness_evaluated_over_union_of_touched_settlements ______
+
+    def test_batch_completeness_evaluated_over_union_of_touched_settlements():
+        """R-4-045, R-4-060: a batch touching TWO settlements, one fully
+        included (complete) and one only partially included (incomplete),
+        must report incomplete_settlement -- the union of settlements
+        touched, not just the first one checked."""
+        fixture, ids, handles, tokens = n_user_fixture(5, operator_indexes=[0])
+        complete_settle = api_post("/settlements", json={"transfers": [
+            {"from_handle": handles[1], "to_handle": handles[2], "amount": 100},
+        ]}, headers={**auth(tokens[0]), **idem(unique("k"))})
+        assert complete_settle.status_code == 201, complete_settle.text
+        complete_member = complete_settle.json()["payments"][0]["payment_id"]
+    
+        incomplete_settle = api_post("/settlements", json={"transfers": [
+            {"from_handle": handles[3], "to_handle": handles[4], "amount": 100},
+            {"from_handle": handles[4], "to_handle": handles[3], "amount": 50},
+        ]}, headers={**auth(tokens[0]), **idem(unique("k"))})
+        assert incomplete_settle.status_code == 201, incomplete_settle.text
+        incomplete_members = incomplete_settle.json()["payments"]
+    
+        r = _batch(tokens[0], [
+            _item(complete_member, 1, 90),
+            _item(incomplete_members[0]["payment_id"], 1, 90),
+        ])
+>       assert_error(r, 422, "incomplete_settlement")
+
+/tmp/redline-mut-i9ib28a4/stage-4/tests/test_batch_precedence.py:60: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+resp = <Response [422 Unprocessable Entity]>, status = 422
+code = 'incomplete_settlement'
+
+    def assert_error(resp: httpx.Response, status: int, code: str):
+        assert resp.status_code == status, f"expected {status} got {resp.status_code}: {resp.text}"
+        body = resp.json()
+        assert "error" in body and isinstance(body["error"], dict), f"malformed error body: {resp.text}"
+>       assert body["error"].get("code") == code, f"expected code {code} got {body['error'].get('code')}: {resp.text}"
+E       AssertionError: expected code incomplete_settlement got validation_failed: {"error": {"code": "validation_failed", "message": "reason must be a string of 1 to 200 characters"}}
+E       assert 'validation_failed' == 'incomplete_settlement'
+E         
+E         - incomplete_settlement
+E         + validation_failed
+
+/tmp/redline-mut-i9ib28a4/stage-4/tests/conftest.py:236: AssertionError
+=========================== short test summary info ============================
+FAILED ../../../../../tmp/redline-mut-i9ib28a4/stage-4/tests/test_batch_precedence.py::test_batch_completeness_evaluated_over_union_of_touched_settlements
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+1 failed, 224 passed in 201.71s (0:03:21)
+
+
+--- service log (tail) ---
+
+#4 service/routes/correction_batches.py:170 [cmp <= to <]: killed
+   - if not isinstance(reason, str) or not (1 <= len(reason) <= _MAX_REASON_LEN):
+   + if not isinstance(reason, str) or not (1 < len(reason) <= _MAX_REASON_LEN):
+$ docker build --label redline-gate=1 -t redline-mut-436eb769-5 /tmp/redline-mut-i9ib28a4/stage-4  (exit 0)
+
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 176B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/4] FROM docker.io/library/python:3.12-slim
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 31.83kB done
+#5 DONE 0.0s
+
+#6 [2/4] WORKDIR /app
+#6 CACHED
+
+#7 [3/4] COPY main.py ./main.py
+#7 CACHED
+
+#8 [4/4] COPY service ./service
+#8 DONE 0.0s
+
+#9 exporting to image
+#9 exporting layers 0.0s done
+#9 writing image sha256:8a7a0ecbd6ec46f4e10db6c5d0c82868b3b3414fe7a01f74890781a04916e79b done
+#9 naming to docker.io/library/redline-mut-436eb769-5 done
+#9 DONE 0.0s
+
+$ docker network create --internal redline-net-dadefe8d1d  (exit 0)
+86f657bc99e856a1f56305b4f29b905fc563398303c7377a355c60dde62e26f6
+
+
+$ docker run -d --network redline-net-dadefe8d1d --cpus 2 --memory 2g -e PORT=8080 redline-mut-436eb769-5  (exit 0)
+53d2d4ecdc747188c0c1452b92e8b03578ddad520770b56e4cfe1eb95fd4dfe5
+
+
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /tmp/redline-mut-i9ib28a4/stage-4/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s4/close-g6-20261005T194127-5296.junit.xml -x  (exit 0)
+........................................................................ [ 10%]
+........................................................................ [ 21%]
+........................................................................ [ 31%]
+........................................................................ [ 42%]
+........................................................................ [ 52%]
+........................................................................ [ 63%]
+........................................................................ [ 74%]
+........................................................................ [ 84%]
+........................................................................ [ 95%]
+.................................                                        [100%]
+681 passed in 281.73s (0:04:41)
+
+
+--- service log (tail) ---
+
+#5 service/revisions.py:308 [cmp < to <=]: SURVIVED
+   - if running[p["from_user_id"]] < 0 or running[p["to_user_id"]] < 0:
+   + if running[p["from_user_id"]] < 0 or running[p["to_user_id"]] <= 0:
+$ docker build --label redline-gate=1 -t redline-mut-436eb769-6 /tmp/redline-mut-i9ib28a4/stage-4  (exit 0)
+
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 176B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/4] FROM docker.io/library/python:3.12-slim
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 269.44kB done
+#5 DONE 0.0s
+
+#6 [2/4] WORKDIR /app
+#6 CACHED
+
+#7 [3/4] COPY main.py ./main.py
+#7 CACHED
+
+#8 [4/4] COPY service ./service
+#8 DONE 0.0s
+
+#9 exporting to image
+#9 exporting layers 0.0s done
+#9 writing image sha256:e93021c9854ba9d3dc4382d3e91457fac7af305bcf419a8b1a86b75baff69e44 done
+#9 naming to docker.io/library/redline-mut-436eb769-6 done
+#9 DONE 0.1s
+
+$ docker network create --internal redline-net-c53403d2c3  (exit 0)
+c7ef6996e8a9e481115d58bd91c3b6045becfb8692321e545ee9251e71d5ff6f
+
+
+$ docker run -d --network redline-net-c53403d2c3 --cpus 2 --memory 2g -e PORT=8080 redline-mut-436eb769-6  (exit 0)
+214d7943ed97293acf7092634a801ac949c2da2afd718672af0810c8d917cdd4
+
+
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /tmp/redline-mut-i9ib28a4/stage-4/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s4/close-g6-20261005T194127-5296.junit.xml -x  (exit 1)
+........................................................................ [ 10%]
+...............................................................F
+=================================== FAILURES ===================================
+________ test_reset_rejects_a_fixture_whose_opening_balance_is_negative ________
+
+    def test_reset_rejects_a_fixture_whose_opening_balance_is_negative():
+        """R-3-018: a receiver whose ending balance is low but who was
+        seeded as having received a payment larger than that ending balance
+        must be rejected at reset — their balance *before* the payment
+        (the opening balance) would have been negative, which is never a
+        valid historical state."""
+        a_id, b_id = unique("u"), unique("u")
+        a_handle, b_handle = unique_handle("oa"), unique_handle("ob")
+        pay_id = unique("pay")
+        past = (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
+    
+        fixture = {
+            "currency": "EUR",
+            "minor_units": 2,
+            "users": [
+                user(a_id, a_handle, balance=1000),
+                user(b_id, b_handle, balance=0),
+            ],
+            "payments": [
+                {"id": pay_id, "from_user_id": a_id, "to_user_id": b_id, "amount": 1000, "created_at": past},
+            ],
+        }
+    
+        r = api_post("/_test/reset", json=fixture)
+>       assert r.status_code == 422, (
+            f"R-3-018: a seeded payment implying a negative opening balance for the receiver "
+            f"(ending balance 0, received 1000 -> opening -1000) must be 422 validation_failed, "
+            f"got {r.status_code}: {r.text}"
+        )
+E       AssertionError: R-3-018: a seeded payment implying a negative opening balance for the receiver (ending balance 0, received 1000 -> opening -1000) must be 422 validation_failed, got 204: 
+E       assert 204 == 422
+E        +  where 204 = <Response [204 No Content]>.status_code
+
+/tmp/redline-mut-i9ib28a4/stage-4/tests/adversarial/test_n3_1_adversarial.py:61: AssertionError
+=========================== short test summary info ============================
+FAILED ../../../../../tmp/redline-mut-i9ib28a4/stage-4/tests/adversarial/test_n3_1_adversarial.py::test_reset_rejects_a_fixture_whose_opening_balance_is_negative
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+1 failed, 135 passed in 191.14s (0:03:11)
+
+
+--- service log (tail) ---
+
+#6 service/revisions.py:40 [sub-assign to add]: killed
+   - opening[p["to_user_id"]] -= p["amount"]
+   + opening[p["to_user_id"]] += p["amount"]
+$ docker build --label redline-gate=1 -t redline-mut-436eb769-7 /tmp/redline-mut-i9ib28a4/stage-4  (exit 0)
+
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 176B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/4] FROM docker.io/library/python:3.12-slim
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 43.87kB done
+#5 DONE 0.0s
+
+#6 [2/4] WORKDIR /app
+#6 CACHED
+
+#7 [3/4] COPY main.py ./main.py
+#7 CACHED
+
+#8 [4/4] COPY service ./service
+#8 DONE 0.0s
+
+#9 exporting to image
+#9 exporting layers 0.0s done
+#9 writing image sha256:c927f45687da86a923a6ff7e2ecb09964a32ccdfe540efaa408a6c679ff2cf90 done
+#9 naming to docker.io/library/redline-mut-436eb769-7 done
+#9 DONE 0.1s
+
+$ docker network create --internal redline-net-62f4c7d23f  (exit 0)
+085a635dc0adeb7c543c079baeff40cf4e52f5686c01e09ce145121655b9f92d
+
+
+$ docker run -d --network redline-net-62f4c7d23f --cpus 2 --memory 2g -e PORT=8080 redline-mut-436eb769-7  (exit 0)
+07966a91ae949c11b93116203b91e5f6c2fdc7552578ad0dc978d662dc478e9b
+
+
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /tmp/redline-mut-i9ib28a4/stage-4/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s4/close-g6-20261005T194127-5296.junit.xml -x  (exit 0)
+........................................................................ [ 10%]
+........................................................................ [ 21%]
+........................................................................ [ 31%]
+........................................................................ [ 42%]
+........................................................................ [ 52%]
+........................................................................ [ 63%]
+........................................................................ [ 74%]
+........................................................................ [ 84%]
+........................................................................ [ 95%]
+.................................                                        [100%]
+681 passed in 290.18s (0:04:50)
+
+
+--- service log (tail) ---
+
+#7 service/snapshot.py:374 [or to and]: SURVIVED
+   - if not isinstance(raw, str) or raw not in users:
+   + if not isinstance(raw, str) and raw not in users:
+$ docker build --label redline-gate=1 -t redline-mut-436eb769-8 /tmp/redline-mut-i9ib28a4/stage-4  (exit 0)
+
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 176B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/4] FROM docker.io/library/python:3.12-slim
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 31.19kB done
+#5 DONE 0.0s
+
+#6 [2/4] WORKDIR /app
+#6 CACHED
+
+#7 [3/4] COPY main.py ./main.py
+#7 CACHED
+
+#8 [4/4] COPY service ./service
+#8 DONE 0.0s
+
+#9 exporting to image
+#9 exporting layers 0.0s done
+#9 writing image sha256:69117e1c4591c20efceb61ccd9bf829f01b1b981a0acc889a83ae4e4a6634cce done
+#9 naming to docker.io/library/redline-mut-436eb769-8 done
+#9 DONE 0.1s
+
+$ docker network create --internal redline-net-d14cf35f6f  (exit 0)
+6079dc95a667c04c1aec2c461dfc35ac0624737419ab69aadf597f6ee0728b27
+
+
+$ docker run -d --network redline-net-d14cf35f6f --cpus 2 --memory 2g -e PORT=8080 redline-mut-436eb769-8  (exit 0)
+b455ced5eccda7fac98576ddd381e4e93373e17a4168955cf6f694681e4c7820
+
+
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /tmp/redline-mut-i9ib28a4/stage-4/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s4/close-g6-20261005T194127-5296.junit.xml -x  (exit 1)
+........................................................................ [ 10%]
+..............................................................F
+=================================== FAILURES ===================================
+_______ test_stale_pay_button_disappears_after_another_client_pays_first _______
+
+page = <Page url='http://192.168.160.2:8080/requests'>
+
+    def test_stale_pay_button_disappears_after_another_client_pays_first(page):
+        """R-2-156: a request paid by another client while this page's pay
+        button is still visible must show request-error on the refused
+        retry and the stale button must disappear after the refresh."""
+        a_id, b_id = unique("u"), unique("u")
+        a_handle, b_handle = unique_handle("ra"), unique_handle("rb")
+        fixture = make_fixture([user(a_id, a_handle, balance=1000), user(b_id, b_handle, balance=0)])
+        reset_ok(fixture)
+        a_token = httpx.post(url("/auth/login"), json={"email": fixture["users"][0]["email"], "password": "password123"}, timeout=10.0).json()["token"]
+        b_token = httpx.post(url("/auth/login"), json={"email": fixture["users"][1]["email"], "password": "password123"}, timeout=10.0).json()["token"]
+        rreq = httpx.post(url("/requests"), json={"payer_handle": a_handle, "amount": 50},
+                           headers={"Authorization": f"Bearer {b_token}", "Idempotency-Key": unique("mkreq")}, timeout=10.0)
+        assert rreq.status_code == 201, rreq.text
+        req_id = rreq.json()["request_id"]
+    
+        page.goto(url("/login"), wait_until="load")
+        page.fill(tid("login-email"), fixture["users"][0]["email"])
+        page.fill(tid("login-password"), "password123")
+        page.click(tid("login-submit"))
+        page.wait_for_load_state("load")
+        page.goto(url("/requests"), wait_until="load")
+>       assert page.locator(f'[data-testid="request-pay-{req_id}"]').count() == 1
+E       assert 2 == 1
+E        +  where 2 = count()
+E        +    where count = <Locator frame=<Frame name= url='http://192.168.160.2:8080/requests'> selector='[data-testid="request-pay-YyuHn9mgNHKMST05HWr-Zg"]'>.count
+E        +      where <Locator frame=<Frame name= url='http://192.168.160.2:8080/requests'> selector='[data-testid="request-pay-YyuHn9mgNHKMST05HWr-Zg"]'> = locator('[data-testid="request-pay-YyuHn9mgNHKMST05HWr-Zg"]')
+E        +        where locator = <Page url='http://192.168.160.2:8080/requests'>.locator
+
+/tmp/redline-mut-i9ib28a4/stage-4/tests/adversarial/test_n2_7_adversarial.py:176: AssertionError
+=========================== short test summary info ============================
+FAILED ../../../../../tmp/redline-mut-i9ib28a4/stage-4/tests/adversarial/test_n2_7_adversarial.py::test_stale_pay_button_disappears_after_another_client_pays_first
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+1 failed, 134 passed in 186.17s (0:03:06)
+
+
+--- service log (tail) ---
+
+#8 service/routes/requests_read.py:55 [eq to ne]: killed
+   - is_requester = r["requester_id"] == user_id
+   + is_requester = r["requester_id"] != user_id
+$ docker build --label redline-gate=1 -t redline-mut-436eb769-9 /tmp/redline-mut-i9ib28a4/stage-4  (exit 0)
+
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 176B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/4] FROM docker.io/library/python:3.12-slim
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 10.97kB done
+#5 DONE 0.0s
+
+#6 [2/4] WORKDIR /app
+#6 CACHED
+
+#7 [3/4] COPY main.py ./main.py
+#7 CACHED
+
+#8 [4/4] COPY service ./service
+#8 DONE 0.0s
+
+#9 exporting to image
+#9 exporting layers
+#9 exporting layers 0.0s done
+#9 writing image sha256:377d5bb26b6261b823733deee8a94f14865369eb71c39736e30e38315aeee371 done
+#9 naming to docker.io/library/redline-mut-436eb769-9 done
+#9 DONE 0.1s
+
+$ docker network create --internal redline-net-9bd6f67a68  (exit 0)
+5228acec4455a9c3b0d50ad790090360721659f320adf675e4e0b386b1481585
+
+
+$ docker run -d --network redline-net-9bd6f67a68 --cpus 2 --memory 2g -e PORT=8080 redline-mut-436eb769-9  (exit 0)
+4a7373e9a2be0a50f64102b87b44f1b07e7d5936c56347c3bb8f8011518af9c8
+
+
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /tmp/redline-mut-i9ib28a4/stage-4/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s4/close-g6-20261005T194127-5296.junit.xml -x  (exit 0)
+........................................................................ [ 10%]
+........................................................................ [ 21%]
+........................................................................ [ 31%]
+........................................................................ [ 42%]
+........................................................................ [ 52%]
+........................................................................ [ 63%]
+........................................................................ [ 74%]
+........................................................................ [ 84%]
+........................................................................ [ 95%]
+.................................                                        [100%]
+681 passed in 285.24s (0:04:45)
+
+
+--- service log (tail) ---
+
+#9 service/routes/refunds.py:37 [true to false]: SURVIVED
+   - requires_idempotency_key = True
+   + requires_idempotency_key = False
+$ docker build --label redline-gate=1 -t redline-mut-436eb769-10 /tmp/redline-mut-i9ib28a4/stage-4  (exit 0)
+
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 176B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/4] FROM docker.io/library/python:3.12-slim
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 11.85kB done
+#5 DONE 0.0s
+
+#6 [2/4] WORKDIR /app
+#6 CACHED
+
+#7 [3/4] COPY main.py ./main.py
+#7 CACHED
+
+#8 [4/4] COPY service ./service
+#8 DONE 0.0s
+
+#9 exporting to image
+#9 exporting layers 0.0s done
+#9 writing image sha256:dc2a90965b25910052b13c3dd6f386332cefba032f0145c92ea705c76d1d1bf8 done
+#9 naming to docker.io/library/redline-mut-436eb769-10 done
+#9 DONE 0.0s
+
+$ docker network create --internal redline-net-28ae2f1a5f  (exit 0)
+754775ea66013193b6dc6d567b428c6fb8f1696bf96b0dfb0e8f15b23a06ba3b
+
+
+$ docker run -d --network redline-net-28ae2f1a5f --cpus 2 --memory 2g -e PORT=8080 redline-mut-436eb769-10  (exit 0)
+463e74d5e3ffff2823965c5ec0d6942e9f0f11b492303aed3644d6d3cbf31422
+
+
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /tmp/redline-mut-i9ib28a4/stage-4/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s4/close-g6-20261005T194127-5296.junit.xml -x  (exit 1)
+........................................................................ [ 10%]
+........................................................................ [ 21%]
+..................................................F
+=================================== FAILURES ===================================
+___________ test_authorization_required_fields_missing_one_at_a_time ___________
+
+    def test_authorization_required_fields_missing_one_at_a_time():
+        """R-2-040, R-2-045: gate-6 gap — every existing field-error test supplies
+        both required fields with a bad VALUE; none omits exactly one field while
+        leaving the other valid, which is what actually exercises a flipped
+        `or`/`and` on the presence check in routes/authorizations.py."""
+        fixture, token_a, _ = two_user_fixture()
+        b_handle = fixture["users"][1]["handle"]
+    
+        missing_to_handle = api_post("/authorizations", json={"amount": 100},
+                                     headers={**auth(token_a), **idem(unique("k"))})
+>       assert_error(missing_to_handle, 422, "validation_failed")
+
+/tmp/redline-mut-i9ib28a4/stage-4/tests/test_authorizations.py:124: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+resp = <Response [500 Internal Server Error]>, status = 422
+code = 'validation_failed'
+
+    def assert_error(resp: httpx.Response, status: int, code: str):
+>       assert resp.status_code == status, f"expected {status} got {resp.status_code}: {resp.text}"
+E       AssertionError: expected 422 got 500: {"error": {"code": "internal_error", "message": "unexpected server error"}}
+E       assert 500 == 422
+E        +  where 500 = <Response [500 Internal Server Error]>.status_code
+
+/tmp/redline-mut-i9ib28a4/stage-4/tests/conftest.py:233: AssertionError
+=========================== short test summary info ============================
+FAILED ../../../../../tmp/redline-mut-i9ib28a4/stage-4/tests/test_authorizations.py::test_authorization_required_fields_missing_one_at_a_time
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+1 failed, 194 passed in 191.16s (0:03:11)
+
+
+--- service log (tail) ---
+Traceback (most recent call last):
+  File "/app/service/server.py", line 194, in _dispatch
+    status, body = endpoint.handle(ctx)
+                   ^^^^^^^^^^^^^^^^^^^^
+  File "/app/service/pipeline.py", line 93, in handle
+    fields = self.validate_fields(ctx)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/service/routes/authorizations.py", line 37, in validate_fields
+    to_handle_raw = body["to_handle"]
+                    ~~~~^^^^^^^^^^^^^
+KeyError: 'to_handle'
+
+#10 service/routes/authorizations.py:32 [or to and]: killed
+   - if "to_handle" not in body or "amount" not in body:
+   + if "to_handle" not in body and "amount" not in body:
+
+RESULT: FAIL — killed 7/10 valid mutants (70%, need 80%); 0 stillborn; 0 timed out; 455 candidates; survivors: #5 service/revisions.py:308 [cmp < to <=], #7 service/snapshot.py:374 [or to and], #9 service/routes/refunds.py:37 [true to false]
