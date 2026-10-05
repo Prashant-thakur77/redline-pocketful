@@ -1,0 +1,66 @@
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /tmp/redline-wt-jhaw6d9q/stage-4/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s4/N4-2-g2-20261005T182823-78ab.junit.xml  (exit 1)
+........................................................................ [ 10%]
+........................................................................ [ 21%]
+........................................................................ [ 31%]
+........................................................................ [ 42%]
+........................................................................ [ 53%]
+........................................................................ [ 63%]
+........................................................................ [ 74%]
+........................................................................ [ 84%]
+........................................................................ [ 95%]
+.............F................                                           [100%]
+=================================== FAILURES ===================================
+_____ test_settlement_membership_corrections_and_snapshots_survive_import ______
+
+    def test_settlement_membership_corrections_and_snapshots_survive_import():
+        """R-4-070: settlement membership, corrections and (R-4-072) a saved
+        statement snapshot token all survive an export/import round trip."""
+        fixture, ids, handles, tokens = n_user_fixture(3, operator_indexes=[0], balance=10_000)
+        settle = api_post("/settlements", json={"transfers": [{"from_handle": handles[1], "to_handle": handles[2], "amount": 300}]},
+                          headers={**auth(tokens[0]), **idem(unique("k"))})
+        assert settle.status_code == 201, settle.text
+        settlement_id = settle.json()["settlement_id"]
+        settlement_payment_id = settle.json()["payments"][0]["payment_id"]
+    
+        # R-4-047: a settlement member can only be corrected via the batch
+        # endpoint (by the operator), never the single-correction endpoint,
+        # which requires being the payment's original sender.
+        corr = api_post("/correction-batches", json={"corrections": [
+            {"payment_id": settlement_payment_id, "expected_revision": 1, "amount": 250,
+             "effective_at": "2026-01-01T00:00:00+00:00", "reason": "pre-export"}
+        ]}, headers={**auth(tokens[0]), **idem(unique("k"))})
+        assert corr.status_code == 201, corr.text
+    
+        snapshot_before = api_get("/statement", headers=auth(tokens[1]), params={"limit": 5})
+        assert snapshot_before.status_code == 200, snapshot_before.text
+        token_value = snapshot_before.json().get("snapshot")
+    
+        document = api_get("/_test/export").json()
+        reimport = api_post("/_test/import", json=document)
+        assert reimport.status_code == 204, reimport.text
+    
+        feed = api_get("/activity", headers=auth(tokens[1])).json()["payments"]
+        restored = next(p for p in feed if p["payment_id"] == settlement_payment_id)
+        assert restored["settlement_id"] == settlement_id
+    
+        revisions = api_get(f"/payments/{settlement_payment_id}/revisions", headers=auth(tokens[1])).json()
+        revs = revisions["revisions"] if isinstance(revisions, dict) else revisions
+        assert any(rv["amount"] == 250 for rv in revs), "the pre-export correction must survive import"
+    
+        if token_value:
+            snapshot_after = api_get("/statement", headers=auth(tokens[1]), params={"limit": 5, "snapshot": token_value})
+>           assert snapshot_after.status_code == 200, (
+                f"a statement snapshot token taken before export must still resolve after import: "
+                f"{snapshot_after.status_code} {snapshot_after.text}")
+E           AssertionError: a statement snapshot token taken before export must still resolve after import: 404 {"error": {"code": "not_found", "message": "no such snapshot"}}
+E           assert 404 == 200
+E            +  where 404 = <Response [404 Not Found]>.status_code
+
+/tmp/redline-wt-jhaw6d9q/stage-4/tests/test_upgrade_stage1_2_3.py:130: AssertionError
+=========================== short test summary info ============================
+FAILED ../../../../../tmp/redline-wt-jhaw6d9q/stage-4/tests/test_upgrade_stage1_2_3.py::test_settlement_membership_corrections_and_snapshots_survive_import
+1 failed, 677 passed in 296.14s (0:04:56)
+
+
+
+RESULT: FAIL — 677 passed, 1 failed, 0 errors, 0 skipped
