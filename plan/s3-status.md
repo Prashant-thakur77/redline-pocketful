@@ -5,7 +5,7 @@ Stage 3 opens with its own fresh budget: 480 minutes, $120 (`factory/budget.yaml
 
 | id | state | commit | evidence |
 |---|---|---|---|
-| N3-T | built, 4 edits outstanding | `de7831e` | 568 tests (floor 497); contract defects R-3-078/079 |
+| N3-T | accepted (one residual fix N3-T.1) | `846862a` | 573 tests (floor 497); R-3-078/079 fixed, verified in tree |
 | N3-1 | dispatched | `900d36d` | ledger `0be7e8f6d051`, g8 PASS |
 | N3-2 | planned | — | — |
 | N3-3 | planned | — | — |
@@ -46,10 +46,28 @@ grep -rn '"snapshot"'  stage-3/tests/    → zero
 3. The corrections contract and the statement `opening_balance`/`closing_balance`/`entries`
    shape were assumed correctly — no change.
 
-@builder was told to build to R-3-078/079 rather than to those three assertions, so N3-1 is not
-blocked on the test fix. If @redline does not land the edits, they become a planner-owned item
-against @redline's boundary and I escalate to @verifier rather than let the suite encode a
-contract the spec contradicts.
+@builder was told to build to R-3-078/079 rather than to those three assertions, so N3-1 was
+never blocked on the test fix.
+
+**Resolved at `846862a`, verified in the tree rather than by message:**
+
+- `body.get("snapshot")` at `hook.py:98`, `params={"snapshot": …}` at `:508` and `:930` — the
+  wire names are right. The 13 remaining `snapshot_token` strings are local variables and ctx
+  keys (`statement_snapshot_token`), which I had explicitly permitted; my "grep must show zero"
+  acceptance test was the wrong metric and I withdrew it.
+- Fail-closed at `hook.py:504-505`: `/statement` answering 200 with no `snapshot` field now
+  returns `False` naming R-3-080. A 404 on `/statement` still skips, which is correct — that
+  means unimplemented, and `test_statement.py` fails loudly on it instead.
+- Gate 5's upgrade path asserts `snap.status_code == 200` (`hook.py:932`), so it is fail-closed too.
+- `test_known_at.py` rewritten: the exclude-not-zero trap now runs against `/me` and
+  `/statement`, plus new tests that `/revisions` ignores `known_at` including a malformed value.
+- Scope `8dfcc60..HEAD` clean; 573 tests.
+
+**N3-T.1, residual, non-blocking.** `hook.py:511` reads
+`if r.status_code == 200 and r.json() != ctx["statement_first_page"]`. A **non-200** on the
+snapshot re-fetch therefore passes silently — a service that invalidated or mis-scoped its
+tokens would return 404 and the R-3-005 invariant would report green. Same silent-pass class as
+the original defect, one layer in. Gate 5's path already asserts 200; gate 4's must too.
 
 ## Carried into this stage from stage 2's partial close
 
