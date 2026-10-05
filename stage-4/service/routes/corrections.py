@@ -19,7 +19,7 @@ import time
 
 from .. import auth
 from ..errors import forbidden, historical_overdraft, insufficient_funds, linked_payment_immutable, \
-    not_found, stale_revision, validation_failed
+    not_found, refund_exceeds_payment, stale_revision, validation_failed
 from ..holds import held_for
 from ..idempotency import IDEMPOTENCY
 from ..json_utils import now_rfc3339, parse_json_object, parse_rfc3339
@@ -122,6 +122,16 @@ class CorrectionEndpoint(Endpoint):
         delta = new_amount - old_amount
 
         payer_id, payee_id = payment["from_user_id"], payment["to_user_id"]
+
+        # R-4-033/035: the already-refunded total is a floor on the
+        # corrected amount, and it outranks BOTH funds checks below --
+        # read under the write lock, same as the revision check just
+        # above, since a concurrent refund could move this number between
+        # validation and here. R-4-015's ceiling and this floor read the
+        # same stored quantity (payment["refunded_total"]) so the two
+        # directions of R-4-002 can never drift apart.
+        if new_amount < payment.get("refunded_total", 0):
+            raise refund_exceeds_payment()
 
         # R-3-058/059/060: only an INCREASE can make the new amount
         # unaffordable in the "currently unaffordable" sense R-3-059 means
