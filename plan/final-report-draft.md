@@ -146,6 +146,21 @@ check is merely refusing anything with a hold in its history) and a mechanistic 
    time]`.
 3. **Gate 6 remains a 12-mutant spot check**, not mutation testing — and in stage 4 it ran for hours
    under host contention from concurrent container gates, which is why its result arrived last.
+   Stage 4 scored **70% (7/10 valid, 455 candidates, 0 timed out)**. @verifier read the three survivors'
+   diff lines directly, and one of them names a **real coverage gap in a stated requirement**:
+   - `revisions.py:308` — `running[to_user_id] < 0` → `<= 0`, a boundary gap on the receiving side of
+     the forward-replay check.
+   - `snapshot.py:374` — `not isinstance(raw, str) or raw not in users` → `and`, weakening an import
+     referential-integrity check.
+   - `routes/refunds.py:37` — `requires_idempotency_key = True` → `False`. **No test in the suite forces
+     a refund to carry an `Idempotency-Key`**, so R-4-010's "requires an `Idempotency-Key`" is asserted
+     nowhere permanent. @adversary probed it manually during N4-1 and it behaved correctly, so this is a
+     missing *test*, not a missing behaviour — but it is exactly the kind of gap mutation testing exists
+     to expose, and it is disclosed here rather than quietly fixed after the stage was recorded.
+
+   Per the rule fixed **before** the draw, none of the three was chased: the stage is recorded partial
+   with g6 named at 70%, and no survivor-killing work was dispatched. Stage 3 showed what chasing a
+   resampled score costs.
 4. `factory.report` prints `stage 4: blocked` from a stale gate-8 artefact created when stage 4 was
    opened prematurely at 12:30 and withdrawn; the live record is `plan/s4-status.md`.
 5. **34 untracked scratch files sit at `stage-4/`'s root.** They cannot reach the delivered image —
