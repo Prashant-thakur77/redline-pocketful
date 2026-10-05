@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="5" failures="0" skipped="0" tests="5" time="0.097" timestamp="2026-10-06T02:24:32.425555+05:30" hostname="prashant-Dell-G15-5530"><testcase classname="" name="stage-3.tests.test_ui_activity" time="0.000"><error message="collection failure">import file mismatch:
+imported module 'test_ui_activity' has this __file__ attribute:
+  /home/prashant/projects/band-work/result/stage-2/tests/test_ui_activity.py
+which is not the same as the test file we want to collect:
+  /home/prashant/projects/band-work/result/stage-3/tests/test_ui_activity.py
+HINT: remove __pycache__ / .pyc files and/or use a unique basename for your test file modules</error></testcase><testcase classname="" name="stage-3.tests.test_ui_auth" time="0.000"><error message="collection failure">import file mismatch:
+imported module 'test_ui_auth' has this __file__ attribute:
+  /home/prashant/projects/band-work/result/stage-2/tests/test_ui_auth.py
+which is not the same as the test file we want to collect:
+  /home/prashant/projects/band-work/result/stage-3/tests/test_ui_auth.py
+HINT: remove __pycache__ / .pyc files and/or use a unique basename for your test file modules</error></testcase><testcase classname="" name="stage-3.tests.test_ui_layout" time="0.000"><error message="collection failure">import file mismatch:
+imported module 'test_ui_layout' has this __file__ attribute:
+  /home/prashant/projects/band-work/result/stage-2/tests/test_ui_layout.py
+which is not the same as the test file we want to collect:
+  /home/prashant/projects/band-work/result/stage-3/tests/test_ui_layout.py
+HINT: remove __pycache__ / .pyc files and/or use a unique basename for your test file modules</error></testcase><testcase classname="" name="stage-3.tests.test_ui_requests_split_authz" time="0.000"><error message="collection failure">import file mismatch:
+imported module 'test_ui_requests_split_authz' has this __file__ attribute:
+  /home/prashant/projects/band-work/result/stage-2/tests/test_ui_requests_split_authz.py
+which is not the same as the test file we want to collect:
+  /home/prashant/projects/band-work/result/stage-3/tests/test_ui_requests_split_authz.py
+HINT: remove __pycache__ / .pyc files and/or use a unique basename for your test file modules</error></testcase><testcase classname="" name="stage-3.tests.test_ui_wallet_pay" time="0.000"><error message="collection failure">import file mismatch:
+imported module 'test_ui_wallet_pay' has this __file__ attribute:
+  /home/prashant/projects/band-work/result/stage-2/tests/test_ui_wallet_pay.py
+which is not the same as the test file we want to collect:
+  /home/prashant/projects/band-work/result/stage-3/tests/test_ui_wallet_pay.py
+HINT: remove __pycache__ / .pyc files and/or use a unique basename for your test file modules</error></testcase></testsuite></testsuites>

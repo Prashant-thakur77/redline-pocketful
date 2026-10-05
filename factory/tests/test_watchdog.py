@@ -50,3 +50,14 @@ def test_a_seat_mid_turn_means_the_room_is_busy_not_stalled():
     no_reply = "2026-10-05 01:58:38,1 INFO x: Room r: no reply this turn (reason: waiting)"
     assert in_turn([start, no_reply, tool], False)  # regression: the builder kept working after it
     assert not in_turn([no_reply, done], True)
+
+
+def test_a_reconnect_after_a_network_outage_triggers_a_restart():
+    """Regression: the host lost DNS three times on 5 Oct; turns running at the time never resumed
+    and the band sat idle until someone restarted the seats by hand."""
+    from factory.watchdog import network_recovered
+    down_line = "2026-10-05 17:50:52 WARNING x: Failed: [Errno -3] Temporary failure in name resolution"
+    back_line = "2026-10-05 17:54:10 INFO band.platform.link: WebSocket reconnected — reconciling room state"
+    assert network_recovered([down_line], False) == (True, False)
+    assert network_recovered([back_line], True) == (False, True)
+    assert network_recovered([back_line], False) == (False, False)  # an ordinary reconnect is not an outage

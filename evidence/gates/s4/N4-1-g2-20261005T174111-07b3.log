@@ -1,0 +1,76 @@
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /home/prashant/projects/band-work/result/stage-4/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s4/N4-1-g2-20261005T174111-07b3.junit.xml  (exit 1)
+    ("POST", "/settlements", {"transfers": [{"from_handle": handles[1], "to_handle": handles[2], "amount": 1}]}, tokens[0]),
+            ("POST", "/authorizations", {"to_handle": handles[1], "amount": 10}, tokens[0]),
+            ("POST", f"/authorizations/{hold['authorization_id']}/capture", {"amount": 1, "final": False}, tokens[1]),
+            ("POST", f"/payments/{pay.json()['payment_id']}/corrections",
+             {"expected_revision": 1, "amount": 50, "effective_at": "2026-01-01T00:00:00+00:00", "reason": "x"}, tokens[0]),
+            ("POST", f"/payments/{pay.json()['payment_id']}/refunds", {"amount": 10}, tokens[1]),
+            ("POST", "/correction-batches", {"corrections": []}, tokens[0]),
+        ]
+        assert len(calls_requiring_a_key) == 10, "R-4-071 names exactly ten idempotent write paths"
+        for method, path, body, token in calls_requiring_a_key:
+            r = api_post(path, json=body, headers=auth(token))
+>           assert r.status_code == 400 and r.json()["error"]["code"] == "missing_idempotency_key", \
+                f"{method} {path} must require Idempotency-Key, got {r.status_code} {r.text}"
+E           AssertionError: POST /correction-batches must require Idempotency-Key, got 404 {"error": {"code": "not_found", "message": "no such endpoint: POST /correction-batches"}}
+E           assert (404 == 400)
+E            +  where 404 = <Response [404 Not Found]>.status_code
+
+stage-4/tests/test_upgrade_stage1_2_3.py:48: AssertionError
+_____ test_settlement_membership_corrections_and_snapshots_survive_import ______
+
+    def test_settlement_membership_corrections_and_snapshots_survive_import():
+        """R-4-070: settlement membership, corrections and (R-4-072) a saved
+        statement snapshot token all survive an export/import round trip."""
+        fixture, ids, handles, tokens = n_user_fixture(3, operator_indexes=[0], balance=10_000)
+        settle = api_post("/settlements", json={"transfers": [{"from_handle": handles[1], "to_handle": handles[2], "amount": 300}]},
+                          headers={**auth(tokens[0]), **idem(unique("k"))})
+        assert settle.status_code == 201, settle.text
+        settlement_id = settle.json()["settlement_id"]
+        settlement_payment_id = settle.json()["payments"][0]["payment_id"]
+    
+        # R-4-047: a settlement member can only be corrected via the batch
+        # endpoint (by the operator), never the single-correction endpoint,
+        # which requires being the payment's original sender.
+        corr = api_post("/correction-batches", json={"corrections": [
+            {"payment_id": settlement_payment_id, "expected_revision": 1, "amount": 250,
+             "effective_at": "2026-01-01T00:00:00+00:00", "reason": "pre-export"}
+        ]}, headers={**auth(tokens[0]), **idem(unique("k"))})
+>       assert corr.status_code == 201, corr.text
+E       AssertionError: {"error": {"code": "not_found", "message": "no such endpoint: POST /correction-batches"}}
+E       assert 404 == 201
+E        +  where 404 = <Response [404 Not Found]>.status_code
+
+stage-4/tests/test_upgrade_stage1_2_3.py:110: AssertionError
+=========================== short test summary info ============================
+FAILED stage-4/tests/test_batch_precedence.py::test_batch_completeness_evaluated_over_union_of_touched_settlements
+FAILED stage-4/tests/test_batch_precedence.py::test_batch_combined_affordability_not_per_item_isolation
+FAILED stage-4/tests/test_batch_precedence.py::test_rejected_batch_claims_no_idempotency_key
+FAILED stage-4/tests/test_batch_precedence.py::test_concurrent_corrections_sharing_a_revision_across_single_and_batch
+FAILED stage-4/tests/test_batch_snapshots.py::test_batch_success_shape_and_input_order
+FAILED stage-4/tests/test_batch_snapshots.py::test_batch_revisions_expose_batch_id_singles_expose_null
+FAILED stage-4/tests/test_batch_snapshots.py::test_batch_shared_recorded_at_strictly_later_than_every_prior_one
+FAILED stage-4/tests/test_batch_snapshots.py::test_batch_shared_recorded_at_identical_across_every_member
+FAILED stage-4/tests/test_batch_snapshots.py::test_batch_never_changes_original_payment_or_its_retry_identity
+FAILED stage-4/tests/test_batch_snapshots.py::test_batch_replay_returns_original_response
+FAILED stage-4/tests/test_batch_snapshots.py::test_snapshot_token_survives_a_batch_moving_its_window
+FAILED stage-4/tests/test_concurrency_s4.py::test_refund_racing_correction_keeps_cumulative_refunds_within_bound_and_balances_nonnegative
+FAILED stage-4/tests/test_concurrency_s4.py::test_two_concurrent_batches_sharing_a_payment_not_both_succeed
+FAILED stage-4/tests/test_correction_batches.py::test_batch_requires_operator_and_idempotency_key
+FAILED stage-4/tests/test_correction_batches.py::test_batch_item_count_range_and_distinct_payment_ids
+FAILED stage-4/tests/test_correction_batches.py::test_batch_item_field_validation_amount_and_effective_at
+FAILED stage-4/tests/test_correction_batches.py::test_batch_unknown_payment_404_and_stale_revision_409
+FAILED stage-4/tests/test_correction_batches.py::test_batch_captures_and_refunds_remain_immutable
+FAILED stage-4/tests/test_correction_batches.py::test_batch_may_correct_settlement_members_including_every_member
+FAILED stage-4/tests/test_correction_batches.py::test_batch_incomplete_settlement_422
+FAILED stage-4/tests/test_correction_batches.py::test_batch_settlement_members_must_share_identical_effective_instant
+FAILED stage-4/tests/test_correction_batches.py::test_batch_ignores_unknown_fields
+FAILED stage-4/tests/test_refund_correction_interaction.py::test_correction_may_not_reduce_below_already_refunded_amount
+FAILED stage-4/tests/test_refund_correction_interaction.py::test_correction_down_to_exactly_the_refunded_amount_succeeds
+FAILED stage-4/tests/test_upgrade_stage1_2_3.py::test_ten_idempotent_write_paths_all_require_a_key
+FAILED stage-4/tests/test_upgrade_stage1_2_3.py::test_settlement_membership_corrections_and_snapshots_survive_import
+26 failed, 650 passed in 295.33s (0:04:55)
+
+
+
+RESULT: FAIL — 650 passed, 26 failed, 0 errors, 0 skipped

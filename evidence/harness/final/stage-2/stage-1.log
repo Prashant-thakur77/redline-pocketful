@@ -1,11 +1,11 @@
-$ docker run --rm --network df-run-b52a78014b0d4b65888675137427c4b7 -v /home/prashant/projects/dark-factory-wearedevs:/work:ro -v /home/prashant/projects/band-work/result/evidence/harness/final/stage-2:/out -e PYTHONDONTWRITEBYTECODE=1 -e PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 -e COLUMNS=200 -w /work df-harness-runner python -m pytest pocketful/test/stage_1 --base-url http://df-svc-22c205ac9aef:8080 -p harness.plugin --rootdir pocketful/test -q --harness-summary /out/stage-1.counts.json
+$ docker run --rm --network df-run-94c014621fb24b07bae2f4d829608436 -v /home/prashant/projects/dark-factory-wearedevs:/work:ro -v /home/prashant/projects/band-work/result/evidence/harness/final/stage-2:/out -e PYTHONDONTWRITEBYTECODE=1 -e PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 -e COLUMNS=200 -w /work df-harness-runner python -m pytest pocketful/test/stage_1 --base-url http://df-svc-c18c965add86:8080 -p harness.plugin --rootdir pocketful/test -q --harness-summary /out/stage-1.counts.json
 
 ...................................................................................................................................................                                              [100%]
 =========================================================================================== warnings summary ===========================================================================================
 ../usr/local/lib/python3.12/site-packages/_pytest/cacheprovider.py:469
-  /usr/local/lib/python3.12/site-packages/_pytest/cacheprovider.py:469: PytestCacheWarning: could not create cache path /work/pocketful/test/.pytest_cache/v/cache/nodeids: [Errno 30] Read-only file system: '/work/pocketful/test/pytest-cache-files-b14p8o0g'
+  /usr/local/lib/python3.12/site-packages/_pytest/cacheprovider.py:469: PytestCacheWarning: could not create cache path /work/pocketful/test/.pytest_cache/v/cache/nodeids: [Errno 30] Read-only file system: '/work/pocketful/test/pytest-cache-files-chqy5r6p'
     config.cache.set("cache/nodeids", sorted(self.cached_nodeids))
 
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-147 passed, 1 warning in 33.35s
+147 passed, 1 warning in 17.45s
 

@@ -1,0 +1,38 @@
+{
+  "revision": "5082a5ddac864af041f896a6cee26a70dd856faa",
+  "track": "toy",
+  "stages": {
+    "1": "pass"
+  },
+  "highest_contiguous": 1,
+  "started_at": "2026-10-04T11:54:19.890189+00:00",
+  "finished_at": "2026-10-04T11:54:25.114369+00:00",
+  "schema_version": 2,
+  "run_id": "58df8f0e75594b799705c3b8f86fa264",
+  "mode": "isolated",
+  "provenance": "working-tree",
+  "state": "completed",
+  "pytest_args": [],
+  "suite_digest": "e10c8eb815a954f1be0b2c93ce15b4c5858f30ce3b0283e5cb78bbfeb9d1a44c",
+  "checks": {
+    "1": {
+      "collected": 8,
+      "passed": 8,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "deselected": 0,
+      "xfailed": 0,
+      "files": {
+        "stage_1/test_counter.py": {
+          "passed": 8,
+          "total": 8
+        }
+      }
+    }
+  },
+  "overshoot": null,
+  "claimed_stage": "1",
+  "share": 1.0,
+  "upgrade_sources": {}
+}

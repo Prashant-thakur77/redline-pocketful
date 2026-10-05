@@ -1,0 +1,59 @@
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /home/prashant/projects/band-work/result/stage-4/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s4/N4-6-g2-20261005T191312-86a7.junit.xml  (exit 1)
+........................................................................ [ 10%]
+........................................................................ [ 21%]
+.......................F................................................ [ 31%]
+........................................................................ [ 42%]
+........................................................................ [ 52%]
+........................................................................ [ 63%]
+........................................................................ [ 74%]
+........................................................................ [ 84%]
+........................................................................ [ 95%]
+.................................                                        [100%]
+=================================== FAILURES ===================================
+_ test_import_accepts_statement_snapshot_missing_entries_then_crashes_on_read_r_1_005 _
+
+    def test_import_accepts_statement_snapshot_missing_entries_then_crashes_on_read_r_1_005():
+        """R-1-005: no request may produce a 5xx response, including a GET
+        far downstream of a crafted import. `snapshot.py`'s
+        `validate_import_document` validates a `statement_snapshots` entry's
+        `user_id` against the known users but never checks that `entries`
+        (a list), `opening_balance` or `closing_balance` (ints) are even
+        present -- `statement.py`'s own read path does plain `frozen["entries"]`
+        / `frozen["opening_balance"]` / `frozen["closing_balance"]` dict
+        access with no `.get()` fallback. An import whose state carries a
+        syntactically-valid-looking snapshot record (a real user_id, nothing
+        else) is accepted with 204, and the first `GET /statement?snapshot=`
+        naming that token crashes with an uncaught `KeyError`, surfaced as a
+        bare `500 internal_error` -- never a validation_failed at the import
+        door it should have been caught at.
+        """
+        uid_a, h_a = unique("u"), "sx" + unique("")[:7]
+        email_a = f"{h_a}@x.com"
+        reset_ok(make_fixture([user(uid_a, h_a, balance=1000, email=email_a)]))
+        token_a = login_token(email_a)
+    
+        export = api_get("/_test/export", headers=auth(token_a)).json()
+        export["state"]["statement_snapshots"]["ZZMALFORMED"] = {"user_id": uid_a}
+    
+        status, body = _raw_import(export)
+        assert status in (204, 422), f"unexpected import status: {status} {body}"
+        if status == 422:
+            return  # already fixed to reject the malformed shape at the import door -- good.
+    
+        r = api_get("/statement", headers=auth(token_a), params={"snapshot": "ZZMALFORMED"})
+>       assert r.status_code < 500, (
+            f"R-1-005: a malformed imported snapshot record must never crash a later read with a 5xx: "
+            f"{r.status_code} {r.text}"
+        )
+E       AssertionError: R-1-005: a malformed imported snapshot record must never crash a later read with a 5xx: 500 {"error": {"code": "internal_error", "message": "unexpected server error"}}
+E       assert 500 < 500
+E        +  where 500 = <Response [500 Internal Server Error]>.status_code
+
+stage-4/tests/adversarial/test_n4_6_adversarial.py:56: AssertionError
+=========================== short test summary info ============================
+FAILED stage-4/tests/adversarial/test_n4_6_adversarial.py::test_import_accepts_statement_snapshot_missing_entries_then_crashes_on_read_r_1_005
+1 failed, 680 passed in 291.94s (0:04:51)
+
+
+
+RESULT: FAIL — 680 passed, 1 failed, 0 errors, 0 skipped

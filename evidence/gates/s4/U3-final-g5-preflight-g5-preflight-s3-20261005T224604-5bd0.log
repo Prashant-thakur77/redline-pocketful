@@ -1,0 +1,5 @@
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest stage-3/tests/test_ui_activity.py stage-3/tests/test_ui_auth.py stage-3/tests/test_ui_layout.py stage-3/tests/test_ui_requests_split_authz.py stage-3/tests/test_ui_wallet_pay.py -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s4/U3-final-g5-preflight-g5-preflight-s3-20261005T224604-5bd0.junit.xml  (exit 0)
+..............................................                           [100%]
+46 passed in 39.24s
+
+

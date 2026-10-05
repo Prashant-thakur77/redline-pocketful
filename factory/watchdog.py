@@ -37,6 +37,9 @@ LOST = re.compile(r"without calling band_send_message|nothing reached the room",
 STAMP = re.compile(r"^(\d{4}-\d\d-\d\d \d\d:\d\d:\d\d)")
 TURN_START = re.compile(r"Sending query to Claude SDK|Tool call:")
 TURN_END = re.compile(r"Complete - |Marking message \S+ as failed")  # "no reply this turn" is a tool call, mid-turn
+NET_DOWN = re.compile(r"name resolution|Network is unreachable|ConnectError")
+NET_BACK = re.compile(r"WebSocket reconnected")
+LOCAL_WORK = re.compile(r"factory\.gates|pytest|harness run")
 UNREPORTED_AFTER = 900  # a seat's commit followed by this long of room silence was never reported
 
 
@@ -127,6 +130,28 @@ def report_request(asker: Seat, seat: Seat, room: str, sha: str, subject: str): 
         agent.close()
 
 
+def network_recovered(lines: list[str], down: bool) -> tuple[bool, bool]:
+    """(still down, just recovered) after these log lines: turns that were running when the host lost
+    its network never come back on their own, so a reconnect after an outage restarts the seats."""
+    recovered = False
+    for line in lines:
+        if NET_DOWN.search(line):
+            down = True
+        elif NET_BACK.search(line) and down:
+            down, recovered = False, True
+    return down, recovered
+
+
+def running_local_work(key: str) -> bool:  # pragma: no cover - reads ps
+    """True when the seat's process group is running a gate or test command: that turn is busy on
+    local work an outage cannot touch, and restarting the seat would kill it."""
+    proc = subprocess.run(["ps", "-eo", "pgid,args"], capture_output=True, text=True)
+    groups = {line.split(None, 1)[0] for line in proc.stdout.splitlines()
+              if f"factory.seat {key} " in line and line.split(None, 1)[0].isdigit()}
+    return any(line.split(None, 1)[0] in groups and LOCAL_WORK.search(line)
+               for line in proc.stdout.splitlines() if line.strip())
+
+
 def restart_seat(key: str, repo: Path, kickoff: Path):  # pragma: no cover - process control
     import sys
     subprocess.run([sys.executable, "-m", "factory.launch", "--stop", "--seats", key], cwd=REPO, timeout=120)
@@ -191,6 +216,7 @@ def main(argv=None) -> int:  # pragma: no cover - long-running
         if log.exists():
             last_send = max(last_send, last_send_time(log.read_text(errors="replace").splitlines()) or 0.0)
     nudged: set[str] = set()
+    net_down = False
     busy = {k: in_turn((args.logs / f"{k}.log").read_text(errors="replace").splitlines(), False)
             if (args.logs / f"{k}.log").exists() else False for k in seats}
     print(f"watchdog on room {args.room}", flush=True)
@@ -204,6 +230,20 @@ def main(argv=None) -> int:  # pragma: no cover - long-running
                 lines = fh.read().splitlines()
                 offsets[key] = fh.tell()
             last_send = max(last_send, last_send_time(lines) or 0.0)
+            if key == "planner":
+                net_down, recovered = network_recovered(lines, net_down)
+                if recovered:
+                    print("network back after an outage; restarting every seat", flush=True)
+                    record(ledger, "planner", False, "host network outage interrupted running turns")
+                    for name in seats:
+                        if running_local_work(name):
+                            print(f"[{name}] busy on a gate or test run; not restarted", flush=True)
+                            continue
+                        restart_seat(name, args.repo, args.kickoff)
+                    record(ledger, "planner", True, "network back; every seat restarted to resume its work")
+                    offsets = {k: (args.logs / f"{k}.log").stat().st_size if (args.logs / f"{k}.log").exists() else 0
+                               for k in seats}
+                    break
             busy[key] = in_turn(lines, busy[key])
             hung = None if backlog[key] else stuck_on(lines, streaks[key])
             backlog[key] = False

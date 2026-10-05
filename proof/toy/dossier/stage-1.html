@@ -1,0 +1,92 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>Stage 1 dossier</title>
+<style>
+:root{--bg:#fbfaf7;--fg:#1d1d1b;--muted:#6b6a65;--line:#e4e1d8;--ok:#1f7a4d;--bad:#b42318}
+@media (prefers-color-scheme:dark){:root{--bg:#161614;--fg:#eceae4;--muted:#a3a198;--line:#33322e;--ok:#4cc38a;--bad:#ff6b5b}}
+body{background:var(--bg);color:var(--fg);font:15px/1.5 system-ui,sans-serif;max-width:960px;margin:0 auto;padding:24px 16px}
+h1{font-size:24px;margin:0 0 4px}h2{font-size:17px;margin:28px 0 8px}
+.muted{color:var(--muted)}table{border-collapse:collapse;width:100%;font-size:14px;display:block;overflow-x:auto}
+th,td{text-align:left;padding:6px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+.pass{color:var(--ok);font-weight:600}.fail{color:var(--bad);font-weight:600}
+.src{font:12px ui-monospace,monospace;color:var(--muted)}
+</style></head><body>
+<h1>Stage 1 dossier</h1>
+<p class="muted">Outcome: <b>open</b> · catch rate 75% · ledger chain intact · generated 2026-10-04T11:56:46+00:00</p>
+<h2>Gates</h2><table><tr><th>Gate</th><th>Last</th><th>Runs</th><th>Failures caught</th><th>Source</th></tr><tr><td>g1</td><td class='pass'>pass</td><td>19</td><td>0</td><td><span class="src">gate:g1:builder-s1-g1-20261004T105800-f811.log, gate:g1:builder-s1-g1-20261004T110225-7a6e.log, gate:g1:verifier-s1-g1-20261004T110641-6e90.log +16</span></td></tr><tr><td>g2</td><td class='pass'>pass</td><td>19</td><td>14</td><td><span class="src">gate:g2:builder-s1-g2-20261004T105808-e1e5.log, gate:g2:builder-s1-g2-20261004T110230-163a.log, gate:g2:verifier-s1-g2-20261004T110644-e94e.log +16</span></td></tr><tr><td>g3</td><td class='pass'>pass</td><td>3</td><td>0</td><td><span class="src">gate:g3:close-g3-20261004T113934-9cdc.log, gate:g3:close-g3-20261004T114739-58d5.log, gate:g3:close-g3-20261004T115239-1478.log</span></td></tr><tr><td>g4</td><td class='pass'>pass</td><td>23</td><td>18</td><td><span class="src">gate:g4:adversary-s1-g4-20261004T110931-c43b.log, gate:g4:N1-1-g4-20261004T110959-8c26.log, gate:g4:adversary-s1-g4-20261004T111131-c2c6.log +20</span></td></tr><tr><td>g5</td><td class='pass'>pass</td><td>3</td><td>0</td><td><span class="src">gate:g5:close-g5-20261004T114102-1153.log, gate:g5:close-g5-20261004T114743-cd5f.log, gate:g5:close-g5-20261004T115244-219b.log</span></td></tr><tr><td>g6</td><td class='fail'>fail</td><td>2</td><td>2</td><td><span class="src">gate:g6:close-g6-20261004T114104-6673.log, gate:g6:close-g6-20261004T114745-0c9d.log</span></td></tr><tr><td>g8</td><td class='pass'>pass</td><td>23</td><td>2</td><td><span class="src">gate:g8:T1-g8-20261004T103358-602a.log, gate:g8:N1-1-g8-20261004T105757-ec14.log, gate:g8:N1-2-g8-20261004T110721-af83.log +20</span></td></tr><tr><td>scope</td><td class='pass'>pass</td><td>8</td><td>0</td><td><span class="src">gate:scope:verifier-s1-scope-20261004T110641-46e6.log, gate:scope:N1-2-scope-20261004T110959-fa5b.log, gate:scope:N1-2-scope-20261004T111340-707f.log +5</span></td></tr></table>
+<h2>Reviews that changed the work</h2><table><tr><th>Node</th><th>Seat</th><th>Verdict</th><th>What it caught</th><th>Change it forced</th><th>Source</th></tr><tr><td>verifier-s1</td><td>verifier</td><td class='fail'>NEEDS_WORK</td><td>Gate 2 exit code 1 due to test_default_port_is_8080_when_port_is_unset skip (unreachable under BASE_URL override, documented gap in s1-status.md). Service impl correct: 186/186 test assertions pass.</td><td>not recovered</td><td><span class="src">seat:verifier</span></td></tr><tr><td></td><td>planner</td><td class='fail'>NEEDS_WORK</td><td>**RULING — gate 4&#x27;s &quot;lost update&quot; is a false positive in the hook, not a defect in the service. Nobody touches `app.py`.**
+
+Repository: `/home/prashant/projects/band-work/toy-result` · Commit under ju</td><td>not recovered</td><td><span class="src">room:be63cbe9-bea2-4cdc-8649-5ecd57512860</span></td></tr><tr><td>N1-2</td><td>verifier</td><td class='fail'>BLOCK</td><td>Gate 4 invariant broke: counter=291 but 311 increments acknowledged (ops: 1000 unique + 300 replays). Updates lost under concurrency — global lock not protecting _value. Replays also exposed: app.py l</td><td>—</td><td><span class="src">seat:verifier</span></td></tr><tr><td></td><td>planner</td><td class='fail'>NEEDS_WORK</td><td>**ANSWER on the deleted tests — I was wrong, the scope check does not trip. Plus one consolidated open-items list, because my rulings keep crossing your commits.**
+
+Repository: `/home/prashant/project</td><td>not recovered</td><td><span class="src">room:4444dd62-96e2-425a-915a-5327c1051f5c</span></td></tr><tr><td></td><td>planner</td><td class='fail'>NEEDS_WORK</td><td>**RULING on your exact-shape flag — keep the strict test. Your three questions are already answered; here they are in one line each.**
+
+Repository: `/home/prashant/projects/band-work/toy-result` · My </td><td>not recovered</td><td><span class="src">room:88e28acb-f44a-4438-85d8-ccd9199aa9df</span></td></tr><tr><td>N1-2</td><td>verifier</td><td class='fail'>NEEDS_WORK</td><td>Gate 1: PASS (built, healthy offline). Gate 4: all 1300 statuses 200, settle-time invariant True; mid-storm &#x27;lost update&#x27; reports are false positives from hook.py torn snapshot (Planner ruling). Gate </td><td>—</td><td><span class="src">seat:verifier</span></td></tr><tr><td>N1-2</td><td>verifier</td><td class='fail'>NEEDS_WORK</td><td>**VERDICT N1-2 (verifier, corrected) — NEEDS_WORK**
+
+Repository: `/home/prashant/projects/band-work/toy-result`
+Commit: **9ca6d72** `Stage 1: implement the shared counter service (health, counter, inc</td><td>—</td><td><span class="src">room:123f2503-8b25-4d92-96cc-8302ee07cced</span></td></tr><tr><td></td><td>planner</td><td class='fail'>NEEDS_WORK</td><td>**Corrected verdict accepted — four requirement mappings to fix, and one instruction for every seat**
+
+Repository: `/home/prashant/projects/band-work/toy-result` · Commit: **9ca6d72**
+
+@verifier — thi</td><td>not recovered</td><td><span class="src">room:c9722b3f-7559-4186-bc0a-ef5fcad243d5</span></td></tr><tr><td>N1-2</td><td>verifier</td><td class='fail'>BLOCK</td><td>BLOCK: uncommitted stage-1/app.py rewrite removes the threading.Lock entirely (increment_value is now a bare _value += 1) and replaces ThreadingHTTPServer with ~120 lines of hand-rolled asyncio HTTP p</td><td>not recovered</td><td><span class="src">seat:verifier</span></td></tr><tr><td>N1-2</td><td>verifier</td><td class='fail'>NEEDS_WORK</td><td>**STATUS N1-2 (verifier) — the BLOCK is cleared in substance; nothing is verifiable until it is committed**
+
+Repository: `/home/prashant/projects/band-work/toy-result` · Commit of record: **9ca6d72**
+</td><td>not recovered</td><td><span class="src">room:d1da3b40-ee59-4155-a35d-ba9f6684e17a</span></td></tr><tr><td></td><td>planner</td><td class='fail'>NEEDS_WORK</td><td>**GO not accepted — but stop here, do not re-issue. N1-2 is settled as &quot;service accepted, item open&quot;.**
+
+Repository: `/home/prashant/projects/band-work/toy-result` · Commit: **9ca6d72** · My commit: *</td><td>not recovered</td><td><span class="src">room:180d2fea-6a6d-4844-bde8-31ebce09c0c8</span></td></tr><tr><td>N1-2</td><td>verifier</td><td class='fail'>NEEDS_WORK</td><td>On 39fc4f1 (includes builder&#x27;s committed tuning 68faf5f): scope PASS, g1 PASS, g8 PASS. g4 settle-time &#x27;invariant: True&#x27; with transient firing 1x - hook.py sampling order still unfixed (redline item 2</td><td>not recovered</td><td><span class="src">seat:verifier</span></td></tr><tr><td>N1-2</td><td>verifier</td><td class='fail'>NEEDS_WORK</td><td>**RE-ISSUED VERDICT N1-2 (verifier) — NEEDS_WORK. Requirement mappings corrected; no gates re-run.**
+
+Repository: `/home/prashant/projects/band-work/toy-result` · Commit judged: **39fc4f1** (contains </td><td>not recovered</td><td><span class="src">room:f18dac1d-9cc6-4f37-bec6-36329628537c</span></td></tr><tr><td>N1-2</td><td>verifier</td><td class='fail'>NEEDS_WORK</td><td>**ACK 68faf5f (verifier) — verified independently; the comment rewrite landed correctly. Two notes for the record.**
+
+Repository: `/home/prashant/projects/band-work/toy-result` · Standing verdict `305</td><td>not recovered</td><td><span class="src">room:15ee54af-dbf0-4459-a309-4604b1ebffe6</span></td></tr><tr><td></td><td>planner</td><td class='fail'>NEEDS_WORK</td><td>**Two blockers are still live — my numbering collided with an older list. No numbers from here, only file and line.**
+
+Repository: `/home/prashant/projects/band-work/toy-result` · Commit: **89a1622**
+</td><td>not recovered</td><td><span class="src">room:cd584df9-4c71-44d8-ab94-2442dd5d5347</span></td></tr><tr><td>N1-2</td><td>adversary</td><td class='fail'>BREACH</td><td>@planner @verifier @builder **BREACH (adversary) — stage-1 commit 9ca6d72 — R-1-044 fails under a burst of fresh connections; your `request_queue_size` concern was real**
+
+Repository: `/home/prashant/</td><td>not recovered</td><td><span class="src">room:316b0447-2779-4d96-a57a-4c72a7648d50</span></td></tr><tr><td>N1-2</td><td>verifier</td><td class='fail'>NEEDS_WORK</td><td>**FINDING — @adversary&#x27;s new R-1-044 test PASSES. There is no live breach. And @builder&#x27;s numbers came from a working tree, not 39fc4f1.**
+
+Repository: `/home/prashant/projects/band-work/toy-result` ·</td><td>not recovered</td><td><span class="src">room:14208243-fb81-424f-8f77-b03d9869808c</span></td></tr><tr><td></td><td>planner</td><td class='fail'>NEEDS_WORK</td><td>**Both fixes are done and sitting uncommitted. Commit them and stage 1 closes.**
+
+Repository: `/home/prashant/projects/band-work/toy-result`
+
+@redline — you have already fixed both blockers. They are </td><td>not recovered</td><td><span class="src">room:2a84d019-51af-4b03-a7cf-1df2451c48d6</span></td></tr><tr><td>N1-2</td><td>adversary</td><td class='fail'>BREACH</td><td>@builder @verifier @planner **Re-correction, with fresh live evidence: &quot;unfounded concern&quot; is not accurate — `9ca6d72` fails the committed test right now**
+
+@Planner, I need to push back on this one c</td><td>not recovered</td><td><span class="src">room:a7714fa3-79b9-47e0-b95a-9888b68ec900</span></td></tr><tr><td>N1-2</td><td>verifier</td><td class='fail'>NEEDS_WORK</td><td>BREACH RESOLVED, not re-issue: reproduced adversary&#x27;s R-1-044 backlog breach on 9ca6d72 (235/1000 fresh connections timed out past the 8s grace, up to 9.06s) and ran the same committed test against 68</td><td>not recovered</td><td><span class="src">seat:verifier</span></td></tr><tr><td></td><td>planner</td><td class='fail'>NEEDS_WORK</td><td>**Correction accepted. The stage-close basis was never that GO — and your masking finding is the most important thing in your message.**
+
+Repository: `/home/prashant/projects/band-work/toy-result`
+
+@v</td><td>not recovered</td><td><span class="src">room:b34d02a4-bbfc-4fdd-836b-97cd9a9fa4a0</span></td></tr><tr><td>N1-2</td><td>verifier</td><td class='fail'>NEEDS_WORK</td><td>**BREACH RESOLVED — real on 9ca6d72, already fixed at 68faf5f. I reproduced both sides.**
+
+Repository: `/home/prashant/projects/band-work/toy-result` · Verdict `ea10c9ff0bd1` · Evidence commit pushed
+</td><td>not recovered</td><td><span class="src">room:09037583-c249-46ab-93ac-dff6a143a6b9</span></td></tr><tr><td></td><td>planner</td><td class='fail'>NEEDS_WORK</td><td>**N1-6 is already closed — you have a stale copy. And the one thing stage 1 waits on is still uncommitted.**
+
+Repository: `/home/prashant/projects/band-work/toy-result`
+
+@builder — N1-6 needs no dispa</td><td>not recovered</td><td><span class="src">room:c84e72a5-27b5-40e2-a943-a21b07a32f36</span></td></tr><tr><td></td><td>planner</td><td class='fail'>NEEDS_WORK</td><td>**@Builder&#x27;s reading is correct and carries my backing. New protocol to stop this recurring: `plan/s1-status.md` outranks any message.**
+
+Repository: `/home/prashant/projects/band-work/toy-result`
+
+@b</td><td>not recovered</td><td><span class="src">room:375634ec-757e-4167-b9f7-83e865c69614</span></td></tr><tr><td></td><td>planner</td><td class='fail'>NEEDS_WORK</td><td>**Gate 2 failed the close on a bug in your own new test — and the fix is again sitting uncommitted.**
+
+Repository: `/home/prashant/projects/band-work/toy-result`
+
+@redline — the close run is in progre</td><td>not recovered</td><td><span class="src">room:4e8413a3-2922-4075-be2d-9ce74c4417b1</span></td></tr><tr><td></td><td>planner</td><td class='fail'>NEEDS_WORK</td><td>**The close is stalled on two uncommitted files, one from each of you.**
+
+Repository: `/home/prashant/projects/band-work/toy-result` · HEAD: `a09e926`
+
+```
+$ git status --porcelain -- stage-1/tests/
+ </td><td>not recovered</td><td><span class="src">room:5dff5f81-c780-420c-9efe-603dbcfba78a</span></td></tr><tr><td></td><td>planner</td><td class='fail'>NEEDS_WORK</td><td>**You are holding for something that already landed — and the close has moved: gate 3 claims stage 1.**
+
+Repository: `/home/prashant/projects/band-work/toy-result`
+
+@builder — @Redline&#x27;s two items are</td><td>not recovered</td><td><span class="src">room:afa938b8-949e-42ea-b689-6f44f5dfd5a1</span></td></tr><tr><td>close</td><td>verifier</td><td class='fail'>NEEDS_WORK</td><td>Stage close on c7c4615: scope/g1/g3/g4/g5/g8 PASS. g4 PASS, log line verbatim &#x27;invariant: True&#x27;, 1300 ops, statuses {200:1300}, 1.3s, zero transient firings - redline item 2 fix works. TWO BLOCKERS: g</td><td>not recovered</td><td><span class="src">seat:verifier</span></td></tr><tr><td>close</td><td>verifier</td><td class='fail'>NEEDS_WORK</td><td>@adversary @builder **STAGE-1 CLOSE RUN (verifier) — NEEDS_WORK. Gate 4 is green at last. Two blockers: a NameError and gate 6 at 50%.**
+
+Repository: `/home/prashant/projects/band-work/toy-result` · G</td><td>not recovered</td><td><span class="src">room:8a703807-a7d5-479b-8bf0-c42768c71d8d</span></td></tr><tr><td></td><td>planner</td><td class='fail'>NEEDS_WORK</td><td>**You are not holding — you have live work, and you are two-thirds done with it. One line left.**
+
+Repository: `/home/prashant/projects/band-work/toy-result`
+
+@builder — @Redline&#x27;s items 1+2 landed at</td><td>not recovered</td><td><span class="src">room:0a033457-747e-462a-a5e9-fff8b4b66c5e</span></td></tr><tr><td></td><td>planner</td><td class='fail'>NEEDS_WORK</td><td>**BREACH accepted as a real finding — and it corrects me, not just the service. But its target is superseded: the fix is already in.**
+
+Repository: `/home/prashant/projects/band-work/toy-result` · HEA</td><td>not recovered</td><td><span class="src">room:e5cc1451-9938-45e2-9387-b67bd2e1e49d</span></td></tr><tr><td>close</td><td>verifier</td><td class='fail'>NEEDS_WORK</td><td>AUTHORITATIVE close run, pinned with --commit 61091fe. Supersedes verdict 6bf638c8e9af, which I ran WITHOUT --commit and which therefore tested the live working tree mid-edit - my own error, the same </td><td>not recovered</td><td><span class="src">seat:verifier</span></td></tr><tr><td></td><td>planner</td><td class='fail'>NEEDS_WORK</td><td>**Seven of eight gates are green. Gate 6 ran against code two commits before its own fix — one more pinned run and stage 1 closes.**
+
+Repository: `/home/prashant/projects/band-work/toy-result` · HEAD:</td><td>not recovered</td><td><span class="src">room:a6dfa140-9c66-4654-8ca0-667f123964a6</span></td></tr></table>
+<h2>Cost by seat</h2><table><tr><th>Seat</th><th>Tokens</th><th>USD</th><th>Minutes</th><th>Source</th></tr><tr><td>adversary</td><td>666,000</td><td>$13.78</td><td>110.0</td><td><span class="src">seat:adversary, seat:adversary, seat:adversary +12</span></td></tr><tr><td>builder</td><td>445,000</td><td>$8.60</td><td>90.0</td><td><span class="src">seat:builder, room:d021d0a5-ed10-404b-a93c-7de0027ac70d</span></td></tr><tr><td>planner</td><td>1,700,000</td><td>$25.60</td><td>273.7</td><td><span class="src">seat:planner, seat:planner, room:12ee11be-04e5-4788-a7f1-b3774976875b +36</span></td></tr><tr><td>redline</td><td>3,998,000</td><td>$92.70</td><td>708.5</td><td><span class="src">room:9ddcb76f-388f-4b88-881b-c0fd4cc2061c, room:164e5968-f422-4809-a524-1853cebb3e1c, room:0b2c944d-83f2-432f-93a5-b5f034af0ac0 +7</span></td></tr><tr><td>verifier</td><td>1,995,000</td><td>$33.50</td><td>256.7</td><td><span class="src">seat:verifier, seat:verifier, seat:verifier +16</span></td></tr></table>
+</body></html>

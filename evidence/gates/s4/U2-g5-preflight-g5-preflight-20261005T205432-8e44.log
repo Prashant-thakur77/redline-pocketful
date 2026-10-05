@@ -1,0 +1,48 @@
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest stage-2/tests/test_ui_activity.py stage-2/tests/test_ui_auth.py stage-2/tests/test_ui_layout.py stage-2/tests/test_ui_requests_split_authz.py stage-2/tests/test_ui_wallet_pay.py stage-3/tests/test_ui_activity.py stage-3/tests/test_ui_auth.py stage-3/tests/test_ui_layout.py stage-3/tests/test_ui_requests_split_authz.py stage-3/tests/test_ui_wallet_pay.py -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s4/U2-g5-preflight-g5-preflight-20261005T205432-8e44.junit.xml  (exit 2)
+
+==================================== ERRORS ====================================
+______________ ERROR collecting stage-3/tests/test_ui_activity.py ______________
+import file mismatch:
+imported module 'test_ui_activity' has this __file__ attribute:
+  /home/prashant/projects/band-work/result/stage-2/tests/test_ui_activity.py
+which is not the same as the test file we want to collect:
+  /home/prashant/projects/band-work/result/stage-3/tests/test_ui_activity.py
+HINT: remove __pycache__ / .pyc files and/or use a unique basename for your test file modules
+________________ ERROR collecting stage-3/tests/test_ui_auth.py ________________
+import file mismatch:
+imported module 'test_ui_auth' has this __file__ attribute:
+  /home/prashant/projects/band-work/result/stage-2/tests/test_ui_auth.py
+which is not the same as the test file we want to collect:
+  /home/prashant/projects/band-work/result/stage-3/tests/test_ui_auth.py
+HINT: remove __pycache__ / .pyc files and/or use a unique basename for your test file modules
+_______________ ERROR collecting stage-3/tests/test_ui_layout.py _______________
+import file mismatch:
+imported module 'test_ui_layout' has this __file__ attribute:
+  /home/prashant/projects/band-work/result/stage-2/tests/test_ui_layout.py
+which is not the same as the test file we want to collect:
+  /home/prashant/projects/band-work/result/stage-3/tests/test_ui_layout.py
+HINT: remove __pycache__ / .pyc files and/or use a unique basename for your test file modules
+________ ERROR collecting stage-3/tests/test_ui_requests_split_authz.py ________
+import file mismatch:
+imported module 'test_ui_requests_split_authz' has this __file__ attribute:
+  /home/prashant/projects/band-work/result/stage-2/tests/test_ui_requests_split_authz.py
+which is not the same as the test file we want to collect:
+  /home/prashant/projects/band-work/result/stage-3/tests/test_ui_requests_split_authz.py
+HINT: remove __pycache__ / .pyc files and/or use a unique basename for your test file modules
+_____________ ERROR collecting stage-3/tests/test_ui_wallet_pay.py _____________
+import file mismatch:
+imported module 'test_ui_wallet_pay' has this __file__ attribute:
+  /home/prashant/projects/band-work/result/stage-2/tests/test_ui_wallet_pay.py
+which is not the same as the test file we want to collect:
+  /home/prashant/projects/band-work/result/stage-3/tests/test_ui_wallet_pay.py
+HINT: remove __pycache__ / .pyc files and/or use a unique basename for your test file modules
+=========================== short test summary info ============================
+ERROR stage-3/tests/test_ui_activity.py
+ERROR stage-3/tests/test_ui_auth.py
+ERROR stage-3/tests/test_ui_layout.py
+ERROR stage-3/tests/test_ui_requests_split_authz.py
+ERROR stage-3/tests/test_ui_wallet_pay.py
+!!!!!!!!!!!!!!!!!!! Interrupted: 5 errors during collection !!!!!!!!!!!!!!!!!!!!
+5 errors in 0.10s
+
+

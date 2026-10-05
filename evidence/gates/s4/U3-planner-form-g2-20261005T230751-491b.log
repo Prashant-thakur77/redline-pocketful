@@ -1,0 +1,7 @@
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /home/prashant/projects/band-work/result/stage-4/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s4/U3-planner-form-g2-20261005T230751-491b.junit.xml -p factory.gates.reqfilter --req R-U-042  (exit 0)
+.                                                                        [100%]
+1 passed, 682 deselected in 2.70s
+
+
+
+RESULT: PASS — 1 passed, 0 failed for R-U-042 (0 errors, 0 skipped)

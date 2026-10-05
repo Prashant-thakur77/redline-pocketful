@@ -1,0 +1,177 @@
+$ docker build --label redline-gate=1 -t redline-gate-b378febcf6 /home/prashant/projects/band-work/result/stage-3  (exit 0)
+
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 176B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/4] FROM docker.io/library/python:3.12-slim
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 7.80kB done
+#5 DONE 0.0s
+
+#6 [2/4] WORKDIR /app
+#6 CACHED
+
+#7 [3/4] COPY main.py ./main.py
+#7 CACHED
+
+#8 [4/4] COPY service ./service
+#8 CACHED
+
+#9 exporting to image
+#9 exporting layers done
+#9 writing image sha256:d991dc628778835c292f0fee28dbecb40d0c1efb83842a7bc7dc1108da2beea4 done
+#9 naming to docker.io/library/redline-gate-b378febcf6 done
+#9 DONE 0.0s
+
+$ docker network create --internal redline-net-e462426e54  (exit 0)
+5a4547d8bd255bbb4d774d078a55c5b017d966c6707e060dd75acd6565886d29
+
+
+$ docker run -d --network redline-net-e462426e54 --cpus 2 --memory 2g -e PORT=8080 redline-gate-b378febcf6  (exit 0)
+92e8ed9d816de6bd5c2d884c7a71e6489de20186e0deda0e6e814efa858f9a7d
+
+
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /home/prashant/projects/band-work/result/stage-1/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s3/N3-9B-g5-20261005T151251-d30b.junit.xml  (exit 1)
+........................................................................ [ 22%]
+........................................................................ [ 45%]
+........................................................................ [ 68%]
+...................................................F.................... [ 91%]
+..........................                                               [100%]
+=================================== FAILURES ===================================
+________________________ test_seeded_ids_used_verbatim _________________________
+
+    def test_seeded_ids_used_verbatim():
+        """R-1-025"""
+        a_id, b_id = unique("u"), unique("u")
+        a_handle, b_handle = unique_handle("a"), unique_handle("b")
+        pay_id = unique("p")
+        fixture = make_fixture(
+            [user(a_id, a_handle, balance=1000), user(b_id, b_handle, balance=0)],
+            payments=[{"id": pay_id, "from_user_id": a_id, "to_user_id": b_id, "amount": 50,
+                       "note": "", "visibility": "public"}],
+        )
+>       reset_ok(fixture)
+
+stage-1/tests/test_runtime.py:159: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+fixture = {'currency': 'EUR', 'minor_units': 2, 'users': [{'id': 'u589afe9f21723', 'email': 'a589afe9f21725@example.com', 'passw...ents': [{'id': 'p589afe9f21727', 'from_user_id': 'u589afe9f21723', 'to_user_id': 'u589afe9f21724', 'amount': 50, ...}]}
+
+    def reset_ok(fixture: dict) -> httpx.Response:
+        r = reset(fixture)
+>       assert r.status_code == 204, f"reset failed: {r.status_code} {r.text}"
+E       AssertionError: reset failed: 422 {"error": {"code": "validation_failed", "message": "seeded payment history implies a negative opening balance"}}
+E       assert 422 == 204
+E        +  where 422 = <Response [422 Unprocessable Entity]>.status_code
+
+stage-1/tests/conftest.py:70: AssertionError
+=========================== short test summary info ============================
+FAILED stage-1/tests/test_runtime.py::test_seeded_ids_used_verbatim - Asserti...
+1 failed, 313 passed in 183.93s (0:03:03)
+
+
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /home/prashant/projects/band-work/result/stage-2/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s3/N3-9B-g5-20261005T151251-d30b.junit.xml  (exit 1)
+........................................................................ [ 14%]
+........................................................................ [ 28%]
+........................................................................ [ 43%]
+........................................................................ [ 57%]
+........................................................................ [ 72%]
+..............................F......................................... [ 86%]
+.................................................................        [100%]
+=================================== FAILURES ===================================
+________________________ test_seeded_ids_used_verbatim _________________________
+
+    def test_seeded_ids_used_verbatim():
+        """R-1-025"""
+        a_id, b_id = unique("u"), unique("u")
+        a_handle, b_handle = unique_handle("a"), unique_handle("b")
+        pay_id = unique("p")
+        fixture = make_fixture(
+            [user(a_id, a_handle, balance=1000), user(b_id, b_handle, balance=0)],
+            payments=[{"id": pay_id, "from_user_id": a_id, "to_user_id": b_id, "amount": 50,
+                       "note": "", "visibility": "public"}],
+        )
+>       reset_ok(fixture)
+
+stage-2/tests/test_runtime.py:159: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+fixture = {'currency': 'EUR', 'minor_units': 2, 'users': [{'id': 'u7598fc3522631', 'email': 'a7598fc3522633@example.com', 'passw...ents': [{'id': 'p7598fc3522635', 'from_user_id': 'u7598fc3522631', 'to_user_id': 'u7598fc3522632', 'amount': 50, ...}]}
+
+    def reset_ok(fixture: dict) -> httpx.Response:
+        r = reset(fixture)
+>       assert r.status_code == 204, f"reset failed: {r.status_code} {r.text}"
+E       AssertionError: reset failed: 422 {"error": {"code": "validation_failed", "message": "seeded payment history implies a negative opening balance"}}
+E       assert 422 == 204
+E        +  where 422 = <Response [422 Unprocessable Entity]>.status_code
+
+stage-2/tests/conftest.py:70: AssertionError
+=========================== short test summary info ============================
+FAILED stage-2/tests/test_runtime.py::test_seeded_ids_used_verbatim - Asserti...
+1 failed, 496 passed in 274.20s (0:04:34)
+
+
+$ docker build --label redline-gate=1 -t redline-gate-bf4f4183d1 /home/prashant/projects/band-work/result/stage-2  (exit 0)
+
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 176B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/4] FROM docker.io/library/python:3.12-slim
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 389.30kB 0.0s done
+#5 DONE 0.0s
+
+#6 [2/4] WORKDIR /app
+#6 CACHED
+
+#7 [3/4] COPY main.py ./main.py
+#7 CACHED
+
+#8 [4/4] COPY service ./service
+#8 CACHED
+
+#9 exporting to image
+#9 exporting layers done
+#9 writing image sha256:16f66c652e25cba798cdb38f300920a8473b6becb8db913bc53bc5a1c5a1fcfe done
+#9 naming to docker.io/library/redline-gate-bf4f4183d1 done
+#9 DONE 0.0s
+
+$ docker network create --internal redline-net-a2d5dfdab0  (exit 0)
+e992bdc7852eb044e7646d816fdb87490f05dd61277dc777942d1ec172fcedd3
+
+
+$ docker run -d --network redline-net-a2d5dfdab0 --cpus 2 --memory 2g -e PORT=8080 redline-gate-bf4f4183d1  (exit 0)
+0f685723a370a9d16bee44e8a52fb0c1456bfd682f795f69f0c824f57e57834f
+
+
+upgrade stage-2 -> stage-3: before={'balances': {'alice': 9869, 'bob': 5121, 'carol': 3000, 'dave': 6850, 'erin': 2020, 'frank': 1640}, 'identities': {'alice': ('u-alice', 'alice'), 'bob': ('u-bob', 'bob'), 'carol': ('u-carol', 'carol'), 'dave': ('u-dave', 'dave'), 'erin': ('u-erin', 'erin'), 'frank': ('u-frank', 'frank')}, 'wallets': {'alice': (9869, 1000, 8869), 'bob': (5121, 0, 5121), 'carol': (3000, 200, 2800), 'dave': (6850, 1050, 5800), 'erin': (2020, 0, 2020), 'frank': (1640, 0, 1640)}, 'requests': [('Y7stCufK5rp0RWRMTZzGrA', 'paid', 'F-WLBOHxdGkvhPQl87HVzg'), ('Zu2RpaCFrt5rMqlVktOBcA', 'paid', '2SflUfdF4x5NLL_N33yymQ'), ('r-seed-1', 'pending', None), ('r-seed-2', 'pending', None), ('r-seed-3', 'declined', None), ('r-seed-4', 'cancelled', None), ('r-seed-5', 'paid', None), ('tpXlfqViSCev2S89XVwezA', 'pending', None)], 'authorizations': [('a-seed-captured', 'captured', 500, 0, (), None), ('a-seed-expired', 'expired', 0, 0, (), None), ('a-seed-open-in', 'open', 0, 800, (), None), ('a-seed-open-out', 'open', 0, 1000, (), None), ('a-seed-voided', 'voided', 0, 0, (), None), ('cag6P9_rst3XD_dCLkjRgg', 'voided', 0, 0, (), '2026-10-05T15:20:32+00:00'), ('rGF0zJz10S468d9SElhhag', 'open', 150, 250, ('Jj5J1YJf0BGsoASOEljZkA',), None), ('wxr6YBQ0aReoHdbxKwBENQ', 'open', 0, 200, (), None)], 'settlement_id': 'WhAfEIFaCdgtNjsnt5jPMw', 'settlement_members': [('kLuJXT4qlXtoKaGLoRCCZg', 10)], 'retry_identity': (200, {'payment_id': '1mA6dwDJGzvu1ZysrkaiDg', 'from_user_id': 'u-alice', 'from_handle': 'alice', 'to_user_id': 'u-bob', 'to_handle': 'bob', 'amount': 111, 'currency': 'EUR', 'note': 'populate', 'visibility': 'public', 'request_id': None, 'created_at': '2026-10-05T15:20:32+00:00', 'settlement_id': None, 'authorization_id': None}), 'capture_retry_identity': (200, {'payment_id': 'Jj5J1YJf0BGsoASOEljZkA', 'from_user_id': 'u-dave', 'from_handle': 'dave', 'to_user_id': 'u-frank', 'to_handle': 'frank', 'amount': 150, 'currency': 'EUR', 'note': 'populate-partial', 'visibility': 'public', 'request_id': None, 'created_at': '2026-10-05T15:20:32+00:00', 'settlement_id': None, 'authorization_id': 'rGF0zJz10S468d9SElhhag'}), 'revision_state': [], 'correction_retry_identity': None, 'statement_snapshot_page': None} after={'balances': {'alice': 9869, 'bob': 5121, 'carol': 3000, 'dave': 6850, 'erin': 2020, 'frank': 1640}, 'identities': {'alice': ('u-alice', 'alice'), 'bob': ('u-bob', 'bob'), 'carol': ('u-carol', 'carol'), 'dave': ('u-dave', 'dave'), 'erin': ('u-erin', 'erin'), 'frank': ('u-frank', 'frank')}, 'wallets': {'alice': (9869, 1000, 8869), 'bob': (5121, 0, 5121), 'carol': (3000, 200, 2800), 'dave': (6850, 1050, 5800), 'erin': (2020, 0, 2020), 'frank': (1640, 0, 1640)}, 'requests': [('Y7stCufK5rp0RWRMTZzGrA', 'paid', 'F-WLBOHxdGkvhPQl87HVzg'), ('Zu2RpaCFrt5rMqlVktOBcA', 'paid', '2SflUfdF4x5NLL_N33yymQ'), ('r-seed-1', 'pending', None), ('r-seed-2', 'pending', None), ('r-seed-3', 'declined', None), ('r-seed-4', 'cancelled', None), ('r-seed-5', 'paid', None), ('tpXlfqViSCev2S89XVwezA', 'pending', None)], 'authorizations': [('a-seed-captured', 'captured', 500, 0, (), None), ('a-seed-expired', 'expired', 0, 0, (), None), ('a-seed-open-in', 'open', 0, 800, (), None), ('a-seed-open-out', 'open', 0, 1000, (), None), ('a-seed-voided', 'voided', 0, 0, (), None), ('cag6P9_rst3XD_dCLkjRgg', 'voided', 0, 0, (), '2026-10-05T15:20:32+00:00'), ('rGF0zJz10S468d9SElhhag', 'open', 150, 250, ('Jj5J1YJf0BGsoASOEljZkA',), None), ('wxr6YBQ0aReoHdbxKwBENQ', 'open', 0, 200, (), None)], 'settlement_id': 'WhAfEIFaCdgtNjsnt5jPMw', 'settlement_members': [('kLuJXT4qlXtoKaGLoRCCZg', 10)], 'retry_identity': (200, {'payment_id': '1mA6dwDJGzvu1ZysrkaiDg', 'from_user_id': 'u-alice', 'from_handle': 'alice', 'to_user_id': 'u-bob', 'to_handle': 'bob', 'amount': 111, 'currency': 'EUR', 'note': 'populate', 'visibility': 'public', 'request_id': None, 'created_at': '2026-10-05T15:20:32+00:00', 'settlement_id': None, 'authorization_id': None}), 'capture_retry_identity': (200, {'payment_id': 'Jj5J1YJf0BGsoASOEljZkA', 'from_user_id': 'u-dave', 'from_handle': 'dave', 'to_user_id': 'u-frank', 'to_handle': 'frank', 'amount': 150, 'currency': 'EUR', 'note': 'populate-partial', 'visibility': 'public', 'request_id': None, 'created_at': '2026-10-05T15:20:32+00:00', 'settlement_id': None, 'authorization_id': 'rGF0zJz10S468d9SElhhag'}), 'revision_state': [], 'correction_retry_identity': None, 'statement_snapshot_page': None}
+--- service log (tail) ---
+
+
+RESULT: FAIL — stage-1 tests: 1 failed, 0 errors, 0 skipped of 314; stage-2 tests: 1 failed, 0 errors, 0 skipped of 497
+--- service log (tail) ---
+

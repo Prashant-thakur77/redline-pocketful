@@ -17,10 +17,17 @@
     },
     "3": {
       "claimed": true,
-      "share": 0.5,
+      "share": 1.0,
       "overshoot": null,
-      "highest_contiguous": 2,
+      "highest_contiguous": 3,
       "report": "stage-3/report.json"
+    },
+    "4": {
+      "claimed": true,
+      "share": 1.0,
+      "overshoot": null,
+      "highest_contiguous": 4,
+      "report": "stage-4/report.json"
     }
   },
   "run_id": "final",

@@ -1,0 +1,64 @@
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /home/prashant/projects/band-work/result/stage-4/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s4/N4-6.1-part2-g2-20261005T195001-c102.junit.xml  (exit 1)
+........................................................................ [ 10%]
+.....................................................F.................. [ 21%]
+........................................................................ [ 31%]
+........................................................................ [ 42%]
+........................................................................ [ 52%]
+........................................................................ [ 63%]
+........................................................................ [ 74%]
+........................................................................ [ 84%]
+........................................................................ [ 95%]
+.................................                                        [100%]
+=================================== FAILURES ===================================
+____ test_latest_refresh_wins_against_a_real_out_of_order_network_response _____
+
+page = <Page url='http://192.168.176.2:8080/'>
+
+    def test_latest_refresh_wins_against_a_real_out_of_order_network_response(page):
+        """R-2-154 proven against an actual delayed/reordered network
+        response, not a mocked resolution order: the FIRST refresh's
+        response is delayed so it physically arrives after the SECOND
+        refresh's response, and the state mutates in between. The final
+        displayed balance must reflect the second (later, correct) read,
+        never the first (earlier, now-stale) one."""
+        fixture, a_id, b_id, a_handle, b_handle = _two_user_fixture(balance_a=100_000)
+        page.goto(url("/login"), wait_until="load")
+        page.fill(tid("login-email"), fixture["users"][0]["email"])
+        page.fill(tid("login-password"), "password123")
+        page.click(tid("login-submit"))
+        page.wait_for_load_state("load")
+    
+        state = {"count": 0}
+    
+        def delay_first(route):
+            state["count"] += 1
+            if state["count"] == 1:
+                time.sleep(1.5)
+            route.continue_()
+    
+        page.route("**/me", delay_first)
+        page.click(tid("wallet-refresh"))  # seq=1, delayed
+    
+        a_token = httpx.post(url("/auth/login"), json={"email": fixture["users"][0]["email"], "password": "password123"}, timeout=10.0).json()["token"]
+        httpx.post(url("/payments"), json={"to_handle": b_handle, "amount": 1234},
+                   headers={**auth(a_token), "Idempotency-Key": unique("mutate")}, timeout=10.0)
+    
+        page.click(tid("wallet-refresh"))  # seq=2, fast, arrives and applies first
+        page.wait_for_timeout(2500)  # let the delayed seq=1 response arrive last
+    
+        final = page.locator(tid("wallet-balance")).get_attribute("data-amount")
+>       assert final == "98766", f"a stale/earlier refresh response must never overwrite a later one: got {final!r}"
+E       AssertionError: a stale/earlier refresh response must never overwrite a later one: got '100000'
+E       assert '100000' == '98766'
+E         
+E         - 98766
+E         + 100000
+
+stage-4/tests/adversarial/test_n2_6_adversarial.py:183: AssertionError
+=========================== short test summary info ============================
+FAILED stage-4/tests/adversarial/test_n2_6_adversarial.py::test_latest_refresh_wins_against_a_real_out_of_order_network_response
+1 failed, 680 passed in 300.15s (0:05:00)
+
+
+
+RESULT: FAIL — 680 passed, 1 failed, 0 errors, 0 skipped

@@ -6,7 +6,7 @@ Team: Prashant Thakur · Track: pocketful · Event: WeAreDevelopers x BAND Dark 
 
 ## 60-second tour
 
-1. One human message goes into a fresh BAND room, addressed to @Planner. Nothing else is typed after it ([dispatch](plan/dispatch.md)).
+1. One human message goes into a fresh BAND room, addressed to @Planner. The factory needs nothing else typed after it ([dispatch](dispatch.md)); in the judged run the operator posted four disclosed notes, listed in FACTORY.md, Limits.
 2. @Planner turns each stage's spec into numbered requirements (`R-3-041`) and a small work plan.
 3. @Redline (Claude Sonnet) writes tests for every requirement before implementation, plus a hook that tells the gates what "money is conserved" means.
 4. @Builder (Claude) implements one item at a time against those tests.
@@ -16,7 +16,7 @@ Team: Prashant Thakur · Track: pocketful · Event: WeAreDevelopers x BAND Dark 
 
 Start with `evidence/run.html`: a replay of the real room, with every handoff's evidence, every review that changed the work, and the count of human messages after the dispatch.
 
-Results of the judged run: stages 1 and 2 of 4 pass the kickoff harness (`harness run --all --mode isolated`), stage 3 was in progress when the run stopped; 497 spec tests pass at stage 2's close with 0 failures; mutation score 100% at stage 1 and 70% at stage 2; spend about $680 list-price equivalent on a Claude subscription; wall time 17 h 25 min, of which about 2 h 20 min was idle (see FACTORY.md, Limits). The run's room is in `room.json`.
+Results of the judged run: **all four stages pass the kickoff harness** (`harness run --all --mode isolated`, highest contiguous stage 4, `evidence/harness/final/`). The last gate run measured **684 spec tests passed, 0 failed**; at `d6efb05` every one of the eight gates passed, mutation included (90%). The Adversary's attacks produced 18 BREACH verdicts across the run, each fixed and kept as a permanent test, among 91 rejections in all. 512 band commits, each authored by the seat that made it (the `Human` commits are factory and record only, listed in FACTORY.md); 4,746 messages in one BAND room. Spend $1,188 at list price, measured per turn from the seat logs, over 34.8 h. After stage 4, a disclosed operator note asked for a UI pass to the standard of familiar payment apps, and the band built it (design system, dark mode, phone tab bar, statement, payment history, refunds, batch corrections). Stages 2-4 are recorded partial; FACTORY.md, Limits says why. The live build is at https://redline-pocketful.onrender.com and the run's room is in `room.json`; open `evidence/run.html` for a replay. To check any of this in five minutes, see [JUDGES.md](JUDGES.md).
 
 One rule for every number in this repo: it comes from a script reading the ledger, the room or git history, and each figure names its source. Nothing is typed by hand.
 
@@ -53,7 +53,7 @@ The test writer never sees the code and the verifier can edit nothing; a GO is r
 
 ## How Redline maps to the rubric
 
-Factory (50%). The mandates in `mandates/` name no endpoint, field, error code or product noun; `make scan` checks them against both tracks' vocabulary and a noun list, and the same mandates build the toy track as a genericity proof ([score]). Effectiveness comes from spec-derived tests aimed at what the public checks leave out, an invariant storm of 1,000+ concurrent operations with replays, and a mutation gate that proves the tests catch bugs. FACTORY.md is a runbook: stand-up in ten minutes, seat rationale, measured cost and time per seat per stage, failed experiments, and the rejection ledger.
+Factory (50%). The mandates in `mandates/` name no endpoint, field, error code or product noun; `make scan` checks them against both tracks' vocabulary and a noun list, and the same mandates build the toy track as a genericity proof (100% of the toy's stage-1 suite, `proof/toy/`). Effectiveness comes from spec-derived tests aimed at what the public checks leave out, an invariant storm of 1,000+ concurrent operations with replays, and a mutation gate that proves the tests catch bugs. FACTORY.md is a runbook: stand-up in ten minutes, seat rationale, measured cost and time per seat per stage, failed experiments, and the rejection ledger.
 
 App (25%). Gate 7 opens every screen at 375, 768 and 1280 px, fails on horizontal overflow, controls under 24 px, any serious axe violation, assets fetched from outside the container, or missing empty/loading/error states. Screenshots go to `evidence/ui/`.
 
@@ -73,4 +73,3 @@ Agent Teamwork (25%). Five seats: one Opus, four Sonnet with separate contexts a
 | `plan/` | dispatches, decisions, failed experiments, checklists |
 | `proof/` | toy genericity run and the plumbing rehearsal |
 
-The Electron/Blockly IDE this repo started from is documented in [docs/ide-readme.md](docs/ide-readme.md); it is not part of the dark run.

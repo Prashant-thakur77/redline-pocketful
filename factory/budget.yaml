@@ -6,5 +6,5 @@ node:
   tokens: 600000
   usd: 15
 stage:
-  minutes: 900        # raised from 480 during the official run: host outages and an operator pause took ~4.5 h of stage 3
+  minutes: 900        # raised from 480 during the official run: host outages and an operator pause took ~4.5 h of one stage clock
   usd: 120

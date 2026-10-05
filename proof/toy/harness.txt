@@ -1,0 +1,9 @@
+stage-1/ ...
+building /home/prashant/projects/band-work/toy-result/stage-1 ...
+  stage 1: pass  (log: /home/prashant/projects/Redline/proof/toy/harness/stage-1/stage-1.log)
+  stage 2: fail  (log: /home/prashant/projects/Redline/proof/toy/harness/stage-1/stage-2.log)
+highest contiguous stage: 1
+claimed stage: 1 (100% of its own suite)
+report: /home/prashant/projects/Redline/proof/toy/harness/stage-1/report.json
+  stage-1/: claims stage 1: 100% of its own suite
+summary: /home/prashant/projects/Redline/proof/toy/harness/summary.json

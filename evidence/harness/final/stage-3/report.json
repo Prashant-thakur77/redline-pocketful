@@ -1,16 +1,16 @@
 {
-  "revision": "13c6432c56ae96b6fc8488707a0cca87d28c96a4",
+  "revision": "33045e32ba9afd33a94ba5829b497174ff39c83a",
   "track": "pocketful",
   "stages": {
     "1": "pass",
     "2": "pass",
-    "3": "fail"
+    "3": "pass"
   },
-  "highest_contiguous": 2,
-  "started_at": "2026-10-05T06:07:14.318985+00:00",
-  "finished_at": "2026-10-05T06:08:22.199430+00:00",
+  "highest_contiguous": 3,
+  "started_at": "2026-10-05T23:30:52.206388+00:00",
+  "finished_at": "2026-10-05T23:31:31.942587+00:00",
   "schema_version": 2,
-  "run_id": "8e51839a2dba4d358bfcb9c228f0b696",
+  "run_id": "9ff31e0f146244278cf8414ced7374e8",
   "mode": "isolated",
   "provenance": "working-tree",
   "state": "completed",
@@ -69,15 +69,15 @@
     },
     "3": {
       "collected": 6,
-      "passed": 3,
-      "failed": 3,
+      "passed": 6,
+      "failed": 0,
       "errors": 0,
       "skipped": 0,
       "deselected": 0,
       "xfailed": 0,
       "files": {
         "stage_3/test_sample.py": {
-          "passed": 3,
+          "passed": 6,
           "total": 6
         }
       }
@@ -85,19 +85,19 @@
   },
   "overshoot": null,
   "claimed_stage": "3",
-  "share": 0.5,
+  "share": 1.0,
   "upgrade_sources": {
     "2": {
       "folder": "/home/prashant/projects/band-work/result/stage-1",
-      "revision": "13c6432c56ae96b6fc8488707a0cca87d28c96a4"
+      "revision": "33045e32ba9afd33a94ba5829b497174ff39c83a"
     },
     "3": {
       "folder": "/home/prashant/projects/band-work/result/stage-2",
-      "revision": "13c6432c56ae96b6fc8488707a0cca87d28c96a4"
+      "revision": "33045e32ba9afd33a94ba5829b497174ff39c83a"
     },
     "4": {
       "folder": "/home/prashant/projects/band-work/result/stage-3",
-      "revision": "13c6432c56ae96b6fc8488707a0cca87d28c96a4"
+      "revision": "33045e32ba9afd33a94ba5829b497174ff39c83a"
     }
   }
 }

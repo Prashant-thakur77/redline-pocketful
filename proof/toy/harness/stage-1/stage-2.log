@@ -1,0 +1,63 @@
+$ docker run --rm --network df-run-58df8f0e75594b799705c3b8f86fa264 -v /home/prashant/projects/dark-factory-wearedevs:/work:ro -v /home/prashant/projects/Redline/proof/toy/harness/stage-1:/out -e PYTHONDONTWRITEBYTECODE=1 -e PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 -e COLUMNS=200 -w /work df-harness-runner python -m pytest toy/test/stage_2 --base-url http://df-svc-9b55dfd47dcd:8080 -p harness.plugin --rootdir toy/test -q -x --harness-summary /out/stage-2.counts.json
+
+F
+=============================================================================================== FAILURES ===============================================================================================
+___________________________________________________________________________________ test_page_displays_seeded_value ____________________________________________________________________________________
+
+reset = <function reset.<locals>._reset at 0x7604f1a8ba60>, page = <Page url='about:blank'>
+
+    def test_page_displays_seeded_value(reset, page):
+        reset({"value": 7})
+>       page.goto("/")
+
+toy/test/stage_2/test_ui.py:12: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/usr/local/lib/python3.12/site-packages/playwright/sync_api/_generated.py:9903: in goto
+    self._sync(
+/usr/local/lib/python3.12/site-packages/playwright/_impl/_page.py:562: in goto
+    return await self._main_frame.goto(**locals_to_params(locals()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/playwright/_impl/_frame.py:157: in goto
+    await self._channel.send(
+/usr/local/lib/python3.12/site-packages/playwright/_impl/_connection.py:76: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <playwright._impl._connection.Connection object at 0x7604f2e875f0>, cb = <function Channel.send.<locals>.<lambda> at 0x7604f1a8b9c0>, is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -> Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+>           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.Error: Page.goto: net::ERR_HTTP_RESPONSE_CODE_FAILURE at http://df-svc-9b55dfd47dcd:8080/
+E           Call log:
+E             - navigating to "http://df-svc-9b55dfd47dcd:8080/", waiting until "load"
+
+/usr/local/lib/python3.12/site-packages/playwright/_impl/_connection.py:632: Error
+=========================================================================================== warnings summary ===========================================================================================
+../usr/local/lib/python3.12/site-packages/_pytest/cacheprovider.py:469
+  /usr/local/lib/python3.12/site-packages/_pytest/cacheprovider.py:469: PytestCacheWarning: could not create cache path /work/toy/test/.pytest_cache/v/cache/nodeids: [Errno 30] Read-only file system: '/work/toy/test/pytest-cache-files-s8jqg22_'
+    config.cache.set("cache/nodeids", sorted(self.cached_nodeids))
+
+../usr/local/lib/python3.12/site-packages/_pytest/cacheprovider.py:423
+  /usr/local/lib/python3.12/site-packages/_pytest/cacheprovider.py:423: PytestCacheWarning: could not create cache path /work/toy/test/.pytest_cache/v/cache/lastfailed: [Errno 30] Read-only file system: '/work/toy/test/pytest-cache-files-5iw785kt'
+    config.cache.set("cache/lastfailed", self.lastfailed)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================================================================================= short test summary info ========================================================================================
+FAILED toy/test/stage_2/test_ui.py::test_page_displays_seeded_value - playwright._impl._errors.Error: Page.goto: net::ERR_HTTP_RESPONSE_CODE_FAILURE at http://df-svc-9b55dfd47dcd:8080/
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+1 failed, 2 warnings in 0.68s
+

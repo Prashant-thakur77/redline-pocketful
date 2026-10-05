@@ -1,0 +1,15 @@
+{
+  "track": "toy",
+  "folders": {
+    "1": {
+      "claimed": true,
+      "share": 1.0,
+      "overshoot": null,
+      "highest_contiguous": 1,
+      "report": "stage-1/report.json"
+    }
+  },
+  "run_id": "harness",
+  "mode": "isolated",
+  "preview": false
+}

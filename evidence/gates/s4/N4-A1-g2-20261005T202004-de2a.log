@@ -1,0 +1,7 @@
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /home/prashant/projects/band-work/result/stage-4/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s4/N4-A1-g2-20261005T202004-de2a.junit.xml -p factory.gates.reqfilter --req R-2-154,R-2-155,R-2-156,R-2-186  (exit 0)
+......                                                                   [100%]
+6 passed, 675 deselected in 5.92s
+
+
+
+RESULT: PASS — 6 passed, 0 failed for R-2-154,R-2-155,R-2-156,R-2-186 (0 errors, 0 skipped)

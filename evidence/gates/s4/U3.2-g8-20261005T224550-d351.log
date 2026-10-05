@@ -1,0 +1,3 @@
+stage: minutes 955.2 > cap 900
+
+RESULT: FAIL — stage: minutes 955.2 > cap 900 — return the item to @planner

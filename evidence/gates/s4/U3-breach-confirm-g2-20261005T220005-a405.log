@@ -1,0 +1,86 @@
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /home/prashant/projects/band-work/result/stage-4/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s4/U3-breach-confirm-g2-20261005T220005-a405.junit.xml  (exit 1)
+........................................................................ [ 10%]
+........................................................................ [ 21%]
+........................F............................................... [ 31%]
+........................................................................ [ 42%]
+........................................................................ [ 52%]
+........................................................................ [ 63%]
+........................................................................ [ 73%]
+........................................................................ [ 84%]
+........................................................................ [ 95%]
+..................................                                       [100%]
+=================================== FAILURES ===================================
+_ test_refund_correct_batch_are_dead_on_any_non_localhost_origin_r_u_036_037_039 _
+
+    def test_refund_correct_batch_are_dead_on_any_non_localhost_origin_r_u_036_037_039():
+        """R-U-036/037/039/042: the refund, correct and operator-batch submit
+        handlers all derive their Idempotency-Key via
+        `crypto.subtle.digest(...)` (`app.js`'s `sha256Hex16`). `window.crypto.
+        subtle` only exists in a Window.isSecureContext -- which the browser
+        grants for `https:` origins and for the single special-cased hostname
+        `localhost`/`127.0.0.1`, and for NOTHING else, including every other
+        plain-HTTP origin: a LAN IP, a container's bridge-network IP, or any
+        real deployment without TLS.
+    
+        This service is served over plain HTTP at a non-localhost address in
+        every environment that matters here -- this factory's own
+        `factory.gates.serve`/`gates.run` always hands out a docker bridge-
+        network IP (e.g. `192.168.x.x:8080`), never `127.0.0.1`, and a real
+        production deployment without HTTPS would have the identical origin
+        shape. On such an origin `window.isSecureContext` is `false`,
+        `window.crypto.subtle` is `undefined`, and calling `.digest(...)` on
+        it throws a synchronous, uncaught `TypeError:
+        Cannot read properties of undefined (reading 'digest')` -- inside the
+        click handler, before any `fetch()` ever fires. All three of this
+        item's new write paths (refund, correct, operator batch) are
+        completely non-functional: no request is sent, no error slot is
+        shown (the exception is thrown before the `.then()`/`.catch()` chain
+        that would populate one), and the user sees nothing happen at all.
+    
+        Builder's own verification ran against `http://127.0.0.1:8099` --
+        exactly the one HTTP origin where this defect is invisible, which is
+        why it shipped.
+        """
+        uid_a, h_a = unique("u"), unique_handle("bza")
+        uid_b, h_b = unique("u"), unique_handle("bzb")
+        emails = [f"{h}@x.com" for h in (h_a, h_b)]
+        reset_ok(make_fixture([user(uid_a, h_a, balance=1000, email=emails[0]),
+                                user(uid_b, h_b, balance=0, email=emails[1])]))
+        token_a = httpx.post(url("/auth/login"), json={"email": emails[0], "password": "password123"},
+                              timeout=5).json()["token"]
+        pay = httpx.post(url("/payments"), json={"to_handle": h_b, "amount": 100},
+                          headers={**auth(token_a), "Idempotency-Key": unique("u3breach")}, timeout=5)
+        assert pay.status_code == 201, pay.text
+        pid = pay.json()["payment_id"]
+    
+        from playwright.sync_api import sync_playwright
+>       with sync_playwright() as p:
+             ^^^^^^^^^^^^^^^^^
+
+stage-4/tests/adversarial/test_u3_adversarial.py:58: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <playwright.sync_api._context_manager.PlaywrightContextManager object at 0x7b9018a0a7e0>
+
+        def __enter__(self) -> SyncPlaywright:
+            try:
+                self._loop = asyncio.get_running_loop()
+            except RuntimeError:
+                self._loop = asyncio.new_event_loop()
+                self._own_loop = True
+            if self._loop.is_running():
+>               raise Error(
+                    """It looks like you are using Playwright Sync API inside the asyncio loop.
+    Please use the Async API instead."""
+                )
+E               playwright._impl._errors.Error: It looks like you are using Playwright Sync API inside the asyncio loop.
+E               Please use the Async API instead.
+
+.venv/lib/python3.12/site-packages/playwright/sync_api/_context_manager.py:46: Error
+=========================== short test summary info ============================
+FAILED stage-4/tests/adversarial/test_u3_adversarial.py::test_refund_correct_batch_are_dead_on_any_non_localhost_origin_r_u_036_037_039
+1 failed, 681 passed in 264.66s (0:04:24)
+
+
+
+RESULT: FAIL — 681 passed, 1 failed, 0 errors, 0 skipped
