@@ -55,94 +55,11 @@
     el.hidden = true;
   }
 
-  // R-U-042: idempotency keys for the three new U3 writes are derived
-  // from the form's own content (sha256, hex, first 16 chars). A pure-JS
-  // implementation, not `crypto.subtle` -- `window.crypto.subtle` only
-  // exists in a secure context (`https:`, or the browser's one special
-  // case, `127.0.0.1`/`localhost`), so it is `undefined` on a bare
-  // container IP over plain HTTP, exactly what this factory's own
-  // gate/serve tooling hands out. Calling it there throws synchronously
-  // before any fetch, making refund/correct/batch dead with no visible
-  // error (confirmed by @adversary). This runs identically on any origin,
-  // scheme or lack of one. Returns a Promise for interface parity with
-  // every call site below, which already awaits it with .then().
-  function sha256Hex16(text) {
-    // Standard FIPS 180-4 SHA-256 over the UTF-8 bytes of `text`, trimmed
-    // to a plain, dependency-free implementation (bitwise ops, no BigInt,
-    // since Math.imul-based 32-bit arithmetic is all this needs and is
-    // supported everywhere `fetch` already is).
-    function rrot(x, n) { return (x >>> n) | (x << (32 - n)); }
-
-    var K = [
-      0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
-      0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
-      0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
-      0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
-      0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
-      0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
-      0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
-      0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
-    ];
-    var H = [0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19];
-
-    var bytes = Array.from(new TextEncoder().encode(text));
-    var bitLen = bytes.length * 8;
-    bytes.push(0x80);
-    while (bytes.length % 64 !== 56) {
-      bytes.push(0);
-    }
-    // The length field is 64 bits big-endian; bitLen fits in 32 bits for
-    // any message this product ever hashes (a form body, never
-    // gigabytes), so the high word is always zero. Pushed as its own
-    // four literal zero bytes rather than `bitLen >>> 32/40/.../56` --
-    // JS's `>>>` only honours the LOW 5 bits of its shift amount, so
-    // `>>> 56` silently means `>>> 24`, not "shift out everything":
-    // that reuses bitLen's own high bits instead of emitting zero.
-    bytes.push(0, 0, 0, 0);
-    for (var shift = 24; shift >= 0; shift -= 8) {
-      bytes.push((bitLen >>> shift) & 0xff);
-    }
-
-    var w = new Array(64);
-    for (var offset = 0; offset < bytes.length; offset += 64) {
-      for (var t = 0; t < 16; t++) {
-        var i4 = offset + t * 4;
-        w[t] = ((bytes[i4] << 24) | (bytes[i4 + 1] << 16) | (bytes[i4 + 2] << 8) | bytes[i4 + 3]) >>> 0;
-      }
-      for (t = 16; t < 64; t++) {
-        var s0 = rrot(w[t - 15], 7) ^ rrot(w[t - 15], 18) ^ (w[t - 15] >>> 3);
-        var s1 = rrot(w[t - 2], 17) ^ rrot(w[t - 2], 19) ^ (w[t - 2] >>> 10);
-        w[t] = (w[t - 16] + s0 + w[t - 7] + s1) >>> 0;
-      }
-
-      var a = H[0], b = H[1], c = H[2], d = H[3], e = H[4], f = H[5], g = H[6], h = H[7];
-      for (t = 0; t < 64; t++) {
-        var S1 = rrot(e, 6) ^ rrot(e, 11) ^ rrot(e, 25);
-        var ch = (e & f) ^ (~e & g);
-        var temp1 = (h + S1 + ch + K[t] + w[t]) >>> 0;
-        var S0 = rrot(a, 2) ^ rrot(a, 13) ^ rrot(a, 22);
-        var maj = (a & b) ^ (a & c) ^ (b & c);
-        var temp2 = (S0 + maj) >>> 0;
-        h = g; g = f; f = e; e = (d + temp1) >>> 0;
-        d = c; c = b; b = a; a = (temp1 + temp2) >>> 0;
-      }
-      H[0] = (H[0] + a) >>> 0; H[1] = (H[1] + b) >>> 0; H[2] = (H[2] + c) >>> 0; H[3] = (H[3] + d) >>> 0;
-      H[4] = (H[4] + e) >>> 0; H[5] = (H[5] + f) >>> 0; H[6] = (H[6] + g) >>> 0; H[7] = (H[7] + h) >>> 0;
-    }
-
-    var hex = "";
-    for (var hi = 0; hi < 2; hi++) {
-      hex += H[hi].toString(16).padStart(8, "0");
-    }
-    return Promise.resolve(hex.slice(0, 16));
-  }
-
   window.Pocketful = {
     parseAmountToMinorUnits: parseAmountToMinorUnits,
     formatAmount: formatAmount,
     showError: showError,
-    hideError: hideError,
-    sha256Hex16: sha256Hex16
+    hideError: hideError
   };
 })();
 
@@ -1004,6 +921,12 @@
     if (refundForm) {
       var refundAmountEl = document.querySelector('[data-testid="refund-amount"]');
       var refundReviewEl = document.querySelector('[data-testid="refund-review"]');
+      // R-2-151/152 (R-U-042's actual rule, per the planner's amendment):
+      // stable across resubmits of an UNCHANGED form, regenerated only
+      // when a field's value actually changes -- the exact policy
+      // bindForm already uses for pay/request/authorize, not a content
+      // hash. No crypto.subtle, no fallback branch.
+      var refundKey = randomKey();
       function updateRefundReview() {
         var amt = Pocketful.parseAmountToMinorUnits(refundAmountEl.value, minorUnits);
         if (amt === null) {
@@ -1013,7 +936,10 @@
         refundReviewEl.hidden = false;
         refundReviewEl.textContent = "Refund " + Pocketful.formatAmount(amt, currency, minorUnits);
       }
-      refundAmountEl.addEventListener("input", updateRefundReview);
+      refundAmountEl.addEventListener("input", function () {
+        refundKey = randomKey();
+        updateRefundReview();
+      });
       updateRefundReview();
       document.querySelector('[data-testid="refund-submit"]').addEventListener("click", function () {
         var amt = Pocketful.parseAmountToMinorUnits(refundAmountEl.value, minorUnits);
@@ -1021,10 +947,7 @@
           showActionSlot("refund", "error", "Enter a valid amount.");
           return;
         }
-        Pocketful.sha256Hex16(String(amt)).then(function (hash) {
-          var key = "ui-rf-" + paymentId + "-" + hash;
-          submitWrite("refund", "/payments/" + paymentId + "/refunds", key, {amount: amt});
-        });
+        submitWrite("refund", "/payments/" + paymentId + "/refunds", refundKey, {amount: amt});
       });
     }
 
@@ -1043,6 +966,10 @@
         return new Date().toISOString();
       }
 
+      // Same stable-until-changed policy as the refund form above.
+      var correctKey = randomKey();
+      function regenerateCorrectKey() { correctKey = randomKey(); }
+
       function updateCorrectReview() {
         var amt = Pocketful.parseAmountToMinorUnits(correctAmountEl.value, minorUnits);
         if (amt === null) {
@@ -1053,8 +980,9 @@
         correctReviewEl.textContent = "Correct to " + Pocketful.formatAmount(amt, currency, minorUnits) +
           (correctReasonEl.value ? " · " + correctReasonEl.value : "");
       }
-      correctAmountEl.addEventListener("input", updateCorrectReview);
-      correctReasonEl.addEventListener("input", updateCorrectReview);
+      correctAmountEl.addEventListener("input", function () { regenerateCorrectKey(); updateCorrectReview(); });
+      correctReasonEl.addEventListener("input", function () { regenerateCorrectKey(); updateCorrectReview(); });
+      correctEffectiveEl.addEventListener("input", regenerateCorrectKey);
       updateCorrectReview();
 
       document.querySelector('[data-testid="correct-submit"]').addEventListener("click", function () {
@@ -1070,11 +998,8 @@
         var effectiveAt = effectiveInstant();
         var expectedRevision = parseInt(correctExpectedEl.value, 10);
         var reason = correctReasonEl.value;
-        Pocketful.sha256Hex16([expectedRevision, amt, effectiveAt, reason].join("|")).then(function (hash) {
-          var key = "ui-co-" + paymentId + "-" + hash;
-          submitWrite("correct", "/payments/" + paymentId + "/corrections", key,
-            {expected_revision: expectedRevision, amount: amt, effective_at: effectiveAt, reason: reason});
-        });
+        submitWrite("correct", "/payments/" + paymentId + "/corrections", correctKey,
+          {expected_revision: expectedRevision, amount: amt, effective_at: effectiveAt, reason: reason});
       });
     }
   })();
@@ -1093,6 +1018,11 @@
     var previewEl = document.querySelector('[data-testid="batch-preview"]');
     var maxRows = parseInt(screen.getAttribute("data-max-rows"), 10);
     var rowCount = 0;
+    // R-2-151/152: stable while the table is UNCHANGED, regenerated on
+    // any row edit, add or remove -- a batch is one atomic write, so a
+    // stale key across an edited table would replay the wrong body.
+    var batchKey = randomKey();
+    function regenerateBatchKey() { batchKey = randomKey(); }
 
     function rowHtml(index) {
       return '<tr data-testid="batch-row-' + index + '">' +
@@ -1115,10 +1045,11 @@
       }
       var index = rowCount++;
       tbody.insertAdjacentHTML("beforeend", rowHtml(index));
+      regenerateBatchKey();
       updateEmptyState();
       updatePreview();
       tbody.querySelectorAll("input").forEach(function (el) {
-        el.addEventListener("input", updatePreview);
+        el.addEventListener("input", function () { regenerateBatchKey(); updatePreview(); });
       });
     }
 
@@ -1164,6 +1095,7 @@
         return;
       }
       btn.closest("tr").remove();
+      regenerateBatchKey();
       updateEmptyState();
       updatePreview();
     });
@@ -1187,16 +1119,10 @@
         showBatchSlot("error", "Every row needs a valid amount.");
         return;
       }
-      var canonical = JSON.stringify(rows.map(function (r) {
-        return [r.payment_id, r.expected_revision, r.amount, r.effective_at, r.reason];
-      }));
-      Pocketful.sha256Hex16(canonical).then(function (hash) {
-        var key = "ui-cb-" + hash;
-        return fetch("/correction-batches", {
-          method: "POST",
-          headers: authHeaders({"Idempotency-Key": key, "Content-Type": "application/json"}),
-          body: JSON.stringify({corrections: rows})
-        });
+      fetch("/correction-batches", {
+        method: "POST",
+        headers: authHeaders({"Idempotency-Key": batchKey, "Content-Type": "application/json"}),
+        body: JSON.stringify({corrections: rows})
       }).then(function (resp) {
         return resp.json().then(function (data) { return {status: resp.status, body: data}; });
       }).then(function (result) {
