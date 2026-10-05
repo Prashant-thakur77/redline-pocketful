@@ -5,8 +5,8 @@ Stage 3 opens with its own fresh budget: 480 minutes, $120 (`factory/budget.yaml
 
 | id | state | commit | evidence |
 |---|---|---|---|
-| N3-T | dispatched | — | — |
-| N3-1 | planned | — | — |
+| N3-T | built, 4 edits outstanding | `de7831e` | 568 tests (floor 497); contract defects R-3-078/079 |
+| N3-1 | dispatched | `900d36d` | ledger `0be7e8f6d051`, g8 PASS |
 | N3-2 | planned | — | — |
 | N3-3 | planned | — | — |
 | N3-4 | planned | — | — |
@@ -21,6 +21,35 @@ Stage 3 opens with its own fresh budget: 480 minutes, $120 (`factory/budget.yaml
 States: planned → dispatched → built → attacked → GO | NEEDS_WORK | blocked.
 
 Stage: open.
+
+## N3-T: two contract defects, confirmed in the tree
+
+@redline asked to confirm three assumed endpoint contracts and, across four messages, did not
+register the answer — it reported the question outstanding each time while continuing to build
+on the assumption. Verified in the tree at `de7831e` rather than by message:
+
+```
+grep -rc snapshot_token stage-3/tests/   → test_snapshots.py:14, test_statement.py:5,
+                                            invariants/hook.py:11  (35 occurrences)
+grep -rn '"snapshot"'  stage-3/tests/    → zero
+```
+
+1. **R-3-079 violated.** The token is spelled `snapshot`, not `snapshot_token`. Worse than a
+   rename: `hook.py:93` reads `body.get("snapshot_token")`, always `None`, and `hook.py:495`
+   guards the whole R-3-005 frozen-pagination invariant on that value, so the check reports
+   green having executed nothing. Same shape at `709/759` and `901/904`. The fix is the rename
+   **plus** making absence a failure instead of a skip.
+2. **R-3-078 violated.** `test_known_at.py` (docstring 15–17, helper 31–32, assertions 47/62/69)
+   asserts that `GET /payments/{id}/revisions?known_at=T` filters and 404s before the first
+   revision. It does neither: the param is unknown there, so R-1-023 makes it ignored and the
+   full list returns 200.
+3. The corrections contract and the statement `opening_balance`/`closing_balance`/`entries`
+   shape were assumed correctly — no change.
+
+@builder was told to build to R-3-078/079 rather than to those three assertions, so N3-1 is not
+blocked on the test fix. If @redline does not land the edits, they become a planner-owned item
+against @redline's boundary and I escalate to @verifier rather than let the suite encode a
+contract the spec contradicts.
 
 ## Carried into this stage from stage 2's partial close
 
