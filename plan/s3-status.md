@@ -1190,5 +1190,57 @@ before it is spent, because the commit is about to change. Verification is plann
 named tip covering both repairs — that is the lesson from stage 1, where four passes each judged a
 superseded sha.
 
+## >>> TICK 2026-10-05T12:50Z — N3-5 VERIFIED at `6f5ae2c`; the stand-down arrived too late. LIVE BLOCK. <<<
+
+@verifier's independent pass crossed my withdrawal and ran anyway: **GO in substance, recorded
+HOLDS** (ledger `b2d49c609025`) at `6f5ae2c` — plan/evidence-only on top of `938b569`, ancestry
+confirmed, `known_at` verified wired into `me.py` by reading the commit rather than the tree.
+**scope PASS, g1 PASS, g4 PASS (binding), g8 PASS, g2 597/4 of 601.**
+
+The pass was not wasted, and two of its findings are worth more than the verdict:
+
+1. **None of @adversary's 11 tests from `41d13a7` fail** — independently confirming what I inferred
+   from the adversary's own arithmetic two ticks ago. N3-4's closed content holds against the
+   expanded suite from two directions now. **N3-4.1 is formally not needed.**
+2. It corrected the status file: `test_as_of_never_negative_across_two_corrections_at_different_instants`
+   **passes** at this sha, where my last tick still listed it red pending N3-6. @builder's
+   existence-floor work closed it. My requirement attribution stands (it is overdraft boundary
+   behaviour); my prediction about what would fix it was wrong, twice stated, now corrected.
+
+### N3-5 state: closed on content, with N3-5.1 open against it
+
+The verified content at `938b569` still contains the R-3-053 tolerance that the ruling above
+reverts, so this GO cannot by itself close N3-5. N3-5 is **closed on content**; **N3-5.1** (the
+revert) stays open and both repairs are in flight right now — `stage-3/service/routes/corrections.py`
+and `stage-3/tests/test_me_as_of.py` are both modified in the working tree as I write this.
+
+### The evidence-commit disclosure is mine, not a race
+
+@verifier disclosed that its evidence files and ledger verdict landed inside my commit `7ebe9b6`
+rather than its own, calling it the same shared-index shape as `db83d89` in stage 1. It is more
+specific than that and the fault is mine: I ran `git add evidence/ledger.jsonl evidence/gates/s3`
+— **a whole shared directory** — which swept its freshly written artefacts into my commit. That is
+my own standing lesson about explicit pathspecs, applied to a directory instead of a file and
+missed for exactly that reason.
+
+Harmless to the record (`evidence/` is seat-agnostic for scope; scope PASS confirms it), but my
+practice changes: **I add evidence files by name, never `evidence/gates/<dir>`.** The shared
+append-only ledger is the one exception, since committing it necessarily carries other seats'
+appended lines.
+
+Two artefacts of its run are **still untracked** and are its to commit:
+`evidence/gates/s3/N3-5-g2-20261005T123746-b108.log` and the matching `.junit.xml`. Its "nothing
+further to commit" was right about the ledger and wrong about these two.
+
+### Next verification is one batch, on a tip I name
+
+With $35.87 left, passes are the scarce resource. @verifier runs **once** on a tip covering
+**N3-5.1 + N3-T.5 + N3-6** together, not three times. Nothing is pending from it until I name that
+tip.
+
+Expected at that tip: **598/3** — the `as_of` test back green via @redline's seeded past
+`created_at`, the historical-overdraft test green via N3-6, leaving `test_historical_holds_*` ×2
+(N3-8) and `test_export_import_preserves_revision_history` (N3-9).
+
 Expect g2 to go to **596/5** after the revert and back to **597/4** after the test repair. A
 temporary red from an intentional revert is the honest state, not a regression.
