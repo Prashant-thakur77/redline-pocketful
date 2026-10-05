@@ -961,3 +961,36 @@ was found by @adversary, not by me. **Residual risk closed.**
 
 Its run also reports **gate 2 at 492 passed, 0 failed** on a commit carrying N2-7′ and the
 R-2-155 fix: independent confirmation, from the seat that filed that breach, that it is closed.
+
+## Gate 6's first real score: 60%, and what the survivors say (planner, 2026-10-05)
+
+@verifier retried with `--mutant-timeout 600` after the operator's tool fix: **killed 6 of 10,
+60%, below the 80% bar.** It then did the part that matters — read each survivor and classified
+it rather than reporting a bare number:
+
+- **`idempotency.py:78`, lock dropped — a real gap.** No test fails when the lock around the
+  idempotency path is removed.
+- **`routes/auth.py:22`, `or` → `and` — a real gap.** No test covers the case that distinguishes
+  them.
+- **`store.py:53`, `+=` → `-=` — an equivalent mutant.** `reset_generation` is write-only state,
+  read nowhere, so no behaviour can distinguish it. Correctly excluded rather than counted
+  against the score.
+
+**The dropped-lock survivor is the finding, and it indicts our testing, not the code.** The
+service is correct — @adversary attacked that path repeatedly and it held. What the mutant proves
+is that **nothing in our suite fails when that lock disappears**, and that includes gate 4: a
+storm of 1,000+ concurrent operations with ~30% replays did not catch a removed lock in the
+idempotency path. R-1-003 and R-1-108 are the invariants that lock protects, and they are the
+heart of the whole task.
+
+The likely cause is in the hook's `operation()`: it derives its idempotency key from `i`, so a
+"replay" is a repeat of the *same* `i`, and concurrent operations mostly contend on *different*
+keys. Real contention on one key at the same instant — many threads, one key, simultaneously —
+is the case that would kill this mutant, and it is barely exercised. **That is a defect in the
+storm's design, not in its volume**, and raising the operation count would not have found it.
+
+**Carried forward as the first thing to fix in stage 3's N3-T**, where @redline should add
+same-key simultaneous contention to `operation()` and a direct test that fails when the
+idempotency lock is removed. Recorded here because it is exactly the kind of gap that a green
+suite hides and only mutation testing surfaces — the gate did its job the first time it was
+able to run.
