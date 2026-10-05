@@ -1242,5 +1242,57 @@ Expected at that tip: **598/3** — the `as_of` test back green via @redline's s
 `created_at`, the historical-overdraft test green via N3-6, leaving `test_historical_holds_*` ×2
 (N3-8) and `test_export_import_preserves_revision_history` (N3-9).
 
+## >>> TICK 2026-10-05T12:50Z — N3-T.5 accepted; a GATE-4 COVERAGE HOLE found in the sweep. LIVE BLOCK. <<<
+
+**N3-T.5 accepted on content** at `0f6159c`. @redline repaired the test exactly as ruled — payment
+seeded with `created_at` an hour back, both correction instants moved inside the window at +20 and
++40 minutes, all three original assertions untouched — and found a constraint I had not stated:
+b's seeded balance must be at least the seeded payment's amount or `reset` itself 422s on the
+R-3-018a opening-instant check, which the old live-POST version never triggered. 6/6 in
+`test_me_as_of.py`. It closes with the batch pass.
+
+### The sweep found a fifth instance. @redline saw it and ruled it harmless; I disagree.
+
+I asked for a sweep of `effective_at` values derived from `now + …`. @redline swept, reported no
+fifth instance in its boundary, and classified `stage-3/tests/invariants/hook.py:225` as safe
+because the gate-4 hook "already tallies 422 as a legal outcome rather than asserting 201". That
+reasoning is **right about correctness and wrong about coverage**, and the line is a real defect:
+
+```python
+offset_days = (i % 9) - 4        # ranges negative (historical) through positive (future-dated)
+effective_at = (ctx["now"] + timedelta(days=offset_days, seconds=i)).isoformat()
+```
+
+Enumerating the residues, which is the check that settles it:
+
+| `i % 9` | `offset_days` | what the operation reaches |
+|---|---|---|
+| 0, 1, 2, 3 | −4 … −1 | **past** — exercises the correction money path |
+| 4 | +0 | future by `i` seconds → **422 at validation** |
+| 5, 6, 7, 8 | +1 … +4 | future → **422 at validation** |
+
+**5 of 9 correction operations in the storm die at R-3-053 validation and never reach the
+correction logic at all.** The storm stays green because a 422 is tallied as legal, so the gate
+reports a pass while silently testing nothing in those 56% of cases.
+
+**Why this matters more than an ordinary test defect:** gate 4 is the *binding* gate for this
+stage's money invariants — conservation, non-negativity, at-most-once — and corrections are the
+one genuinely new money-moving path stage 3 adds. A storm that rejects most of its own corrections
+at the door is the weakest possible test of exactly the thing most likely to break. It also means
+g4's PASS on N3-4 and N3-5, which I have been treating as the strongest evidence in the stage, is
+weaker than I have been claiming. Said plainly rather than left in the record as overstated.
+
+The hook's docstring states the intent — "sometimes pushed before the payment's own creation to
+exercise historical-overdraft/ordering paths" — and the **negative** offsets do that correctly.
+The positive ones add nothing but a validation rejection.
+
+**N3-T.6** (`a2b6b3cfb497`, g8 PASS) to @redline: make the split deliberate — the large majority
+of residues past (so they reach the money path, spread across backdated and recent), and **one**
+named residue deliberately future so the 422 rule is still exercised under load. Keep
+i-determinism: same `i`, same request.
+
+This is the fifth instance of the shape and the first that cost coverage rather than a red test,
+so the lesson added is about residue enumeration, not about future dates.
+
 Expect g2 to go to **596/5** after the revert and back to **597/4** after the test repair. A
 temporary red from an intentional revert is the honest state, not a regression.
