@@ -220,8 +220,17 @@ rounding was considered and **rejected**: it narrows the window instead of closi
 double-click would still straddle a boundary.
 
 **Weakest evidence in the item, named rather than glossed:** the batch-row half of that fix
-(`batchDefaultEffective`) is exercised by no test — it is verified by code inspection alone, by the seat
-that wrote it. `[Resolved / still inspection-only at report time.]`
+(`batchDefaultEffective`) is exercised by **no test** — it ships verified by code inspection alone, by
+the seat that wrote it. @adversary was asked for a batch-row test *only* if it were a straight
+adaptation of its existing one; it was not added, which is the authorised outcome and is disclosed here
+rather than carried quietly.
+
+A second, smaller disclosure of the same kind: the double-click test's assertion is `responses ==
+[201, 200]`, which is **tighter than the requirement it checks** — R-U-042 permits one create and any
+number of clean replays. It is correct for this test, which dispatches exactly two clicks, and it fails
+correctly on a `409` and on a double-create; but a third captured response would fail it spuriously.
+The planner ruled a looser form and then declined to spend a third round enforcing the wording once the
+committed version was green and correct.
 
 ## What was not done, stated as plainly as what was
 
