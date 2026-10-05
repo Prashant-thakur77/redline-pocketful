@@ -152,8 +152,14 @@ def test_crossed_as_of_and_known_at_both_directions_r_3_073():
     a_handle, b_handle = unique_handle("a"), unique_handle("b")
     created_at = datetime.now(timezone.utc) - timedelta(hours=2)
     pay_id = unique("p")
+    # Seeded (not live-posted) so created_at can be pinned minutes in the
+    # past. The fixture's "balance" is the wallet's ENDING value (after
+    # the seeded payment already happened), so opening_balance works out
+    # to exactly 5000/0 -- a's balance under rev1-only selection is then
+    # 4900, matching what a fresh two_user_fixture(5000, 0) would give a
+    # live payment, just reproducibly offset in time.
     fixture = make_fixture(
-        [user(a_id, a_handle, balance=5000), user(b_id, b_handle, balance=0)],
+        [user(a_id, a_handle, balance=4900), user(b_id, b_handle, balance=100)],
         payments=[{"id": pay_id, "from_user_id": a_id, "to_user_id": b_id, "amount": 100,
                    "note": "", "visibility": "public", "created_at": _iso(created_at)}],
     )
