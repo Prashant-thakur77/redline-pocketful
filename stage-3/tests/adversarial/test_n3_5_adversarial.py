@@ -137,24 +137,39 @@ def test_crossed_as_of_and_known_at_both_directions_r_3_073():
       as_of before the correction's effective_at must still use the
       ORIGINAL revision, because as_of has not reached it yet even
       though it is already known.
+
+    Every instant compared against another is either a fixed offset
+    from a seeded, explicit past created_at (minutes apart, so no
+    amount of request latency can flip their order), or is captured
+    immediately before/after an HTTP call whose own completion is the
+    only ordering guarantee it needs (recorded_at is always stamped
+    strictly after a pre-request capture and strictly before a
+    post-response capture) -- never two independently-measured now()
+    values compared at sub-second margins, which is what made the
+    previous version of this test flake (3/5, builder-reported).
     """
-    fixture, token_a, _ = two_user_fixture(balance_a=5000, balance_b=0)
-    b_handle = fixture["users"][1]["handle"]
+    a_id, b_id = unique("u"), unique("u")
+    a_handle, b_handle = unique_handle("a"), unique_handle("b")
+    created_at = datetime.now(timezone.utc) - timedelta(hours=2)
+    pay_id = unique("p")
+    fixture = make_fixture(
+        [user(a_id, a_handle, balance=5000), user(b_id, b_handle, balance=0)],
+        payments=[{"id": pay_id, "from_user_id": a_id, "to_user_id": b_id, "amount": 100,
+                   "note": "", "visibility": "public", "created_at": _iso(created_at)}],
+    )
+    reset_ok(fixture)
+    token_a = login_token(fixture["users"][0]["email"])
 
-    pay = api_post("/payments", json={"to_handle": b_handle, "amount": 100},
-                    headers={**auth(token_a), **idem(unique("k"))})
-    assert pay.status_code == 201, pay.text
-    pay_id = pay.json()["payment_id"]
-
+    correction_effective_at = created_at + timedelta(minutes=30)
     known_at_before_correction = _iso(datetime.now(timezone.utc))
-    correction_effective_at = _iso(datetime.now(timezone.utc) - timedelta(milliseconds=1))
     corr = api_post(f"/payments/{pay_id}/corrections",
                      json={"expected_revision": 1, "amount": 500,
-                           "effective_at": correction_effective_at, "reason": "backdated"},
+                           "effective_at": _iso(correction_effective_at), "reason": "backdated"},
                      headers={**auth(token_a), **idem(unique("k"))})
     assert corr.status_code == 201, corr.text
+    known_at_after_correction = _iso(datetime.now(timezone.utc))
 
-    as_of_after_correction_effective = _iso(datetime.now(timezone.utc) + timedelta(seconds=1))
+    as_of_after_correction_effective = _iso(correction_effective_at + timedelta(minutes=10))
     r1 = api_get("/me", headers=auth(token_a),
                  params={"known_at": known_at_before_correction,
                          "as_of": as_of_after_correction_effective})
@@ -164,8 +179,7 @@ def test_crossed_as_of_and_known_at_both_directions_r_3_073():
         f"effective_at: {r1.json()}"
     )
 
-    known_at_after_correction = _iso(datetime.now(timezone.utc) + timedelta(seconds=1))
-    as_of_before_correction_effective = pay.json()["created_at"]
+    as_of_before_correction_effective = _iso(created_at + timedelta(minutes=10))
     r2 = api_get("/me", headers=auth(token_a),
                  params={"known_at": known_at_after_correction,
                          "as_of": as_of_before_correction_effective})
