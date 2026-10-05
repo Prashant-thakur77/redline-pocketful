@@ -1950,6 +1950,21 @@ Budget **$84.13 of $120**. This plus @adversary's in-flight N3-8.2 are the last 
 close; if N3-8.3 cannot land inside the remainder, stage 3 is recorded partial with this BREACH
 open and named.
 
+### The 5× validation came back 5/5 **failed**, and that is the stronger result
+
+@redline ran the repeated-run check I asked for and got **five identical failures**, same assertion,
+same message. I had asked for 5× to prove a *fix* stays green; it used the same instrument to prove
+a *failure is deterministic*. That is more useful here than a green would have been:
+
+- it establishes the timing race is genuinely **gone** — a flake does not fail 5/5 identically;
+- it upgrades the R-3-119/120 BREACH from "a test fails" to "a reproducible implementation defect",
+  which is what makes it safe to dispatch N3-8.3 as a build item rather than re-examine the test.
+
+Generalised into `plan/lessons.md`: N consecutive *identical failures* is evidence of a real defect
+exactly as N consecutive passes is evidence of a stable fix. The repeated-run check is a
+flake-vs-defect discriminator, not just a green-confirmation ritual — and after seven construction
+defects this stage, that distinction is the one that has cost the most to get wrong.
+
 ### Why I did not wait for N3-8 as well
 
 N3-8 is substantial and still building. Verifying four landed items now — including the first real
