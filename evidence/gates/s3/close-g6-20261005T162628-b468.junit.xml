@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="4.565" timestamp="2026-10-05T22:35:16.142887+05:30" hostname="prashant-Dell-G15-5530"><testcase classname="adversarial.test_n1_10_2_adversarial" name="test_reset_landing_while_waiters_are_parked_on_an_in_flight_claim" time="4.080"><failure message="AssertionError: reset failed: 422 {&quot;error&quot;: {&quot;code&quot;: &quot;validation_failed&quot;, &quot;message&quot;: &quot;wallet balance for u4a7d6b062 must not be negative&quot;}}&#10;assert 422 == 204&#10; +  where 422 = &lt;Response [422 Unprocessable Entity]&gt;.status_code">def test_reset_landing_while_waiters_are_parked_on_an_in_flight_claim():
+        """R-1-080b/R-1-112a: a reset with a DIFFERENT fixture lands while one
+        or more callers are parked inside resolve_or_claim's event.wait() for
+        the SAME key + body as an in-flight 32-entry settlement. Every
+        participant must get a response inside the 5s budget, never a 5xx,
+        and either 200 with the winner's exact body or a legitimate error
+        from being re-tried as a fresh first use against the now-wiped
+        handles (404 — R-1-040: nothing from before the reset is visible)."""
+    
+        def do_reset():
+            new_uid, new_handle = unique("u"), unique_handle("postwipe")
+            new_email = f"{new_handle}@example.com"
+            t0 = time.monotonic()
+            r = reset_ok(make_fixture([user(new_uid, new_handle, balance=777, email=new_email)]))
+            return r.status_code, time.monotonic() - t0, new_email
+    
+        def verify(trial_i, responses, wipe_result):
+            reset_status, reset_elapsed, new_email = wipe_result
+            assert reset_status == 204
+            assert reset_elapsed &lt; 10.0, (
+                f"R-1-015: reset must finish within 10s even mid-race, took {reset_elapsed:.2f}s (trial {trial_i})"
+            )
+    
+            over_budget = [(s, e) for s, _, e in responses if e &gt; _REQUEST_BUDGET_S]
+            assert not over_budget, (
+                f"R-1-015 breach (trial {trial_i}): a parked waiter exceeded {_REQUEST_BUDGET_S}s: {over_budget}"
+            )
+    
+            bad_5xx = [(s, b[:200]) for s, b, _ in responses if s &gt;= 500]
+            assert not bad_5xx, (
+                f"R-1-005/R-1-080b breach (trial {trial_i}): a parked waiter got a 5xx when the entry it was "
+                f"waiting on was wiped out from under it by a reset: {bad_5xx}"
+            )
+    
+            winners = [b for s, b, _ in responses if s == 201]
+            assert len(winners) &lt;= 1, f"never two winners even across a reset race (trial {trial_i}): {len(winners)} 201s"
+            replays = [b for s, b, _ in responses if s == 200]
+            if winners:
+                assert all(b == winners[0] for b in replays), f"every 200 must carry the exact winner body (trial {trial_i})"
+            for s, b, _ in responses:
+                if s not in (200, 201):
+                    assert 400 &lt;= s &lt; 500, f"unexpected non-4xx/non-2xx status {s} (trial {trial_i}): {b}"
+                    assert '"error"' in b, f"a {s} response must carry the error envelope (trial {trial_i}): {b}"
+    
+            # Verify THIS trial's new state right now, before the next
+            # trial's own reset invalidates this email/token.
+            bal_new = api_get("/me", headers={"Authorization": f"Bearer {login_token(new_email)}"}).json()["balance"]
+            assert bal_new == 777, f"R-1-001: new fixture's seeded balance must be exact post-race, got {bal_new} (trial {trial_i})"
+    
+&gt;       max_elapsed_seen = _run_waiter_race(do_reset, verify)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+/tmp/redline-mut-12w7pwlc/stage-3/tests/adversarial/test_n1_10_2_adversarial.py:181: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/redline-mut-12w7pwlc/stage-3/tests/adversarial/test_n1_10_2_adversarial.py:126: in _run_waiter_race
+    responses, wipe_result = _run_waiter_race_once(wipe_fn)
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/tmp/redline-mut-12w7pwlc/stage-3/tests/adversarial/test_n1_10_2_adversarial.py:69: in _run_waiter_race_once
+    all_ops = _multi_settlement_fixture(n_operators=1 + n_contenders)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/tmp/redline-mut-12w7pwlc/stage-3/tests/adversarial/test_n1_10_2_adversarial.py:45: in _multi_settlement_fixture
+    reset_ok(make_fixture(all_users, settlement_operator_ids=[op_id for op_id, *_ in operators]))
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+fixture = {'currency': 'EUR', 'minor_units': 2, 'users': [{'id': 'u4a7d6b060', 'email': 'op04a7d6b061@example.com', 'password': ...ment_operator_ids': ['u4a7d6b060', 'u4a7d6b0666', 'u4a7d6b06132', 'u4a7d6b06198', 'u4a7d6b06264', 'u4a7d6b06330', ...]}
+
+    def reset_ok(fixture: dict) -&gt; httpx.Response:
+        r = reset(fixture)
+&gt;       assert r.status_code == 204, f"reset failed: {r.status_code} {r.text}"
+E       AssertionError: reset failed: 422 {"error": {"code": "validation_failed", "message": "wallet balance for u4a7d6b062 must not be negative"}}
+E       assert 422 == 204
+E        +  where 422 = &lt;Response [422 Unprocessable Entity]&gt;.status_code
+
+/tmp/redline-mut-12w7pwlc/stage-3/tests/conftest.py:70: AssertionError</failure></testcase></testsuite></testsuites>

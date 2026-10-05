@@ -1,0 +1,957 @@
+$ docker build --label redline-gate=1 -t redline-mut-78733abc-base /tmp/redline-mut-12w7pwlc/stage-3  (exit 0)
+
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 176B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/4] FROM docker.io/library/python:3.12-slim
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 2.07kB done
+#5 DONE 0.0s
+
+#6 [3/4] COPY main.py ./main.py
+#6 CACHED
+
+#7 [2/4] WORKDIR /app
+#7 CACHED
+
+#8 [4/4] COPY service ./service
+#8 CACHED
+
+#9 exporting to image
+#9 exporting layers done
+#9 writing image sha256:5184a0148e4b224454679d97ea155381fa0523f1ebbb6a667194a6ed92b63c65 done
+#9 naming to docker.io/library/redline-mut-78733abc-base done
+#9 DONE 0.0s
+
+$ docker network create --internal redline-net-2b1a33375b  (exit 0)
+cbda9fd47cd5c56b308dfb34837a72e9b056c98c78e36c080139de799c4fbc32
+
+
+$ docker run -d --network redline-net-2b1a33375b --cpus 2 --memory 2g -e PORT=8080 redline-mut-78733abc-base  (exit 0)
+43fcabce0f2237784f14e4da2f0c9c19f8cca9afc33922854d7c31cd05a0dd5b
+
+
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /tmp/redline-mut-12w7pwlc/stage-3/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s3/close-g6-20261005T162628-b468.junit.xml  (exit 0)
+........................................................................ [ 11%]
+........................................................................ [ 23%]
+........................................................................ [ 35%]
+........................................................................ [ 46%]
+........................................................................ [ 58%]
+........................................................................ [ 70%]
+........................................................................ [ 81%]
+........................................................................ [ 93%]
+........................................                                 [100%]
+616 passed in 288.59s (0:04:48)
+
+
+--- service log (tail) ---
+
+baseline green in 290s; mutant time limit 641s
+$ docker build --label redline-gate=1 -t redline-mut-78733abc-1 /tmp/redline-mut-12w7pwlc/stage-3  (exit 0)
+
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 176B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/4] FROM docker.io/library/python:3.12-slim
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 5.00kB done
+#5 DONE 0.0s
+
+#6 [2/4] WORKDIR /app
+#6 CACHED
+
+#7 [3/4] COPY main.py ./main.py
+#7 CACHED
+
+#8 [4/4] COPY service ./service
+#8 CACHED
+
+#9 exporting to image
+#9 exporting layers done
+#9 writing image sha256:2f0f71b27414764d208ae62497f1c93a12e494cc0cf59afa23dcf5bfaae74820 done
+#9 naming to docker.io/library/redline-mut-78733abc-1 done
+#9 DONE 0.0s
+
+$ docker network create --internal redline-net-7745864139  (exit 0)
+2a77d2d79c70afc8ea2c964fdb9b9dae57bf0f6a2949167dc41443c2b2856f76
+
+
+$ docker run -d --network redline-net-7745864139 --cpus 2 --memory 2g -e PORT=8080 redline-mut-78733abc-1  (exit 0)
+192fdc3b35267ac3085912e4cc6593636dff4d0f5dd2c1a3e73d09e334fbe84f
+
+
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /tmp/redline-mut-12w7pwlc/stage-3/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s3/close-g6-20261005T162628-b468.junit.xml -x  (exit 1)
+........................................................................ [ 11%]
+........................................................................ [ 23%]
+........................................................................ [ 35%]
+........................................................................ [ 46%]
+...............................................F
+=================================== FAILURES ===================================
+___________ test_requests_status_filter_excludes_other_statuses_g6_1 ___________
+
+    def test_requests_status_filter_excludes_other_statuses_g6_1():
+        """g6 #1 service/routes/requests_read.py:63 [ne to eq]:
+        `if status is not None and r["status"] != status: continue` flipped to
+        `==` keeps only the requests that do NOT match the filter. The existing
+        R-1-165 test only checks the inclusion side on one status (`declined`)
+        via `all(x["status"] == "declined" ...)`, which a flipped filter still
+        happens to satisfy by accident on that slice. Kill with exact set
+        equality against all four statuses from one fixture where the caller is
+        party to one request of each. (R-1-163, R-1-165)"""
+        a_id, b_id = unique("u"), unique("u")
+        a_handle, b_handle = unique_handle("a"), unique_handle("b")
+        fixture = make_fixture([user(a_id, a_handle, balance=1000), user(b_id, b_handle, balance=1000)])
+        reset_ok(fixture)
+        token_a = login_token(fixture["users"][0]["email"])
+        token_b = login_token(fixture["users"][1]["email"])
+    
+        pending = api_post("/requests", json={"payer_handle": b_handle, "amount": 1},
+                           headers={**auth(token_a), **idem(unique("k"))})
+        assert pending.status_code == 201, pending.text
+        pending_id = pending.json()["request_id"]
+    
+        to_be_paid = api_post("/requests", json={"payer_handle": b_handle, "amount": 1},
+                              headers={**auth(token_a), **idem(unique("k"))})
+        assert to_be_paid.status_code == 201, to_be_paid.text
+        paid_id = to_be_paid.json()["request_id"]
+        pay_r = api_post(f"/requests/{paid_id}/pay", json={}, headers={**auth(token_b), **idem(unique("k"))})
+        assert pay_r.status_code == 201, pay_r.text
+    
+        to_decline = api_post("/requests", json={"payer_handle": b_handle, "amount": 1},
+                              headers={**auth(token_a), **idem(unique("k"))})
+        assert to_decline.status_code == 201, to_decline.text
+        declined_id = to_decline.json()["request_id"]
+        decl = api_post(f"/requests/{declined_id}/decline", json={}, headers=auth(token_b))
+        assert decl.status_code == 200, decl.text
+    
+        to_cancel = api_post("/requests", json={"payer_handle": b_handle, "amount": 1},
+                             headers={**auth(token_a), **idem(unique("k"))})
+        assert to_cancel.status_code == 201, to_cancel.text
+        cancelled_id = to_cancel.json()["request_id"]
+        canc = api_post(f"/requests/{cancelled_id}/cancel", json={}, headers=auth(token_a))
+        assert canc.status_code == 200, canc.text
+    
+        expected_by_status = {
+            "pending": {pending_id},
+            "paid": {paid_id},
+            "declined": {declined_id},
+            "cancelled": {cancelled_id},
+        }
+        for status, expected_ids in expected_by_status.items():
+            got = api_get("/requests", headers=auth(token_a), params={"status": status, "limit": 200})
+            assert got.status_code == 200, got.text
+            got_ids = {r["request_id"] for r in got.json()["requests"]}
+>           assert got_ids == expected_ids, f"status={status}: expected exactly {expected_ids}, got {got_ids}"
+E           AssertionError: status=pending: expected exactly {'jklKoUV4Trw2fiHGLpZMEQ'}, got {'mWK4kXIPnv2JX2ZOroJ4cg', 'CpVuKFYc79UACftgxVn0NQ', 'rYEt0sNjs3Orxa6HA6sdtw'}
+E           assert {'CpVuKFYc79U...Orxa6HA6sdtw'} == {'jklKoUV4Trw2fiHGLpZMEQ'}
+E             
+E             Extra items in the left set:
+E             'mWK4kXIPnv2JX2ZOroJ4cg'
+E             'CpVuKFYc79UACftgxVn0NQ'
+E             'rYEt0sNjs3Orxa6HA6sdtw'
+E             Extra items in the right set:
+E             'jklKoUV4Trw2fiHGLpZMEQ'
+E             Use -v to get more diff
+
+/tmp/redline-mut-12w7pwlc/stage-3/tests/test_g6_survivors.py:74: AssertionError
+=========================== short test summary info ============================
+FAILED ../../../../../tmp/redline-mut-12w7pwlc/stage-3/tests/test_g6_survivors.py::test_requests_status_filter_excludes_other_statuses_g6_1
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+1 failed, 335 passed in 221.77s (0:03:41)
+
+
+--- service log (tail) ---
+
+#1 service/routes/requests_read.py:63 [ne to eq]: killed
+   - if status is not None and r["status"] != status:
+   + if status is not None and r["status"] == status:
+$ docker build --label redline-gate=1 -t redline-mut-78733abc-2 /tmp/redline-mut-12w7pwlc/stage-3  (exit 0)
+
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 176B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/4] FROM docker.io/library/python:3.12-slim
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 10.89kB done
+#5 DONE 0.0s
+
+#6 [3/4] COPY main.py ./main.py
+#6 CACHED
+
+#7 [2/4] WORKDIR /app
+#7 CACHED
+
+#8 [4/4] COPY service ./service
+#8 CACHED
+
+#9 exporting to image
+#9 exporting layers done
+#9 writing image sha256:19ca89f221a05d617c5bc9f07979b7bae0eaa135354893d9862a80d2d045857d done
+#9 naming to docker.io/library/redline-mut-78733abc-2 done
+#9 DONE 0.0s
+
+$ docker network create --internal redline-net-5ad13a1e52  (exit 0)
+f70eb41702bdc1d7c3c17d8b1b6ee623d773a417d7d41c0f91b2e8ed5adf098d
+
+
+$ docker run -d --network redline-net-5ad13a1e52 --cpus 2 --memory 2g -e PORT=8080 redline-mut-78733abc-2  (exit 0)
+85fa0e6d00549bc49350fda29d88e0a2307a122df3e094bb9a198a88e9cc8cd4
+
+
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /tmp/redline-mut-12w7pwlc/stage-3/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s3/close-g6-20261005T162628-b468.junit.xml -x  (exit 1)
+.......................................................F
+=================================== FAILURES ===================================
+___________ test_r_1_229_failed_settlement_claims_no_idempotency_key ___________
+
+    def test_r_1_229_failed_settlement_claims_no_idempotency_key():
+        """R-1-229: a settlement that fails validation or affordability claims
+        NO idempotency key — the same key must be reusable afterward as a
+        genuine first use, same shape as the R-1-107 x R-1-108 payments
+        interaction."""
+        u = _users({"ada": 10, "bob": 0}, operator_handles=("ada",))
+        key = unique("settle-fail-release")
+    
+        bad_transfers = [{"from_handle": u["ada"]["handle"], "to_handle": u["bob"]["handle"], "amount": 10_000}]
+        r1 = _settle(u["ada"]["token"], bad_transfers, key=key)
+>       assert_error(r1, 409, "insufficient_funds")
+
+/tmp/redline-mut-12w7pwlc/stage-3/tests/adversarial/test_n1_8_adversarial.py:142: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+resp = <Response [422 Unprocessable Entity]>, status = 409
+code = 'insufficient_funds'
+
+    def assert_error(resp: httpx.Response, status: int, code: str):
+>       assert resp.status_code == status, f"expected {status} got {resp.status_code}: {resp.text}"
+E       AssertionError: expected 409 got 422: {"error": {"code": "validation_failed", "message": "transfers must be an array of 1 to 32 entries"}}
+E       assert 422 == 409
+E        +  where 422 = <Response [422 Unprocessable Entity]>.status_code
+
+/tmp/redline-mut-12w7pwlc/stage-3/tests/conftest.py:233: AssertionError
+=========================== short test summary info ============================
+FAILED ../../../../../tmp/redline-mut-12w7pwlc/stage-3/tests/adversarial/test_n1_8_adversarial.py::test_r_1_229_failed_settlement_claims_no_idempotency_key
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+1 failed, 55 passed in 154.78s (0:02:34)
+
+
+--- service log (tail) ---
+
+#2 service/routes/settlements.py:73 [cmp <= to <]: killed
+   - if not isinstance(transfers, list) or not (1 <= len(transfers) <= _MAX_TRANSFERS):
+   + if not isinstance(transfers, list) or not (1 < len(transfers) <= _MAX_TRANSFERS):
+$ docker build --label redline-gate=1 -t redline-mut-78733abc-3 /tmp/redline-mut-12w7pwlc/stage-3  (exit 0)
+
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 176B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/4] FROM docker.io/library/python:3.12-slim
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 17.72kB done
+#5 DONE 0.0s
+
+#6 [2/4] WORKDIR /app
+#6 CACHED
+
+#7 [3/4] COPY main.py ./main.py
+#7 CACHED
+
+#8 [4/4] COPY service ./service
+#8 CACHED
+
+#9 exporting to image
+#9 exporting layers done
+#9 writing image sha256:b91df13c691e7d04c26ed9fc8a06bbc52f038937af9302627caacc58d1db3b6d done
+#9 naming to docker.io/library/redline-mut-78733abc-3 done
+#9 DONE 0.0s
+
+$ docker network create --internal redline-net-474b77dd63  (exit 0)
+982bccf6011acbe69d22306737df64ef1558a7dc3d7dd30812bcb4750e88f5ba
+
+
+$ docker run -d --network redline-net-474b77dd63 --cpus 2 --memory 2g -e PORT=8080 redline-mut-78733abc-3  (exit 0)
+fd05ffda5941d21501b5841a0d620e8ed6250b0151ef719ece76b5c138868aa7
+
+
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /tmp/redline-mut-12w7pwlc/stage-3/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s3/close-g6-20261005T162628-b468.junit.xml -x  (exit 1)
+........................................................................ [ 11%]
+..................................................................F
+=================================== FAILURES ===================================
+__ test_frozen_snapshot_unaffected_by_a_payment_made_after_it_r_3_082_086_088 __
+
+    def test_frozen_snapshot_unaffected_by_a_payment_made_after_it_r_3_082_086_088():
+        """R-3-082/086/088: a frozen result keeps paging the same entries and
+        balances 'even after later payments or corrections' / 'concurrent
+        payments or corrections'."""
+        fixture, token_a, _ = two_user_fixture(balance_a=5000, balance_b=0)
+        b_handle = fixture["users"][1]["handle"]
+        for amount in (10, 20, 30):
+            r = api_post("/payments", json={"to_handle": b_handle, "amount": amount},
+                         headers={**auth(token_a), **idem(unique("k"))})
+            assert r.status_code == 201, r.text
+    
+        page1 = _statement_ok(token_a, limit=10)
+        token = page1["snapshot"]
+>       assert len(page1["entries"]) == 3
+E       assert 0 == 3
+E        +  where 0 = len([])
+
+/tmp/redline-mut-12w7pwlc/stage-3/tests/adversarial/test_n3_3_2_adversarial.py:37: AssertionError
+=========================== short test summary info ============================
+FAILED ../../../../../tmp/redline-mut-12w7pwlc/stage-3/tests/adversarial/test_n3_3_2_adversarial.py::test_frozen_snapshot_unaffected_by_a_payment_made_after_it_r_3_082_086_088
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+1 failed, 138 passed in 185.73s (0:03:05)
+
+
+--- service log (tail) ---
+
+#3 service/routes/statement.py:110 [eq to ne]: killed
+   - is_from = p["from_user_id"] == user_id
+   + is_from = p["from_user_id"] != user_id
+$ docker build --label redline-gate=1 -t redline-mut-78733abc-4 /tmp/redline-mut-12w7pwlc/stage-3  (exit 0)
+
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 176B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/4] FROM docker.io/library/python:3.12-slim
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 20.17kB done
+#5 DONE 0.0s
+
+#6 [2/4] WORKDIR /app
+#6 CACHED
+
+#7 [3/4] COPY main.py ./main.py
+#7 CACHED
+
+#8 [4/4] COPY service ./service
+#8 CACHED
+
+#9 exporting to image
+#9 exporting layers done
+#9 writing image sha256:ca9f243f1d609cf14110631d606806f7edcb88d28a1e66ff7f5bcf3ef04b7e98 done
+#9 naming to docker.io/library/redline-mut-78733abc-4 done
+#9 DONE 0.0s
+
+$ docker network create --internal redline-net-2ae52ac7d3  (exit 0)
+f51cb2fea811f6500729e320652bf0c8bce89bf83133b502b4d77037231fbf5e
+
+
+$ docker run -d --network redline-net-2ae52ac7d3 --cpus 2 --memory 2g -e PORT=8080 redline-mut-78733abc-4  (exit 0)
+0888138cd6e09d339cc0efa0f1a0bf6d034944ac6569d03ae76a50616588dd49
+
+
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /tmp/redline-mut-12w7pwlc/stage-3/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s3/close-g6-20261005T162628-b468.junit.xml -x  (exit 1)
+........................................................................ [ 11%]
+........................................................................ [ 23%]
+........................................................................ [ 35%]
+........................................................................ [ 46%]
+................................................F
+=================================== FAILURES ===================================
+_______ test_capture_body_equality_identical_and_different_booleans_g6_4 _______
+
+    def test_capture_body_equality_identical_and_different_booleans_g6_4():
+        """g6 #4 service/idempotency.py:44 [eq to ne]: the mutant is in the
+        BOOLEAN branch of json_equal, not the numeric branch —
+        `return isinstance(a, bool) and isinstance(b, bool) and a == b` flipped
+        to `a != b`. An existing test (test_capture_body_equality_is_type_strict_on_final)
+        compares `False` vs `0`, which never even enters this branch since `0`
+        is not a bool in Python/JSON terms, so it cannot kill this mutant. Kill
+        with two REAL booleans in the one field the ten idempotent write paths
+        actually carry one on, capture's `final`: identical booleans
+        (true, true) must still replay as 200 (the mutant would wrongly 409
+        it), and genuinely different booleans (true vs false) under one key
+        must still 409 (the mutant would wrongly return the first receipt).
+        (R-1-106)"""
+        fixture, ids, handles, tokens = n_user_fixture(2)
+    
+        auth_obj1 = open_authorization(tokens[0], handles[1], amount=1000)
+        aid1 = auth_obj1["authorization_id"]
+        key1 = unique("k")
+        first = api_post(f"/authorizations/{aid1}/capture", json={"amount": 100, "final": True},
+                         headers={**auth(tokens[1]), **idem(key1)})
+        assert first.status_code == 201, first.text
+        replay = api_post(f"/authorizations/{aid1}/capture", json={"amount": 100, "final": True},
+                          headers={**auth(tokens[1]), **idem(key1)})
+>       assert replay.status_code == 200, \
+            f"identical booleans (true, true) must replay as 200, got {replay.status_code}: {replay.text}"
+E       AssertionError: identical booleans (true, true) must replay as 200, got 409: {"error": {"code": "idempotency_key_reuse", "message": "Idempotency-Key was already used with a different request"}}
+E       assert 409 == 200
+E        +  where 409 = <Response [409 Conflict]>.status_code
+
+/tmp/redline-mut-12w7pwlc/stage-3/tests/test_g6_survivors.py:105: AssertionError
+=========================== short test summary info ============================
+FAILED ../../../../../tmp/redline-mut-12w7pwlc/stage-3/tests/test_g6_survivors.py::test_capture_body_equality_identical_and_different_booleans_g6_4
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+1 failed, 336 passed in 220.34s (0:03:40)
+
+
+--- service log (tail) ---
+
+#4 service/idempotency.py:44 [eq to ne]: killed
+   - return isinstance(a, bool) and isinstance(b, bool) and a == b
+   + return isinstance(a, bool) and isinstance(b, bool) and a != b
+$ docker build --label redline-gate=1 -t redline-mut-78733abc-5 /tmp/redline-mut-12w7pwlc/stage-3  (exit 0)
+
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 176B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/4] FROM docker.io/library/python:3.12-slim
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 10.40kB done
+#5 DONE 0.0s
+
+#6 [2/4] WORKDIR /app
+#6 CACHED
+
+#7 [3/4] COPY main.py ./main.py
+#7 CACHED
+
+#8 [4/4] COPY service ./service
+#8 CACHED
+
+#9 exporting to image
+#9 exporting layers done
+#9 writing image sha256:1a177f0fb346ae748d677258698ee751b537cc95d55f7939ae97a8170e4638a1 done
+#9 naming to docker.io/library/redline-mut-78733abc-5 done
+#9 DONE 0.0s
+
+$ docker network create --internal redline-net-cbdfa6322f  (exit 0)
+95f10bb8792d558c750554b559cc196127bbf50f6ae80d09554895457f90a87c
+
+
+$ docker run -d --network redline-net-cbdfa6322f --cpus 2 --memory 2g -e PORT=8080 redline-mut-78733abc-5  (exit 0)
+28a091192fb03cfc547036e69e2146a532f660462d8121b6d6ca6ccc5dd9fffa
+
+
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /tmp/redline-mut-12w7pwlc/stage-3/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s3/close-g6-20261005T162628-b468.junit.xml -x  (exit 0)
+........................................................................ [ 11%]
+........................................................................ [ 23%]
+........................................................................ [ 35%]
+........................................................................ [ 46%]
+........................................................................ [ 58%]
+........................................................................ [ 70%]
+........................................................................ [ 81%]
+........................................................................ [ 93%]
+........................................                                 [100%]
+616 passed in 285.44s (0:04:45)
+
+
+--- service log (tail) ---
+
+#5 service/idempotency.py:140 [drop lock]: SURVIVED
+   - with self._lock:
+   + if True:
+$ docker build --label redline-gate=1 -t redline-mut-78733abc-6 /tmp/redline-mut-12w7pwlc/stage-3  (exit 0)
+
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 176B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/4] FROM docker.io/library/python:3.12-slim
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 14.50kB done
+#5 DONE 0.0s
+
+#6 [2/4] WORKDIR /app
+#6 CACHED
+
+#7 [3/4] COPY main.py ./main.py
+#7 CACHED
+
+#8 [4/4] COPY service ./service
+#8 CACHED
+
+#9 exporting to image
+#9 exporting layers done
+#9 writing image sha256:49e8cdb03bd5372021ce694886e739555137569883fe1323659e6c29aed9acb1 done
+#9 naming to docker.io/library/redline-mut-78733abc-6 done
+#9 DONE 0.0s
+
+$ docker network create --internal redline-net-6923754946  (exit 0)
+a0204786e2fa5c12b6a42ac23fe9763cd61a7b392d475b16eb20895b64067466
+
+
+$ docker run -d --network redline-net-6923754946 --cpus 2 --memory 2g -e PORT=8080 redline-mut-78733abc-6  (exit 0)
+a16d0c05b6d3b98d2274fb1debb1f23a13fbf6a3329950915b841846a0364ed5
+
+
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /tmp/redline-mut-12w7pwlc/stage-3/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s3/close-g6-20261005T162628-b468.junit.xml -x  (exit 1)
+............................................F
+=================================== FAILURES ===================================
+_____________ test_zero_share_is_legal_and_still_creates_a_request _____________
+
+    def test_zero_share_is_legal_and_still_creates_a_request():
+        """R-1-175: a share of 0 is legal and still produces a request for
+        that participant — not silently skipped."""
+        u = _users({"a": 0, "b": 0, "c": 0})
+        # amount=1 across 3 participants: shares [1, 0, 0] (R-1-174's example),
+        # so participants 2 and 3 get a zero share.
+        handles = [u["a"]["handle"], u["b"]["handle"], u["c"]["handle"]]
+        r = _split(u["a"]["token"], 1, handles)
+        assert r.status_code == 201, r.text
+        body = r.json()
+        zero_share_handles = {s["handle"] for s in body["shares"] if s["amount"] == 0}
+        assert zero_share_handles == {u["b"]["handle"], u["c"]["handle"]}
+    
+        request_handles_with_zero = [req["payer_handle"] for req in body["requests"]
+                                      if req["amount"] == 0]
+>       assert set(request_handles_with_zero) == zero_share_handles, (
+            f"a zero share must still create a request, got requests for {request_handles_with_zero}, "
+            f"expected one each for {zero_share_handles}"
+        )
+E       AssertionError: a zero share must still create a request, got requests for [], expected one each for {'b348649e620516', 'c348649e620518'}
+E       assert set() == {'b348649e620...48649e620518'}
+E         
+E         Extra items in the right set:
+E         'b348649e620516'
+E         'c348649e620518'
+E         Use -v to get more diff
+
+/tmp/redline-mut-12w7pwlc/stage-3/tests/adversarial/test_n1_7_adversarial.py:89: AssertionError
+=========================== short test summary info ============================
+FAILED ../../../../../tmp/redline-mut-12w7pwlc/stage-3/tests/adversarial/test_n1_7_adversarial.py::test_zero_share_is_legal_and_still_creates_a_request
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+1 failed, 44 passed in 152.79s (0:02:32)
+
+
+--- service log (tail) ---
+
+#6 service/routes/splits.py:85 [eq to ne]: killed
+   - if user_id == caller["id"]:
+   + if user_id != caller["id"]:
+$ docker build --label redline-gate=1 -t redline-mut-78733abc-7 /tmp/redline-mut-12w7pwlc/stage-3  (exit 0)
+
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 176B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/4] FROM docker.io/library/python:3.12-slim
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 15.93kB done
+#5 DONE 0.0s
+
+#6 [2/4] WORKDIR /app
+#6 CACHED
+
+#7 [3/4] COPY main.py ./main.py
+#7 CACHED
+
+#8 [4/4] COPY service ./service
+#8 CACHED
+
+#9 exporting to image
+#9 exporting layers done
+#9 writing image sha256:e4ea32ba3de4f7669aaca19b16e94b7aa690e0b03f2eb085f82e426b8f869019 done
+#9 naming to docker.io/library/redline-mut-78733abc-7 done
+#9 DONE 0.0s
+
+$ docker network create --internal redline-net-7cef16e934  (exit 0)
+721f4b160019f2ce61e4ada34f6720e2fedb1d357a6741af3ed657edaca62149
+
+
+$ docker run -d --network redline-net-7cef16e934 --cpus 2 --memory 2g -e PORT=8080 redline-mut-78733abc-7  (exit 0)
+361ce6f00059bc80497d68f008ca4c5f4986fd44da9d2d85360919ccbc54f474
+
+
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /tmp/redline-mut-12w7pwlc/stage-3/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s3/close-g6-20261005T162628-b468.junit.xml -x  (exit 1)
+........................................................................ [ 11%]
+........................................................................ [ 23%]
+........................................................................ [ 35%]
+........................................................................ [ 46%]
+.................................................F
+=================================== FAILURES ===================================
+________________ test_statement_from_boundary_is_inclusive_g6_7 ________________
+
+    def test_statement_from_boundary_is_inclusive_g6_7():
+        """g6 #7 service/routes/statement.py:123 [cmp < to <=]: the mutant is on
+        the LOWER (`from`) bound, not the upper one —
+        `if from_epoch is not None and effective_epoch < from_epoch: continue`
+        flipped to `<=` wrongly excludes a payment effective EXACTLY at `from`,
+        which the half-open `[from, to)` window must include. Kill: a statement
+        queried with `from` set to exactly a payment's own effective_at must
+        still list that payment. (R-3-030, R-3-032)"""
+        fixture, token_a, _ = two_user_fixture(balance_a=5000, balance_b=0)
+        b_handle = fixture["users"][1]["handle"]
+        pay = api_post("/payments", json={"to_handle": b_handle, "amount": 100},
+                       headers={**auth(token_a), **idem(unique("k"))})
+        assert pay.status_code == 201, pay.text
+        pay_id = pay.json()["payment_id"]
+        effective_at = pay.json()["created_at"]
+    
+        at_from = api_get("/statement", headers=auth(token_a), params={"from": effective_at, "limit": 50})
+        assert at_from.status_code == 200, at_from.text
+        ids = [e["payment_id"] for e in at_from.json()["entries"]]
+>       assert pay_id in ids, \
+            f"a payment effective exactly at 'from' must be included (inclusive lower bound): {ids}"
+E       AssertionError: a payment effective exactly at 'from' must be included (inclusive lower bound): []
+E       assert 'ZNO6WrKD9qiWWD_fQrwJwA' in []
+
+/tmp/redline-mut-12w7pwlc/stage-3/tests/test_g6_survivors.py:139: AssertionError
+=========================== short test summary info ============================
+FAILED ../../../../../tmp/redline-mut-12w7pwlc/stage-3/tests/test_g6_survivors.py::test_statement_from_boundary_is_inclusive_g6_7
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+1 failed, 337 passed in 224.58s (0:03:44)
+
+
+--- service log (tail) ---
+
+#7 service/routes/statement.py:123 [cmp < to <=]: killed
+   - if from_epoch is not None and effective_epoch < from_epoch:
+   + if from_epoch is not None and effective_epoch <= from_epoch:
+$ docker build --label redline-gate=1 -t redline-mut-78733abc-8 /tmp/redline-mut-12w7pwlc/stage-3  (exit 0)
+
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 176B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/4] FROM docker.io/library/python:3.12-slim
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 24.66kB done
+#5 DONE 0.0s
+
+#6 [3/4] COPY main.py ./main.py
+#6 CACHED
+
+#7 [2/4] WORKDIR /app
+#7 CACHED
+
+#8 [4/4] COPY service ./service
+#8 CACHED
+
+#9 exporting to image
+#9 exporting layers done
+#9 writing image sha256:3fe88117657dcacf90722cad326f277e4a00947a7b4e7cf08c40144eed0b1148 done
+#9 naming to docker.io/library/redline-mut-78733abc-8 done
+#9 DONE 0.0s
+
+$ docker network create --internal redline-net-c5172c4c27  (exit 0)
+20e6a20403a565c12cf6c876c03cc05fbedbf1adde77d3ff5b52ca0f159454dc
+
+
+$ docker run -d --network redline-net-c5172c4c27 --cpus 2 --memory 2g -e PORT=8080 redline-mut-78733abc-8  (exit 0)
+c5bf7911a06a68ed9f5d8730093a0a5e8fc218b8d70094ae4d5b9a8048a1f43b
+
+
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /tmp/redline-mut-12w7pwlc/stage-3/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s3/close-g6-20261005T162628-b468.junit.xml -x  (exit 0)
+........................................................................ [ 11%]
+........................................................................ [ 23%]
+........................................................................ [ 35%]
+........................................................................ [ 46%]
+........................................................................ [ 58%]
+........................................................................ [ 70%]
+........................................................................ [ 81%]
+........................................................................ [ 93%]
+........................................                                 [100%]
+616 passed in 286.56s (0:04:46)
+
+
+--- service log (tail) ---
+
+#8 service/revisions.py:158 [add-assign to sub]: SURVIVED
+   - total += -rev["amount"] if is_from else rev["amount"]
+   + total -= -rev["amount"] if is_from else rev["amount"]
+$ docker build --label redline-gate=1 -t redline-mut-78733abc-9 /tmp/redline-mut-12w7pwlc/stage-3  (exit 0)
+
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 176B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/4] FROM docker.io/library/python:3.12-slim
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 23.23kB done
+#5 DONE 0.0s
+
+#6 [2/4] WORKDIR /app
+#6 CACHED
+
+#7 [3/4] COPY main.py ./main.py
+#7 CACHED
+
+#8 [4/4] COPY service ./service
+#8 CACHED
+
+#9 exporting to image
+#9 exporting layers done
+#9 writing image sha256:9e7e07518be034ed54f61905fa435c2ca796b0720c20de4be12d97258a236542 done
+#9 naming to docker.io/library/redline-mut-78733abc-9 done
+#9 DONE 0.0s
+
+$ docker network create --internal redline-net-4bede532eb  (exit 0)
+71198047d1990c2e79c6f0be737e85e88b561073e1dda77c42a2c26ec8558960
+
+
+$ docker run -d --network redline-net-4bede532eb --cpus 2 --memory 2g -e PORT=8080 redline-mut-78733abc-9  (exit 0)
+634c5a358c1d1450247048ac53e7276deb59cb4e7dae8e177327265d696a0b25
+
+
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /tmp/redline-mut-12w7pwlc/stage-3/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s3/close-g6-20261005T162628-b468.junit.xml -x  (exit 0)
+........................................................................ [ 11%]
+........................................................................ [ 23%]
+........................................................................ [ 35%]
+........................................................................ [ 46%]
+........................................................................ [ 58%]
+........................................................................ [ 70%]
+........................................................................ [ 81%]
+........................................................................ [ 93%]
+........................................                                 [100%]
+616 passed in 288.44s (0:04:48)
+
+
+--- service log (tail) ---
+
+#9 service/idempotency.py:159 [ne to eq]: SURVIVED
+   - if entry.state != "complete":
+   + if entry.state == "complete":
+$ docker build --label redline-gate=1 -t redline-mut-78733abc-10 /tmp/redline-mut-12w7pwlc/stage-3  (exit 0)
+
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 176B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/4] FROM docker.io/library/python:3.12-slim
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 12.31kB done
+#5 DONE 0.0s
+
+#6 [2/4] WORKDIR /app
+#6 CACHED
+
+#7 [3/4] COPY main.py ./main.py
+#7 CACHED
+
+#8 [4/4] COPY service ./service
+#8 CACHED
+
+#9 exporting to image
+#9 exporting layers done
+#9 writing image sha256:36ff1f6f520c4610e760061a2cd13bee2a1e2905666e716200ea47f30c07bc9d done
+#9 naming to docker.io/library/redline-mut-78733abc-10 done
+#9 DONE 0.0s
+
+$ docker network create --internal redline-net-602ce6dd00  (exit 0)
+b9f8e4e1b6bfb8821393cf48e21512358ea5e8bbbc1fb88bd9e90cc018ca8019
+
+
+$ docker run -d --network redline-net-602ce6dd00 --cpus 2 --memory 2g -e PORT=8080 redline-mut-78733abc-10  (exit 0)
+b923c88b35633e4cd606ca56a272c33bc24e14304dd208448dcd4ae5125b0815
+
+
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /tmp/redline-mut-12w7pwlc/stage-3/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s3/close-g6-20261005T162628-b468.junit.xml -x  (exit 1)
+F
+=================================== FAILURES ===================================
+______ test_reset_landing_while_waiters_are_parked_on_an_in_flight_claim _______
+
+    def test_reset_landing_while_waiters_are_parked_on_an_in_flight_claim():
+        """R-1-080b/R-1-112a: a reset with a DIFFERENT fixture lands while one
+        or more callers are parked inside resolve_or_claim's event.wait() for
+        the SAME key + body as an in-flight 32-entry settlement. Every
+        participant must get a response inside the 5s budget, never a 5xx,
+        and either 200 with the winner's exact body or a legitimate error
+        from being re-tried as a fresh first use against the now-wiped
+        handles (404 — R-1-040: nothing from before the reset is visible)."""
+    
+        def do_reset():
+            new_uid, new_handle = unique("u"), unique_handle("postwipe")
+            new_email = f"{new_handle}@example.com"
+            t0 = time.monotonic()
+            r = reset_ok(make_fixture([user(new_uid, new_handle, balance=777, email=new_email)]))
+            return r.status_code, time.monotonic() - t0, new_email
+    
+        def verify(trial_i, responses, wipe_result):
+            reset_status, reset_elapsed, new_email = wipe_result
+            assert reset_status == 204
+            assert reset_elapsed < 10.0, (
+                f"R-1-015: reset must finish within 10s even mid-race, took {reset_elapsed:.2f}s (trial {trial_i})"
+            )
+    
+            over_budget = [(s, e) for s, _, e in responses if e > _REQUEST_BUDGET_S]
+            assert not over_budget, (
+                f"R-1-015 breach (trial {trial_i}): a parked waiter exceeded {_REQUEST_BUDGET_S}s: {over_budget}"
+            )
+    
+            bad_5xx = [(s, b[:200]) for s, b, _ in responses if s >= 500]
+            assert not bad_5xx, (
+                f"R-1-005/R-1-080b breach (trial {trial_i}): a parked waiter got a 5xx when the entry it was "
+                f"waiting on was wiped out from under it by a reset: {bad_5xx}"
+            )
+    
+            winners = [b for s, b, _ in responses if s == 201]
+            assert len(winners) <= 1, f"never two winners even across a reset race (trial {trial_i}): {len(winners)} 201s"
+            replays = [b for s, b, _ in responses if s == 200]
+            if winners:
+                assert all(b == winners[0] for b in replays), f"every 200 must carry the exact winner body (trial {trial_i})"
+            for s, b, _ in responses:
+                if s not in (200, 201):
+                    assert 400 <= s < 500, f"unexpected non-4xx/non-2xx status {s} (trial {trial_i}): {b}"
+                    assert '"error"' in b, f"a {s} response must carry the error envelope (trial {trial_i}): {b}"
+    
+            # Verify THIS trial's new state right now, before the next
+            # trial's own reset invalidates this email/token.
+            bal_new = api_get("/me", headers={"Authorization": f"Bearer {login_token(new_email)}"}).json()["balance"]
+            assert bal_new == 777, f"R-1-001: new fixture's seeded balance must be exact post-race, got {bal_new} (trial {trial_i})"
+    
+>       max_elapsed_seen = _run_waiter_race(do_reset, verify)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+/tmp/redline-mut-12w7pwlc/stage-3/tests/adversarial/test_n1_10_2_adversarial.py:181: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/redline-mut-12w7pwlc/stage-3/tests/adversarial/test_n1_10_2_adversarial.py:126: in _run_waiter_race
+    responses, wipe_result = _run_waiter_race_once(wipe_fn)
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/tmp/redline-mut-12w7pwlc/stage-3/tests/adversarial/test_n1_10_2_adversarial.py:69: in _run_waiter_race_once
+    all_ops = _multi_settlement_fixture(n_operators=1 + n_contenders)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/tmp/redline-mut-12w7pwlc/stage-3/tests/adversarial/test_n1_10_2_adversarial.py:45: in _multi_settlement_fixture
+    reset_ok(make_fixture(all_users, settlement_operator_ids=[op_id for op_id, *_ in operators]))
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+fixture = {'currency': 'EUR', 'minor_units': 2, 'users': [{'id': 'u4a7d6b060', 'email': 'op04a7d6b061@example.com', 'password': ...ment_operator_ids': ['u4a7d6b060', 'u4a7d6b0666', 'u4a7d6b06132', 'u4a7d6b06198', 'u4a7d6b06264', 'u4a7d6b06330', ...]}
+
+    def reset_ok(fixture: dict) -> httpx.Response:
+        r = reset(fixture)
+>       assert r.status_code == 204, f"reset failed: {r.status_code} {r.text}"
+E       AssertionError: reset failed: 422 {"error": {"code": "validation_failed", "message": "wallet balance for u4a7d6b062 must not be negative"}}
+E       assert 422 == 204
+E        +  where 422 = <Response [422 Unprocessable Entity]>.status_code
+
+/tmp/redline-mut-12w7pwlc/stage-3/tests/conftest.py:70: AssertionError
+=========================== short test summary info ============================
+FAILED ../../../../../tmp/redline-mut-12w7pwlc/stage-3/tests/adversarial/test_n1_10_2_adversarial.py::test_reset_landing_while_waiters_are_parked_on_an_in_flight_claim
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+1 failed in 4.56s
+
+
+--- service log (tail) ---
+
+#10 service/invariants.py:20 [cmp < to <=]: killed
+   - if balance < 0:
+   + if balance <= 0:
+
+RESULT: FAIL — killed 7/10 valid mutants (70%, need 80%); 0 stillborn; 0 timed out; 400 candidates; survivors: #5 service/idempotency.py:140 [drop lock], #8 service/revisions.py:158 [add-assign to sub], #9 service/idempotency.py:159 [ne to eq]

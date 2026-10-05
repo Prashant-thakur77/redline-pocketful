@@ -1,0 +1,117 @@
+$ docker build --label redline-gate=1 -t redline-gate-41bb497a7a /tmp/redline-wt-b29fzzaf/stage-3  (exit 0)
+
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 176B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/4] FROM docker.io/library/python:3.12-slim
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 2.07kB done
+#5 DONE 0.0s
+
+#6 [2/4] WORKDIR /app
+#6 CACHED
+
+#7 [3/4] COPY main.py ./main.py
+#7 CACHED
+
+#8 [4/4] COPY service ./service
+#8 CACHED
+
+#9 exporting to image
+#9 exporting layers done
+#9 writing image sha256:5184a0148e4b224454679d97ea155381fa0523f1ebbb6a667194a6ed92b63c65 done
+#9 naming to docker.io/library/redline-gate-41bb497a7a done
+#9 DONE 0.0s
+
+$ docker network create --internal redline-net-85c5d7b806  (exit 0)
+230e53366f623839b21904eaa953612ef77506563dbc2ccaffa3d15758da06af
+
+
+$ docker run -d --network redline-net-85c5d7b806 --cpus 2 --memory 2g -e PORT=8080 redline-gate-41bb497a7a  (exit 0)
+93389a15a0a341029f6b7eabddbe0d81f8fab940863a31cc8acd5a8d1c017c73
+
+
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /tmp/redline-wt-b29fzzaf/stage-1/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s3/close-g5-20261005T161848-dc69.junit.xml  (exit 0)
+........................................................................ [ 22%]
+........................................................................ [ 45%]
+........................................................................ [ 68%]
+........................................................................ [ 91%]
+..........................                                               [100%]
+314 passed in 183.84s (0:03:03)
+
+
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /tmp/redline-wt-b29fzzaf/stage-2/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s3/close-g5-20261005T161848-dc69.junit.xml  (exit 0)
+........................................................................ [ 14%]
+........................................................................ [ 28%]
+........................................................................ [ 43%]
+........................................................................ [ 57%]
+........................................................................ [ 72%]
+........................................................................ [ 86%]
+.................................................................        [100%]
+497 passed in 271.61s (0:04:31)
+
+
+$ docker build --label redline-gate=1 -t redline-gate-73c1c86dd3 /tmp/redline-wt-b29fzzaf/stage-2  (exit 0)
+
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 176B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/4] FROM docker.io/library/python:3.12-slim
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 192.97kB done
+#5 DONE 0.0s
+
+#6 [3/4] COPY main.py ./main.py
+#6 CACHED
+
+#7 [2/4] WORKDIR /app
+#7 CACHED
+
+#8 [4/4] COPY service ./service
+#8 CACHED
+
+#9 exporting to image
+#9 exporting layers done
+#9 writing image sha256:6c0ab46bd5f021219bedaae7b940212038a244f6e297e15d4aed8119c8e4b99a done
+#9 naming to docker.io/library/redline-gate-73c1c86dd3 done
+#9 DONE 0.0s
+
+$ docker network create --internal redline-net-60882266fb  (exit 0)
+3680874837d037b66c7518f2a0e92efe77dd965d1b15c10070e5ebe336077715
+
+
+$ docker run -d --network redline-net-60882266fb --cpus 2 --memory 2g -e PORT=8080 redline-gate-73c1c86dd3  (exit 0)
+51c969287ddbcb9db0c0782890d3c55dd2e2ce04be90950c2ad1d6c431784acd
+
+
+upgrade stage-2 -> stage-3: before={'balances': {'alice': 9869, 'bob': 5121, 'carol': 3000, 'dave': 6850, 'erin': 2020, 'frank': 1640}, 'identities': {'alice': ('u-alice', 'alice'), 'bob': ('u-bob', 'bob'), 'carol': ('u-carol', 'carol'), 'dave': ('u-dave', 'dave'), 'erin': ('u-erin', 'erin'), 'frank': ('u-frank', 'frank')}, 'wallets': {'alice': (9869, 1000, 8869), 'bob': (5121, 0, 5121), 'carol': (3000, 200, 2800), 'dave': (6850, 1050, 5800), 'erin': (2020, 0, 2020), 'frank': (1640, 0, 1640)}, 'requests': [('Y_KYzPujec3iyEVKOwahCw', 'pending', None), ('fmbxkqIpGTYk4JHHzV5TPA', 'paid', 'loNdG9z1Va6NS4IYBBInFA'), ('pdM5YwviUpyt2JEoX1tFcA', 'paid', 'udNZJGf7xxHVi5DPbQcY8A'), ('r-seed-1', 'pending', None), ('r-seed-2', 'pending', None), ('r-seed-3', 'declined', None), ('r-seed-4', 'cancelled', None), ('r-seed-5', 'paid', None)], 'authorizations': [('0RIlm8xdJ5q9A1EvxA4VRw', 'voided', 0, 0, (), '2026-10-05T16:26:27+00:00'), ('2U638akMdLkmF_PY8N2VkA', 'open', 0, 200, (), None), ('NkUtw-6onMYeQhfpDw94hQ', 'open', 150, 250, ('0Oge5QDrDkYhSv_BuDnguQ',), None), ('a-seed-captured', 'captured', 500, 0, (), None), ('a-seed-expired', 'expired', 0, 0, (), None), ('a-seed-open-in', 'open', 0, 800, (), None), ('a-seed-open-out', 'open', 0, 1000, (), None), ('a-seed-voided', 'voided', 0, 0, (), None)], 'settlement_id': 'hndEgLxLn5yW8OcF8A3ClA', 'settlement_members': [('CZRxeRFe-J4xFTCJiJEDdw', 10)], 'retry_identity': (200, {'payment_id': '2QeiaTOaTGRW0ipjK_WWkQ', 'from_user_id': 'u-alice', 'from_handle': 'alice', 'to_user_id': 'u-bob', 'to_handle': 'bob', 'amount': 111, 'currency': 'EUR', 'note': 'populate', 'visibility': 'public', 'request_id': None, 'created_at': '2026-10-05T16:26:27+00:00', 'settlement_id': None, 'authorization_id': None}), 'capture_retry_identity': (200, {'payment_id': '0Oge5QDrDkYhSv_BuDnguQ', 'from_user_id': 'u-dave', 'from_handle': 'dave', 'to_user_id': 'u-frank', 'to_handle': 'frank', 'amount': 150, 'currency': 'EUR', 'note': 'populate-partial', 'visibility': 'public', 'request_id': None, 'created_at': '2026-10-05T16:26:27+00:00', 'settlement_id': None, 'authorization_id': 'NkUtw-6onMYeQhfpDw94hQ'}), 'revision_state': [], 'correction_retry_identity': None, 'statement_snapshot_page': None} after={'balances': {'alice': 9869, 'bob': 5121, 'carol': 3000, 'dave': 6850, 'erin': 2020, 'frank': 1640}, 'identities': {'alice': ('u-alice', 'alice'), 'bob': ('u-bob', 'bob'), 'carol': ('u-carol', 'carol'), 'dave': ('u-dave', 'dave'), 'erin': ('u-erin', 'erin'), 'frank': ('u-frank', 'frank')}, 'wallets': {'alice': (9869, 1000, 8869), 'bob': (5121, 0, 5121), 'carol': (3000, 200, 2800), 'dave': (6850, 1050, 5800), 'erin': (2020, 0, 2020), 'frank': (1640, 0, 1640)}, 'requests': [('Y_KYzPujec3iyEVKOwahCw', 'pending', None), ('fmbxkqIpGTYk4JHHzV5TPA', 'paid', 'loNdG9z1Va6NS4IYBBInFA'), ('pdM5YwviUpyt2JEoX1tFcA', 'paid', 'udNZJGf7xxHVi5DPbQcY8A'), ('r-seed-1', 'pending', None), ('r-seed-2', 'pending', None), ('r-seed-3', 'declined', None), ('r-seed-4', 'cancelled', None), ('r-seed-5', 'paid', None)], 'authorizations': [('0RIlm8xdJ5q9A1EvxA4VRw', 'voided', 0, 0, (), '2026-10-05T16:26:27+00:00'), ('2U638akMdLkmF_PY8N2VkA', 'open', 0, 200, (), None), ('NkUtw-6onMYeQhfpDw94hQ', 'open', 150, 250, ('0Oge5QDrDkYhSv_BuDnguQ',), None), ('a-seed-captured', 'captured', 500, 0, (), None), ('a-seed-expired', 'expired', 0, 0, (), None), ('a-seed-open-in', 'open', 0, 800, (), None), ('a-seed-open-out', 'open', 0, 1000, (), None), ('a-seed-voided', 'voided', 0, 0, (), None)], 'settlement_id': 'hndEgLxLn5yW8OcF8A3ClA', 'settlement_members': [('CZRxeRFe-J4xFTCJiJEDdw', 10)], 'retry_identity': (200, {'payment_id': '2QeiaTOaTGRW0ipjK_WWkQ', 'from_user_id': 'u-alice', 'from_handle': 'alice', 'to_user_id': 'u-bob', 'to_handle': 'bob', 'amount': 111, 'currency': 'EUR', 'note': 'populate', 'visibility': 'public', 'request_id': None, 'created_at': '2026-10-05T16:26:27+00:00', 'settlement_id': None, 'authorization_id': None}), 'capture_retry_identity': (200, {'payment_id': '0Oge5QDrDkYhSv_BuDnguQ', 'from_user_id': 'u-dave', 'from_handle': 'dave', 'to_user_id': 'u-frank', 'to_handle': 'frank', 'amount': 150, 'currency': 'EUR', 'note': 'populate-partial', 'visibility': 'public', 'request_id': None, 'created_at': '2026-10-05T16:26:27+00:00', 'settlement_id': None, 'authorization_id': 'NkUtw-6onMYeQhfpDw94hQ'}), 'revision_state': [], 'correction_retry_identity': None, 'statement_snapshot_page': None}
+--- service log (tail) ---
+
+
+RESULT: PASS — 811 earlier tests pass; upgrade from stage-2 ok
+--- service log (tail) ---
+
