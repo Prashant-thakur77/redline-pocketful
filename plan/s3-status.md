@@ -1492,6 +1492,69 @@ R-3-002). A per-user historical reconstruction can be individually plausible and
 to the seeded total, and that is the dispatch's own first invariant. The crossed-axes and
 tie-break angles are worth having but rank below it.
 
+## >>> TICK 2026-10-05T13:00Z — BATCH VERIFIED. Five items close. g4 is now STRONG evidence. LIVE BLOCK. <<<
+
+@verifier's batch pass, **HOLDS** (ledger `6a0c290a96e6`, evidence `7a1f0a5`), run at `1233cd2` —
+a **superset** of the `ceef813` I named. I confirmed the ancestry myself: both `ceef813` and
+@adversary's `67c7a45` are ancestors of `1233cd2`. It resolved the tip itself per the standing rule
+and got more coverage than I asked for, which is why it saw a test I knew about and it did not.
+
+**scope PASS, g1 PASS, g4 PASS, g8 PASS; g2 599/4 of 603.**
+
+### These close, on content
+
+| item | content |
+|---|---|
+| **N3-5** | `known_at` selection across `/me` and `/statement` — with **N3-5.2 open** against it (R-3-076) |
+| **N3-5.1** | R-3-053 tolerance reverted |
+| **N3-6** | historical overdraft vs `insufficient_funds` precedence — clean, its own test file fully green |
+| **N3-T.5** | `test_me_as_of` repaired — fully green |
+| **N3-T.6 / N3-T.7** | the storm's residue split and jitter bound |
+
+### Gate 4: I was wrong to call it weak, and here is the number that settles it
+
+I told the band that g4's earlier PASSes were "weaker evidence than either of us treated them as".
+With the hook fixed, @verifier reports the status distribution over 1300 ops:
+
+```
+{201: 606, 200: 269, 409: 419, 422: 6}
+```
+
+**6 of 1300 operations hit 422** — against the old hole, where 5 of 9 of the *correction slice*
+died at validation. The correction path is now genuinely exercised at volume, and conservation and
+non-negativity **held under real pressure**. 269 `200`s are replays returning original responses;
+419 `409`s are genuine conflicts (stale revision, insufficient funds, not-pending).
+
+So the answer to the question I posed with the tip — *if g4 fails, is it a real money bug the hole
+was hiding?* — is that **it did not fail, and the pass now means what we always wanted it to mean.**
+This is the strongest single piece of evidence stage 3 has produced, and it exists only because
+@redline's N3-T.6/N3-T.7 made the storm honest first. My earlier correction stands as a correction
+of the *old* passes; this one is sound.
+
+### The fourth failure is already dispatched — found by three seats, three ways
+
+@verifier flagged `test_statement_does_not_echo_known_at_r_3_076` as outside my expected set and
+refused to wave it through, confirming it by reading the route code. Correct, and already in hand:
+@adversary found it (`67c7a45`), I confirmed it by independent code read, @verifier has now
+confirmed it a third way, and it has been dispatched as **N3-5.2** (`d132c557c2a9`) with the BREACH
+recorded (`db8886561348`) **before** this report arrived. Nothing to re-do; the crossing cost
+nothing because it agrees.
+
+### The remaining path, and the budget decision that shapes it
+
+| failing test | item | state |
+|---|---|---|
+| `test_statement_does_not_echo_known_at_r_3_076` | N3-5.2 | dispatched (one-line echo) |
+| `test_historical_holds_*` ×2 | N3-8 | @builder, in flight |
+| `test_export_import_preserves_revision_history` | N3-9 | not started |
+
+**Decision: the next verifier run is the stage close itself, not another item batch.** With $35.87
+left I can afford roughly two more passes, and `--gates all` at a tip containing N3-5.2 + N3-8 +
+N3-9 serves as both the item verification and the close — and finally measures **g3, the public
+checks, which have never once been run for stage 3**, plus g5/g6/g7. If g2 is green at that tip the
+close succeeds in one pass; if it is not, I record stage 3 partial on the evidence from that same
+run. Either way no pass is spent twice.
+
 ### Why I did not wait for N3-8 as well
 
 N3-8 is substantial and still building. Verifying four landed items now — including the first real
