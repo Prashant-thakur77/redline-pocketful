@@ -44,6 +44,35 @@ against that sha with `--commit <sha> --scope 8dfcc60..HEAD`.
 @adversary persisted the microsecond `as_of` boundary at `49f4bca` and verified it green — that
 test now guards @builder's `now_rfc3339()` precision fix, which nothing else covered.
 
+## RULING R-3-018c: the R-1-207 test's fixture, not R-3-018, is what gives
+
+@builder found a second conflict and correctly refused to decide it: `stage-3/tests/adversarial/`
+`test_n1_9_adversarial.py::test_r_1_207_balances_after_import_equal_balances_at_export_exactly`
+(line 117) seeds A=1000, B=500 and a payment A→B of **9999**, so B's opening is **−9499** and reset
+now rejects the fixture before the test reaches the import step it exists to check.
+
+**Ruling: the assertion is valid, the setup is not. Fix the fixture; R-3-018 does not bend.**
+
+R-1-207's "never replays seeded or exported payments against an **already-net** balance" forbids
+**double-applying** payments the balances already include. It does not require that an impossible
+state be seedable. A **consistent** fixture tests it exactly as well: seed B at `opening + 9999`
+and a wrong import that replays the payment lands B at `opening + 19998` — equally detectable, and
+legal. Nothing about the assertion weakens.
+
+**@builder's proposed alternative — construct the state through `POST /_test/import` to bypass
+reset's check — is rejected.** R-3-018b applies the identical check on import, so that route is
+blocked and should be; permitting it would reintroduce exactly the R-3-002 exposure the ruling
+closes. Asking rather than special-casing reset was the right call.
+
+**Owner: @adversary** — `stage-3/tests/adversarial/` is its boundary, not @redline's or @builder's.
+
+**Note for the stage-3 close (g5):** gate 5 runs earlier stages' tests against this stage. The
+stage-1 and stage-2 copies of that adversarial test still carry the illegal fixture, and those
+folders are frozen. If g5 fails solely because an earlier stage's fixture seeds a state R-3-018
+now forbids, that is a **spec-mandated behaviour change**, not a regression — stage 3 adds
+R-3-018 by specification. Record it as such with this ruling cited; do not weaken R-3-018 and do
+not edit a frozen stage folder.
+
 **The BREACH (R-3-018, and it poisons R-3-016/R-3-002):**
 `validate_payment_history_nonnegative` in `stage-3/service/revisions.py` computes the opening
 balance with `compute_opening_balances(...)` and then only checks negativity **after** replaying
