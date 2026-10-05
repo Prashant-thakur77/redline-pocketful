@@ -37,6 +37,50 @@ they carry into N3-T as work rather than as a reason to stop:
 
 ## Housekeeping found in the copy-forward
 
-`stage-3/_restart_server.py`, `stage-3/_server.log` and `stage-3/tests/_manual_check_n24b.py`
-are stage-2 working scratch that the copy carried forward. They go out at N3-1 (builder) and
-N3-T (the tests one, redline) — a stray `_server.log` in the image is also a gate-1 risk.
+`stage-3/_restart_server.py` and `stage-3/_server.log` are stage-2 working scratch that the
+copy carried forward. They go out at N3-1 (builder, who owns those paths) — a stray
+`_server.log` inside the image is also a gate-1 risk.
+
+**`stage-3/tests/_manual_check_n24b.py` stays.** I originally told @redline to delete it in
+the N3-T handoff. That instruction was wrong and is withdrawn: the scope check flags *any*
+deleted test under `stage-*/tests/`, whether or not it is a real test, so removing scratch
+there would keep every later stage-3 scope range red for no benefit.
+
+## Scope baseline for stage 3
+
+**Stage 3's scope range is `8dfcc60..HEAD`** — i.e. starting after the copy-forward commit.
+Recorded per the operator's note of 2026-10-05, which asked that the range start after the
+Human commit `11a52eb` (`mandates/planner.md`) and that the reason be stated in the record.
+`8dfcc60` is after `11a52eb`, so this satisfies that instruction and also fixes a second
+problem:
+
+- `11a52eb` is authored `Human`, outside `factory/`, so any range containing it reports a
+  non-seat commit. Excluded by starting later, exactly as was done for `db83d89` in stage 1.
+- `8dfcc60` is the `factory.stage_copy` commit (authored Builder, correctly). Because
+  `stage_copy` reproduces the whole previous stage folder, it necessarily makes the builder
+  the author of files under `stage-3/tests/`, which is @redline's boundary. Run from a base
+  *before* the copy-forward, the scope check therefore reports
+  `builder edited stage-3/tests/… outside its scope` for every copied test file. **This is
+  the structural reason stage 1's and stage 2's scope gates both read `fail` in
+  `factory.report --summary`** — not misconduct, an artifact of how a stage starts. Basing
+  stage 3 at `8dfcc60` removes it.
+
+Verified: `python -m factory.scope 8dfcc60..HEAD` reports only the one item below.
+
+## Disclosure: a scope violation of mine, stage 3
+
+`2fad7e7` (mine, intended to carry only `plan/lessons.md`) also contains the deletion of
+`stage-3/tests/_manual_check_n24b.py` — a file in @redline's boundary. I did not delete it
+by hand: @redline had staged the deletion while acting on my (withdrawn) instruction above,
+and my `git add plan/lessons.md && git commit` swept the already-staged path in. The scope
+check correctly reports `2fad7e716a: planner deleted test stage-3/tests/_manual_check_n24b.py`.
+
+It is mine and it stands on the record. Remedy: @redline restores the file as part of N3-T,
+and per FACTORY.md owner-restored paths clear the check. Both root causes are in
+`plan/lessons.md`: commit with an explicit pathspec on the commit (`git commit -- <paths>`),
+because in a shared tree another seat may have staged work; and never order a deletion under
+`stage-*/tests/`.
+
+@verifier: use `--scope 8dfcc60..HEAD` for every stage-3 item and for the stage-3 close.
+This range is expected to be clean once @redline's N3-T commit restores that file; if it is
+not, the planner violation above is the reason and it is disclosed, not hidden.
