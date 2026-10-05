@@ -79,6 +79,14 @@ def setup(base_url: str) -> dict:
     correction_targets = [
         {"id": p["id"], "from_user_id": p["from_user_id"]} for p in fixture["payments"]
     ]
+    # R-4-010..024: refund targets indexed by RECEIVER, reusing the same
+    # seeded payments correction_targets draws from — both seeded payments
+    # have a real receiver among ctx["users"], so no setup beyond this is
+    # needed (unlike batches, which need a target the operator is a party
+    # to; see _correction_batch_op's own fresh-payment construction).
+    refund_targets = [
+        {"id": p["id"], "to_user_id": p["to_user_id"], "amount": p["amount"]} for p in fixture["payments"]
+    ]
 
     # R-3-005, R-3-079, R-3-080: a statement snapshot token (field + query
     # param are both spelled "snapshot") taken before the storm starts must
@@ -109,6 +117,7 @@ def setup(base_url: str) -> dict:
         "pending_requests": pending_requests,
         "seed_auth_targets": seed_auth_targets,
         "correction_targets": correction_targets,
+        "refund_targets": refund_targets,
         "statement_snapshot_user": primary["handle"],
         "statement_available": statement_available,
         "statement_snapshot": statement_snapshot,
@@ -118,6 +127,7 @@ def setup(base_url: str) -> dict:
         "split_receipts": [],
         "paid_request_ids": set(),
         "applied_corrections": [],
+        "applied_refunds": [],
     }
 
 
@@ -255,6 +265,107 @@ def _correction_op(base_url, ctx, i, key):
     return r.status_code
 
 
+def _refund_op(base_url, ctx, i, key):
+    """R-4-010..024: a refund, i-deterministic in every field. Residue
+    split (i % 10), enumerated per plan/lessons.md's residue rule:
+      0       -> deliberate rejection: the caller is the ORIGINAL SENDER,
+                 not the receiver -> 403 forbidden. Reserved minority.
+      1       -> deliberate rejection: amount far exceeds the target's
+                 seeded amount -> 422 refund_exceeds_payment. Reserved minority.
+      2..9    -> a real refund: caller is the real receiver, amount is
+                 small and well within the seeded amount (so a concurrent
+                 correction from _correction_op would have to zero the
+                 payment out entirely to turn this into a rejection too) ->
+                 reaches the real money-moving refund path, 8 of 10 residues.
+    A refund whose `i` lands on a payment the caller SENT (not received)
+    is a guaranteed 403 that exercises nothing beyond auth -- exactly the
+    shape plan/lessons.md names, so that case is confined to residue 0 only.
+    """
+    targets = ctx["refund_targets"]
+    if not targets:
+        return 404
+    target = targets[i % len(targets)]
+    receiver = next((u for u in ctx["users"] if u["id"] == target["to_user_id"]), None)
+    if receiver is None:
+        return 404
+    sub = i % 10
+    if sub == 0:
+        caller = next((u for u in ctx["users"] if u["id"] != target["to_user_id"]), receiver)
+        amount = 1
+    elif sub == 1:
+        caller = receiver
+        amount = target["amount"] * 10 + 1
+    else:
+        caller = receiver
+        amount = 1 + (i % 5)
+    body = {"amount": amount}
+    r = _post(base_url, f"/payments/{target['id']}/refunds", json=body,
+              headers={**_auth(caller["token"]), "Idempotency-Key": key})
+    if r.status_code == 201:
+        with ctx["lock"]:
+            ctx["applied_refunds"].append({"target_id": target["id"], "response": r.json()})
+    return r.status_code
+
+
+def _correction_batch_op(base_url, ctx, i, key):
+    """R-4-040..061: a single-item correction batch, i-deterministic. The
+    target is a payment the OPERATOR creates fresh each call (same i =>
+    same seed amount/note, so a repeat lands on the same freshly-seeded
+    payment and is a genuine retry) rather than reusing correction_targets,
+    half of which the operator is not a party to -- which would dead-end
+    every other residue at the revision-read step before the batch is even
+    attempted (the exact hazard plan/lessons.md names for this shape).
+
+    Residue split (i % 10), enumerated:
+      0     -> deliberate rejection: a stale expected_revision -> 409
+               stale_revision. Reserved minority.
+      1     -> deliberate rejection: an unknown payment_id -> 404 not_found.
+               Reserved minority.
+      2..9  -> a real batch: expected_revision is read fresh via GET
+               .../revisions right before the call, so it always matches
+               -> reaches the real batch-commit path, 8 of 10 residues.
+    `effective_at` is a FIXED offset into the past (hours, never
+    now() + a positive offset) -- a write's effective instant may never be
+    in the future (R-3-053/R-4-055), only query instants may.
+    """
+    operator = ctx["operator"]
+    other = _pick(ctx, i, offset=3)
+    if other["id"] == operator["id"]:
+        other = _pick(ctx, i, offset=4)
+
+    seed_key = f"batch-seed-{i}"
+    seed_amount = 10 + (i % 40)
+    seed = _post(base_url, "/payments", json={"to_handle": other["handle"], "amount": seed_amount,
+                                               "note": f"batch-seed-{i}"},
+                 headers={**_auth(operator["token"]), "Idempotency-Key": seed_key})
+    if seed.status_code not in (200, 201):
+        return seed.status_code
+    payment_id = seed.json()["payment_id"]
+
+    sub = i % 10
+    effective_at = (ctx["now"] - timedelta(hours=2, minutes=i % 60)).isoformat()
+    if sub == 1:
+        item = {"payment_id": "no-such-payment-for-batch-storm", "expected_revision": 1,
+                "amount": 1, "effective_at": effective_at, "reason": f"batch-{i}"}
+    else:
+        rev_resp = _get(base_url, f"/payments/{payment_id}/revisions", headers=_auth(operator["token"]))
+        if rev_resp.status_code != 200:
+            return rev_resp.status_code
+        rev_body = rev_resp.json()
+        revisions = rev_body["revisions"] if isinstance(rev_body, dict) else rev_body
+        current_revision = max(rv["revision"] for rv in revisions)
+        expected_revision = 999 if sub == 0 else current_revision
+        item = {"payment_id": payment_id, "expected_revision": expected_revision,
+                "amount": i % 50, "effective_at": effective_at, "reason": f"batch-{i}"}
+
+    r = _post(base_url, "/correction-batches", json={"corrections": [item]},
+              headers={**_auth(operator["token"]), "Idempotency-Key": key})
+    if r.status_code == 201 and sub not in (0, 1):
+        with ctx["lock"]:
+            ctx["applied_corrections"].append({"payment_id": payment_id, "response": r.json()})
+    return r.status_code
+
+
 def _statement_read_op(base_url, ctx, i):
     """R-3-030..044: exercise GET /statement under storm load."""
     user = _pick(ctx, i)
@@ -284,6 +395,10 @@ def operation(base_url: str, ctx: dict, i: int, rng) -> int:
         return _statement_read_op(base_url, ctx, i)
     if i % 31 == 0:
         return _me_as_of_known_at_op(base_url, ctx, i)
+    if i % 37 == 0:
+        return _refund_op(base_url, ctx, i, key)
+    if i % 41 == 0:
+        return _correction_batch_op(base_url, ctx, i, key)
     if i % 23 == 0:
         return _correction_op(base_url, ctx, i, key)
     if i % 19 == 0:
@@ -544,6 +659,61 @@ def invariant(base_url: str, ctx: dict) -> tuple[bool, str]:
             return False, (f"statement page re-fetched with the pre-storm snapshot changed: "
                             f"before={ctx['statement_first_page']} after={r.json()}")
 
+    # R-4-001: already enforced generically above -- the global `total ==
+    # ctx["seeded_total"]` check (and its bitemporal twin) would already
+    # catch a refund that created or destroyed money, since a refund is
+    # just another payment and any extra/missing money unbalances the
+    # global sum immediately. No special-casing needed; noted here so the
+    # coverage is traceable to the requirement rather than only to R-3-001.
+
+    # R-4-002, R-4-024: cumulative refunds per payment never exceed that
+    # payment's CURRENT corrected amount, and no payment's refund_of names
+    # a payment that is itself a refund (no chains deeper than one level).
+    # One sweep of every user's /activity builds the payment_id -> refund_of
+    # map both checks need; a missing field is read as None (every payment
+    # that is not a refund exposes refund_of: null per R-4-020), never
+    # skipped.
+    refund_of_by_id: dict[str, object] = {}
+    amount_by_id: dict[str, int] = {}
+    for u in ctx["users"]:
+        feed = _get(base_url, "/activity", headers=_auth(u["token"]), params={"limit": 200})
+        if feed.status_code != 200:
+            return False, f"GET /activity failed for {u['handle']}: {feed.status_code} {feed.text}"
+        for p in feed.json()["payments"]:
+            refund_of_by_id[p["payment_id"]] = p.get("refund_of")
+            amount_by_id[p["payment_id"]] = p["amount"]
+
+    for pid, refund_of in refund_of_by_id.items():
+        if refund_of is None:
+            continue
+        target_is_itself_a_refund = refund_of_by_id.get(refund_of)
+        if target_is_itself_a_refund is not None:
+            return False, (f"payment {pid} refunds {refund_of}, which is itself a refund of "
+                            f"{target_is_itself_a_refund} (R-4-024 forbids a chain)")
+
+    with ctx["lock"]:
+        refunded_targets = sorted({r["target_id"] for r in ctx["applied_refunds"]})
+    for target_id in refunded_targets:
+        cumulative = sum(amount for pid, amount in amount_by_id.items() if refund_of_by_id.get(pid) == target_id)
+        token = ctx["users"][0]["token"]
+        rev = _get(base_url, f"/payments/{target_id}/revisions", headers=_auth(token))
+        if rev.status_code == 404:
+            continue  # the token used to check isn't a party to this target; same tolerated gap as the corrections check above
+        if rev.status_code != 200:
+            return False, f"GET /payments/{target_id}/revisions failed: {rev.status_code} {rev.text}"
+        rev_body = rev.json()
+        revisions = rev_body["revisions"] if isinstance(rev_body, dict) else rev_body
+        current_amount = max(revisions, key=lambda rv: rv["revision"])["amount"]
+        if cumulative > current_amount:
+            return False, (f"payment {target_id}: cumulative refunds {cumulative} exceed its current "
+                            f"corrected amount {current_amount} (R-4-002)")
+
+    # R-4-053: already enforced by the existing R-3-003/004 strict-increase
+    # check above, which walks ctx["applied_corrections"] -- batch
+    # corrections append to that SAME list (see _correction_batch_op), so a
+    # shared/non-increasing recorded_at across a batch is already caught
+    # there without duplicating the walk.
+
     return True, "ok"
 
 
@@ -636,6 +806,7 @@ def populate(base_url: str) -> dict:
     pay_body = {"to_handle": payee["handle"], "amount": 111, "note": "populate"}
     r = _post(base_url, "/payments", json=pay_body, headers={**_auth(payer["token"]), "Idempotency-Key": pay_key})
     assert r.status_code == 201, r.text
+    direct_payment_id = r.json()["payment_id"]
 
     # a still-pending request
     requester, other_payer = users[2], users[3]
@@ -790,7 +961,17 @@ def populate(base_url: str) -> dict:
                            headers={**_auth(zero_payer["token"]), "Idempotency-Key": correction_key})
         assert zero_corr.status_code == 201, zero_corr.text
 
-        _UPGRADE["known_correction_payment_ids"] = [seeded_payment_1_id, seeded_payment_2_id, zero_payment_id]
+        # (id, viewer_handle) pairs, same shape as known_requests/
+        # known_authorizations below -- a bare id list (the previous shape)
+        # forced snapshot() to guess one shared token for all three, and
+        # p-seed-2's party is carol/dave, not alice, so that guess 404'd:
+        # a pre-existing bug this extension fixes in passing, since it
+        # blocks testing the new refund/batch fingerprints added alongside it.
+        _UPGRADE["known_correction_payment_ids"] = [
+            (seeded_payment_1_id, seeded_payer_1["handle"]),
+            (seeded_payment_2_id, seeded_payer_2["handle"]),
+            (zero_payment_id, zero_payer["handle"]),
+        ]
         _UPGRADE["remembered_correction_key"] = correction_key
         _UPGRADE["remembered_correction_body"] = correction_body
         _UPGRADE["remembered_correction_payment_id"] = zero_payment_id
@@ -811,6 +992,79 @@ def populate(base_url: str) -> dict:
         _UPGRADE["statement_snapshot_handle"] = users[0]["handle"]
         _UPGRADE["statement_snapshot"] = snap_body.get("snapshot")
         _UPGRADE["statement_first_page"] = snap_body
+
+    # R-4-010..024: a refund, probed via the real populate action itself --
+    # no safe GET exists for refunds, so distinguish "route does not exist"
+    # (the generic routing 404) from any other outcome, same discipline as
+    # the holds/corrections probes above.
+    refund_resp = _post(base_url, f"/payments/{direct_payment_id}/refunds", json={"amount": 50},
+                        headers={**_auth(payee["token"]), "Idempotency-Key": "populate-refund-1"})
+    supports_refunds = not (refund_resp.status_code == 404 and "no such endpoint" in refund_resp.text)
+    assert supports_refunds or refund_resp.status_code == 404, \
+        f"unexpected refund probe status: {refund_resp.status_code} {refund_resp.text}"
+
+    _UPGRADE["supports_refunds"] = supports_refunds
+    _UPGRADE["remembered_refund_target_id"] = None
+    _UPGRADE["remembered_refund_payment_id"] = None
+    _UPGRADE["remembered_refund_key"] = None
+    _UPGRADE["remembered_refund_body"] = None
+    _UPGRADE["remembered_refund_receiver_handle"] = None
+
+    if supports_refunds:
+        assert refund_resp.status_code == 201, f"populate refund failed: {refund_resp.status_code} {refund_resp.text}"
+        _UPGRADE["remembered_refund_target_id"] = direct_payment_id
+        _UPGRADE["remembered_refund_payment_id"] = refund_resp.json()["payment_id"]
+        _UPGRADE["remembered_refund_key"] = "populate-refund-1"
+        _UPGRADE["remembered_refund_body"] = {"amount": 50}
+        _UPGRADE["remembered_refund_receiver_handle"] = payee["handle"]
+
+    # R-4-040..061: a single-item correction batch against the committed
+    # settlement's own member payment. The settlement's sender (a) is also
+    # the operator here, so the operator is guaranteed a party and its
+    # revisions are always readable -- sidesteps the third-party-404 hazard
+    # the stage-3 corrections probe above can hit on an arbitrary seeded
+    # payment. A statement snapshot token is captured BEFORE the batch so
+    # snapshot()/carry() can prove R-4-057: an earlier token keeps paging
+    # its frozen entries even after a batch moves this payment's revision.
+    batch_probe = _post(base_url, "/correction-batches", json={"corrections": []},
+                        headers={**_auth(operator["token"]), "Idempotency-Key": "populate-batch-probe"})
+    supports_batches = not (batch_probe.status_code == 404 and "no such endpoint" in batch_probe.text)
+
+    _UPGRADE["supports_batches"] = supports_batches
+    _UPGRADE["batch_settlement_payment_id"] = None
+    _UPGRADE["batch_settlement_viewer_handle"] = None
+    _UPGRADE["pre_batch_snapshot_handle"] = None
+    _UPGRADE["pre_batch_snapshot_token"] = None
+    _UPGRADE["pre_batch_snapshot_page"] = None
+    _UPGRADE["remembered_batch_key"] = None
+    _UPGRADE["remembered_batch_body"] = None
+    _UPGRADE["remembered_batch_caller_handle"] = None
+
+    if supports_batches and supports_corrections:
+        settle_feed = _get(base_url, "/activity", headers=_auth(a["token"]), params={"limit": 200})
+        assert settle_feed.status_code == 200, settle_feed.text
+        settlement_payment_id = next(
+            p["payment_id"] for p in settle_feed.json()["payments"] if p.get("settlement_id") == settlement_id)
+
+        pre_batch = _get(base_url, "/statement", headers=_auth(a["token"]), params={"limit": 5})
+        if pre_batch.status_code == 200 and pre_batch.json().get("snapshot"):
+            _UPGRADE["pre_batch_snapshot_handle"] = a["handle"]
+            _UPGRADE["pre_batch_snapshot_token"] = pre_batch.json()["snapshot"]
+            _UPGRADE["pre_batch_snapshot_page"] = pre_batch.json()
+
+        batch_key = "populate-batch-1"
+        batch_body = {"corrections": [{"payment_id": settlement_payment_id, "expected_revision": 1,
+                                        "amount": 20, "effective_at": datetime.now(timezone.utc).isoformat(),
+                                        "reason": "populate-batch"}]}
+        batch = _post(base_url, "/correction-batches", json=batch_body,
+                      headers={**_auth(operator["token"]), "Idempotency-Key": batch_key})
+        assert batch.status_code == 201, batch.text
+
+        _UPGRADE["batch_settlement_payment_id"] = settlement_payment_id
+        _UPGRADE["batch_settlement_viewer_handle"] = a["handle"]
+        _UPGRADE["remembered_batch_key"] = batch_key
+        _UPGRADE["remembered_batch_body"] = batch_body
+        _UPGRADE["remembered_batch_caller_handle"] = operator["handle"]
 
     return {"ctx": ctx, "settlement_id": settlement_id, "pending_request_id": pending_request_id,
             "supports_holds": supports_holds, "supports_corrections": supports_corrections}
@@ -929,8 +1183,8 @@ def snapshot(base_url: str) -> dict:
             "which would be a silent regression if not checked here")
 
     revision_state = []
-    for payment_id in sorted(set(_UPGRADE["known_correction_payment_ids"])):
-        token = next(iter(tokens.values()))
+    for payment_id, viewer_handle in sorted(set(_UPGRADE["known_correction_payment_ids"])):
+        token = tokens[viewer_handle]
         r = _get(base_url, f"/payments/{payment_id}/revisions", headers=_auth(token))
         assert r.status_code == 200, f"known corrected payment {payment_id} lost its revision history: " \
                                       f"{r.status_code} {r.text}"
@@ -966,6 +1220,83 @@ def snapshot(base_url: str) -> dict:
                                          f"{snap.status_code} {snap.text}"
         statement_snapshot_page = snap.json()
 
+    # Same anti-silent-downgrade discipline as holds/corrections above, for
+    # stage 4's own refunds/batches surface.
+    if not _UPGRADE["supports_refunds"] and base_url != _UPGRADE["populated_url"]:
+        token = next(iter(tokens.values()))
+        liveness = _post(base_url, "/payments/does-not-exist/refunds", json={"amount": 1},
+                         headers={**_auth(token), "Idempotency-Key": "liveness-refund-probe"})
+        assert not (liveness.status_code == 404 and "no such endpoint" in liveness.text), (
+            "new-side service must still expose refunds even when the old side had none: "
+            f"got {liveness.status_code} {liveness.text}, which would be a silent regression "
+            "if not checked here")
+    if not _UPGRADE["supports_batches"] and base_url != _UPGRADE["populated_url"]:
+        token = next(iter(tokens.values()))
+        liveness = _post(base_url, "/correction-batches", json={"corrections": []},
+                         headers={**_auth(token), "Idempotency-Key": "liveness-batch-probe"})
+        assert not (liveness.status_code == 404 and "no such endpoint" in liveness.text), (
+            "new-side service must still expose correction-batches even when the old side had "
+            f"none: got {liveness.status_code} {liveness.text}, which would be a silent "
+            "regression if not checked here")
+
+    # R-4-017: a refund's retry identity -- replaying the remembered
+    # refund's key+body must stay a 200 replay after any upgrade.
+    refund_retry_identity = None
+    refund_state = None
+    if _UPGRADE.get("remembered_refund_key"):
+        refund_replay_token = tokens[_UPGRADE["remembered_refund_receiver_handle"]]
+        refund_replay = _post(
+            base_url, f"/payments/{_UPGRADE['remembered_refund_target_id']}/refunds",
+            json=_UPGRADE["remembered_refund_body"],
+            headers={**_auth(refund_replay_token), "Idempotency-Key": _UPGRADE["remembered_refund_key"]})
+        assert refund_replay.status_code == 200, \
+            f"replay of the remembered refund must stay a 200 replay: " \
+            f"{refund_replay.status_code} {refund_replay.text}"
+        refund_retry_identity = (refund_replay.status_code, refund_replay.json())
+        # R-4-020, R-4-024: the remembered refund payment must still expose
+        # refund_of naming its target, and must not itself appear as some
+        # other payment's target (no refund of a refund can exist).
+        refund_state = (refund_replay.json()["payment_id"], refund_replay.json().get("refund_of"))
+        assert refund_state[1] == _UPGRADE["remembered_refund_target_id"], \
+            f"remembered refund lost its refund_of after upgrade: {refund_state}"
+
+    # R-4-052..058, R-4-070: the batch-corrected settlement payment's
+    # revision state after any upgrade, and the batch replay identity.
+    batch_revision_state = None
+    if _UPGRADE.get("batch_settlement_payment_id"):
+        token = tokens[_UPGRADE["batch_settlement_viewer_handle"]]
+        r = _get(base_url, f"/payments/{_UPGRADE['batch_settlement_payment_id']}/revisions", headers=_auth(token))
+        assert r.status_code == 200, f"batch-corrected settlement payment lost its revision " \
+                                      f"history: {r.status_code} {r.text}"
+        rev_body = r.json()
+        revisions = rev_body["revisions"] if isinstance(rev_body, dict) else rev_body
+        batch_revision_state = tuple(sorted((rv["revision"], rv["amount"]) for rv in revisions))
+
+    batch_retry_identity = None
+    if _UPGRADE.get("remembered_batch_key"):
+        batch_replay_token = tokens[_UPGRADE["remembered_batch_caller_handle"]]
+        batch_replay = _post(base_url, "/correction-batches", json=_UPGRADE["remembered_batch_body"],
+                             headers={**_auth(batch_replay_token), "Idempotency-Key": _UPGRADE["remembered_batch_key"]})
+        assert batch_replay.status_code == 200, \
+            f"replay of the remembered batch must stay a 200 replay: " \
+            f"{batch_replay.status_code} {batch_replay.text}"
+        batch_retry_identity = (batch_replay.status_code, batch_replay.json())
+
+    # R-4-057: the snapshot token taken BEFORE the batch must still page its
+    # exact frozen entries after the batch (and after any upgrade) --
+    # the largest single mutation in the product is the one most likely to
+    # leak into a token R-3-005 already froze.
+    pre_batch_snapshot_page = None
+    if _UPGRADE.get("pre_batch_snapshot_token"):
+        pre_batch_token = tokens[_UPGRADE["pre_batch_snapshot_handle"]]
+        r = _get(base_url, "/statement", headers=_auth(pre_batch_token),
+                 params={"limit": 5, "snapshot": _UPGRADE["pre_batch_snapshot_token"]})
+        assert r.status_code == 200, f"pre-batch snapshot token stopped resolving: {r.status_code} {r.text}"
+        assert r.json() == _UPGRADE["pre_batch_snapshot_page"], (
+            f"pre-batch snapshot page changed after the batch/upgrade: "
+            f"before={_UPGRADE['pre_batch_snapshot_page']} after={r.json()}")
+        pre_batch_snapshot_page = r.json()
+
     return {
         "balances": balances,
         "identities": identities,
@@ -979,6 +1310,11 @@ def snapshot(base_url: str) -> dict:
         "revision_state": revision_state,
         "correction_retry_identity": correction_retry_identity,
         "statement_snapshot_page": statement_snapshot_page,
+        "refund_retry_identity": refund_retry_identity,
+        "refund_state": refund_state,
+        "batch_revision_state": batch_revision_state,
+        "batch_retry_identity": batch_retry_identity,
+        "pre_batch_snapshot_page": pre_batch_snapshot_page,
     }
 
 
