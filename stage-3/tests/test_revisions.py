@@ -53,7 +53,11 @@ def test_revision_1_exists_for_a_seeded_payment():
     a_handle, b_handle = unique_handle("a"), unique_handle("b")
     pay_id = unique("p")
     fixture = make_fixture(
-        [user(a_id, a_handle, balance=1000), user(b_id, b_handle, balance=0)],
+        # b's ending balance must be >= the 300 they're seeded as having
+        # received, or the opening instant (R-3-018a) is negative and reset
+        # itself would 422 — this fixture isn't testing that, so it stays
+        # comfortably clear of the boundary.
+        [user(a_id, a_handle, balance=1000), user(b_id, b_handle, balance=300)],
         payments=[{"id": pay_id, "from_user_id": a_id, "to_user_id": b_id, "amount": 300,
                    "note": "seed", "visibility": "public"}],
     )

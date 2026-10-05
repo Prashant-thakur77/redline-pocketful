@@ -151,8 +151,11 @@ def test_seeded_ids_used_verbatim():
     a_id, b_id = unique("u"), unique("u")
     a_handle, b_handle = unique_handle("a"), unique_handle("b")
     pay_id = unique("p")
+    # b's ending balance must be >= the 50 they're seeded as having received,
+    # or the opening instant (R-3-018a) is negative and reset itself 422s —
+    # this test is about verbatim id usage, not that check.
     fixture = make_fixture(
-        [user(a_id, a_handle, balance=1000), user(b_id, b_handle, balance=0)],
+        [user(a_id, a_handle, balance=1000), user(b_id, b_handle, balance=50)],
         payments=[{"id": pay_id, "from_user_id": a_id, "to_user_id": b_id, "amount": 50,
                    "note": "", "visibility": "public"}],
     )

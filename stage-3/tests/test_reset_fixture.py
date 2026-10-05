@@ -1,6 +1,8 @@
 """Fixture model and `POST /_test/reset`: R-1-030..050."""
 from __future__ import annotations
 
+import copy
+
 import httpx
 import pytest
 
@@ -206,6 +208,83 @@ def test_negative_balance_rejected_and_prior_state_intact():
     assert still.json()["balance"] == 42
 
 
+def test_seeded_opening_balance_negative_rejected_422():
+    """R-3-018a: a negative balance "at any point" includes the opening
+    instant itself, before any seeded payment is replayed — a receiver
+    seeded at an ending balance lower than what they're seeded as having
+    received implies a negative opening and must 422 from reset, with
+    prior state left intact."""
+    keep_id = unique("u")
+    keep = make_fixture([user(keep_id, unique_handle("keep"), balance=123)])
+    reset_ok(keep)
+    token = login_token(keep["users"][0]["email"])
+
+    a_id, b_id = unique("u"), unique("u")
+    a_handle, b_handle = unique_handle("a"), unique_handle("b")
+    bad = make_fixture(
+        [user(a_id, a_handle, balance=1000), user(b_id, b_handle, balance=99)],
+        payments=[{"id": unique("p"), "from_user_id": a_id, "to_user_id": b_id, "amount": 100,
+                   "note": "", "visibility": "public"}],
+    )
+    r = reset(bad)
+    assert_error(r, 422, "validation_failed")
+
+    still = api_get("/me", headers=auth(token))
+    assert still.status_code == 200
+    assert still.json()["balance"] == 123
+
+
+def test_seeded_opening_balance_exactly_zero_accepted():
+    """R-3-018a boundary: an opening balance of exactly 0 (ending balance
+    equal to the amount received) is the accept side of the boundary, not
+    the reject side."""
+    a_id, b_id = unique("u"), unique("u")
+    a_handle, b_handle = unique_handle("a"), unique_handle("b")
+    fixture = make_fixture(
+        [user(a_id, a_handle, balance=1000), user(b_id, b_handle, balance=100)],
+        payments=[{"id": unique("p"), "from_user_id": a_id, "to_user_id": b_id, "amount": 100,
+                   "note": "", "visibility": "public"}],
+    )
+    r = reset(fixture)
+    assert r.status_code == 204, r.text
+    token_b = login_token(fixture["users"][1]["email"])
+    assert api_get("/me", headers=auth(token_b)).json()["balance"] == 100
+
+
+def test_imported_opening_balance_negative_rejected_422():
+    """R-3-018b: the same opening-instant check applies to POST
+    /_test/import, not only /_test/reset — the destination must be left
+    unchanged. Built from a REAL export (not a hand-authored document) with
+    only the receiver's wallet balance mutated down below what the seeded
+    payment's amount implies, so every other field keeps its confirmed
+    on-the-wire shape."""
+    a_id, b_id = unique("u"), unique("u")
+    a_handle, b_handle = unique_handle("a"), unique_handle("b")
+    valid = make_fixture(
+        [user(a_id, a_handle, balance=1000), user(b_id, b_handle, balance=200)],
+        payments=[{"id": unique("p"), "from_user_id": a_id, "to_user_id": b_id, "amount": 100,
+                   "note": "", "visibility": "public"}],
+    )
+    reset_ok(valid)
+    document = api_get("/_test/export").json()
+    assert document["state"]["wallets"][b_id] == 200
+
+    other_id, other_handle = unique("u"), unique_handle("other")
+    other = make_fixture([user(other_id, other_handle, balance=55)])
+    reset_ok(other)
+    other_token = login_token(other["users"][0]["email"])
+
+    bad_state = copy.deepcopy(document)
+    bad_state["state"]["wallets"][b_id] = 50  # ending 50 - seeded +100 = opening -50
+
+    r = api_post("/_test/import", json=bad_state)
+    assert_error(r, 422, "validation_failed")
+
+    still = api_get("/me", headers=auth(other_token))
+    assert still.status_code == 200
+    assert still.json()["balance"] == 55
+
+
 def test_reset_non_json_body_400():
     """R-1-046"""
     r = httpx.post(url("/_test/reset"), content=b"not json {{{", headers={"Content-Type": "application/json"})
@@ -398,8 +477,11 @@ def test_payment_and_request_id_length_boundary_max_64_chars():
 
     ok_pay_id = "p-" + ("a" * 62)
     assert len(ok_pay_id) == 64
+    # b's ending balance must be >= the 10 they're seeded as having received,
+    # or the opening instant (R-3-018a) is negative and reset itself 422s —
+    # this test is about the id-length boundary, not that check.
     fixture = make_fixture(
-        [user(a_id, a_handle, balance=100), user(b_id, b_handle, balance=0)],
+        [user(a_id, a_handle, balance=100), user(b_id, b_handle, balance=10)],
         payments=[{"id": ok_pay_id, "from_user_id": a_id, "to_user_id": b_id, "amount": 10,
                    "note": "", "visibility": "public"}],
     )
@@ -408,7 +490,7 @@ def test_payment_and_request_id_length_boundary_max_64_chars():
     too_long_pay_id = "p-" + ("a" * 63)
     assert len(too_long_pay_id) == 65
     bad_payment_fixture = make_fixture(
-        [user(a_id, a_handle, balance=100), user(b_id, b_handle, balance=0)],
+        [user(a_id, a_handle, balance=100), user(b_id, b_handle, balance=10)],
         payments=[{"id": too_long_pay_id, "from_user_id": a_id, "to_user_id": b_id, "amount": 10,
                    "note": "", "visibility": "public"}],
     )

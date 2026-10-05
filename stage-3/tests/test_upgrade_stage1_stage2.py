@@ -63,8 +63,12 @@ def test_import_document_with_no_revisions_key_still_yields_revision_1():
     document never carried one."""
     a_id, b_id = unique("u"), unique("u")
     a_handle, b_handle = unique_handle("a"), unique_handle("b")
+    # b's ending balance must be >= the 300 they're seeded as having
+    # received, or the opening instant (R-3-018a) is negative and reset
+    # itself 422s — this test is about the no-revisions-key import path,
+    # not that check.
     fixture = make_fixture(
-        [user(a_id, a_handle, balance=1000), user(b_id, b_handle, balance=0)],
+        [user(a_id, a_handle, balance=1000), user(b_id, b_handle, balance=300)],
         payments=[{"id": "p-no-revisions-1", "from_user_id": a_id, "to_user_id": b_id,
                    "amount": 300, "note": "pre-stage-3 shape", "visibility": "public"}],
     )
