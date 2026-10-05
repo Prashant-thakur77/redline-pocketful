@@ -573,3 +573,63 @@ settlement, import or snapshot paths. It closes with N4-6.
 
 Governor `--node N4-4`: `g8: PASS — within caps`. N4-3's code is in at `571aec7`, so commit semantics
 can start while @verifier's combined N4-2+N4-3 run is in flight.
+
+---
+
+## TICK 2026-10-06T00:30Z — N4-H found a real R-4-070 defect. N4-6 dispatched as the priority item.
+
+### The finding: snapshot tokens do not survive export/import
+
+@redline's N4-H verification caught a genuine product defect, and I confirmed the **mechanism**
+structurally rather than accepting the symptom:
+
+```
+grep -n statement_snapshots stage-4/service/snapshot.py   ->  (no matches)
+grep -n statement_snapshots stage-4/service/store.py      ->  41 (declared), 98, 139 (cleared)
+```
+
+`statement_snapshots` lives in the store but appears **nowhere in the export/import module**. The
+export document never carries tokens, so import always lands a fresh empty dict. That is exactly
+R-4-070's "retaining settlement membership, corrections **and snapshots**", and it is a clean
+violation.
+
+@redline's isolation was good: the token works right up to the import call and 404s immediately after,
+while auth tokens, balances, requests, activity, settlement membership, authorizations, capture replay,
+correction revisions and correction replay identity all survive the same round trip. So it is
+specifically snapshots, not a broken export. Both the general R-3-005/080 token and the R-4-057
+pre-batch token break identically.
+
+**It is already covered by a committed test** —
+`test_upgrade_stage1_2_3.py::test_settlement_membership_corrections_and_snapshots_survive_import` —
+which is the one residual failure @adversary attributed to N4-6 scope two ticks ago. It was a real
+defect all along, correctly parked rather than dismissed. **Gate 5 will hit this at close**, so it
+blocks the stage.
+
+### N4-H closed with no hook change, which is the right answer
+
+The flags both resolve `True`, `populate()` completes with every branch taken including the
+`assert refund_resp.status_code == 201`, and the residue table is confirmed **empirically** over three
+independent 2000-op runs: refund residues 0 and 1 are 100% exact (21/21 403, 26/26 422), batch residues
+0 and 1 are 100% exact (18/18 409, 15/15 404), and residues 2–9 reach the real path as their dominant
+outcome with the remainder explained by genuine concurrent ceiling depletion and replay races.
+
+**@redline found and fixed a bug in its own measurement script** before reporting: it attributed every
+`i % 37 == 0` to a refund dispatch, but `operation()`'s cascade tests `i % 29` and `i % 31` first
+(`hook.py:394-401`), so composite `i` never reaches `_refund_op`. The first pass's residue-0 anomaly was
+that bug, not the service. Catching an instrument error before blaming the instrument's subject is the
+behaviour the residue request existed to get.
+
+### N4-4 landed at `f16dd5e` while my dispatch was in flight
+
+So the "commit semantics are N4-4, not yours" scope limit in that dispatch was moot on arrival — a
+fourth crossing, same cause. @redline independently verified the three things I flagged as traps:
+`correction_batch_id` set on batch revisions and null on single ones, a batch's shared `recorded_at`
+strictly later than the prior revision's, and batch replay returning an identical body. All three pass,
+and `test_batch_snapshots.py` + `test_correction_batches.py` + `test_batch_precedence.py` (23 tests)
+run clean. N4-4 still needs @adversary and @verifier.
+
+### Priority change: N4-6 now, ahead of N4-5
+
+N4-6 was scheduled after N4-5. Moving it up because this defect **blocks the stage close** through gate
+5, while N4-5 (batch error precedence) only turns `test_batch_precedence.py` fully green. A close
+blocker outranks a coverage gain. Governor `--node N4-6`: `g8: PASS — within caps`.
