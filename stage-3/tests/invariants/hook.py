@@ -15,12 +15,13 @@ from __future__ import annotations
 
 import sys
 import threading
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import httpx
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from demo_fixture import build_demo_fixture  # noqa: E402
+from demo_fixture import build_demo_fixture, opening_balances  # noqa: E402
 
 TIMEOUT = 10.0
 
@@ -73,17 +74,44 @@ def setup(base_url: str) -> dict:
         for a in fixture.get("authorizations", []) if a["status"] == "open"
     ]
 
+    now = datetime.now(timezone.utc)
+    id_to_handle = {u["id"]: u["handle"] for u in users}
+    correction_targets = [
+        {"id": p["id"], "from_user_id": p["from_user_id"]} for p in fixture["payments"]
+    ]
+
+    # R-3-005: a statement snapshot token taken before the storm starts must
+    # page identically after the storm has run (frozen pagination). Captured
+    # best-effort: a 404/other here just means this stage's statement
+    # endpoint isn't implemented yet, so the check is skipped in invariant().
+    statement_snapshot_token = None
+    statement_first_page = None
+    primary = users[0]
+    init = _get(base_url, "/statement", headers=_auth(primary["token"]), params={"limit": 5})
+    if init.status_code == 200:
+        body = init.json()
+        statement_snapshot_token = body.get("snapshot_token")
+        statement_first_page = body
+
     return {
         "fixture": fixture,
         "users": users,
         "operator": operator,
         "seeded_total": sum(u["balance"] for u in fixture["users"]),
+        "opening_balances": opening_balances(),
+        "id_to_handle": id_to_handle,
+        "now": now,
         "pending_requests": pending_requests,
         "seed_auth_targets": seed_auth_targets,
+        "correction_targets": correction_targets,
+        "statement_snapshot_user": primary["handle"],
+        "statement_snapshot_token": statement_snapshot_token,
+        "statement_first_page": statement_first_page,
         "n": len(users),
         "lock": threading.Lock(),
         "split_receipts": [],
         "paid_request_ids": set(),
+        "applied_corrections": [],
     }
 
 
@@ -170,6 +198,53 @@ def _auth_void_op(base_url, ctx, i, key):
     return r.status_code
 
 
+def _correction_op(base_url, ctx, i, key):
+    """R-3-050..069: a payment correction, i-deterministic in every field so
+    a repeated `i` is a genuine idempotent retry. `expected_revision` cycles
+    so some calls land on the true current revision (success) and most are
+    deliberately stale (409 stale_revision) under storm concurrency.
+    `effective_at` is sometimes pushed before the payment's own creation to
+    exercise historical-overdraft/ordering paths (R-3-059, R-3-060), not just
+    corrections that land after everything else."""
+    targets = ctx["correction_targets"]
+    if not targets:
+        return 404
+    target = targets[i % len(targets)]
+    payer = next((u for u in ctx["users"] if u["id"] == target["from_user_id"]), None)
+    if payer is None:
+        return 404
+    expected_revision = 1 + ((i // max(1, len(targets))) % 3)
+    amount = i % 50  # include 0: a zero-amount correction is a legal distinct case
+    offset_days = (i % 9) - 4  # ranges negative (historical) through positive (future-dated)
+    effective_at = (ctx["now"] + timedelta(days=offset_days, seconds=i)).isoformat()
+    body = {"expected_revision": expected_revision, "amount": amount,
+            "effective_at": effective_at, "reason": f"storm-correction-{i}"}
+    r = _post(base_url, f"/payments/{target['id']}/corrections", json=body,
+              headers={**_auth(payer["token"]), "Idempotency-Key": key})
+    if r.status_code == 201:
+        with ctx["lock"]:
+            ctx["applied_corrections"].append({"payment_id": target["id"], "response": r.json()})
+    return r.status_code
+
+
+def _statement_read_op(base_url, ctx, i):
+    """R-3-030..044: exercise GET /statement under storm load."""
+    user = _pick(ctx, i)
+    r = _get(base_url, "/statement", headers=_auth(user["token"]), params={"limit": 20})
+    return r.status_code
+
+
+def _me_as_of_known_at_op(base_url, ctx, i):
+    """R-3-020..027, R-3-070..077: exercise the bitemporal query params on
+    GET /me under storm load — some instants land before the earliest
+    seeded payment, some in the middle, some in the future."""
+    user = _pick(ctx, i)
+    as_of = (ctx["now"] + timedelta(hours=(i % 96) - 72)).isoformat()
+    known_at = (ctx["now"] + timedelta(hours=(i % 60) - 48)).isoformat()
+    r = _get(base_url, "/me", headers=_auth(user["token"]), params={"as_of": as_of, "known_at": known_at})
+    return r.status_code
+
+
 def operation(base_url: str, ctx: dict, i: int, rng) -> int:
     """A random-but-i-deterministic money-moving call. Same i => same request,
     so calling twice with the same i is a genuine retry (idempotency key is
@@ -177,6 +252,12 @@ def operation(base_url: str, ctx: dict, i: int, rng) -> int:
     users = ctx["users"]
     key = f"storm-{i}"
 
+    if i % 29 == 0:
+        return _statement_read_op(base_url, ctx, i)
+    if i % 31 == 0:
+        return _me_as_of_known_at_op(base_url, ctx, i)
+    if i % 23 == 0:
+        return _correction_op(base_url, ctx, i, key)
     if i % 19 == 0:
         return _auth_void_op(base_url, ctx, i, key)
     if i % 17 == 0:
@@ -346,6 +427,79 @@ def invariant(base_url: str, ctx: dict) -> tuple[bool, str]:
         if sum(shares) != amount:
             return False, f"split shares {shares} do not sum to amount {amount}"
 
+    # R-3-001, R-3-002: a bitemporal view (as_of + known_at together) must
+    # still conserve total money and never show a negative balance — a
+    # correction moves money between two accounts, it never mints or burns.
+    # A 404 here means this stage's endpoint doesn't support the params yet
+    # (skip, not fail); any other non-200 is a real defect.
+    as_of = ctx["now"].isoformat()
+    known_at = ctx["now"].isoformat()
+    bitemporal_total = 0
+    bitemporal_supported = True
+    for u in ctx["users"]:
+        r = _get(base_url, "/me", headers=_auth(u["token"]), params={"as_of": as_of, "known_at": known_at})
+        if r.status_code == 404:
+            bitemporal_supported = False
+            break
+        if r.status_code != 200:
+            return False, f"GET /me?as_of&known_at failed for {u['handle']}: {r.status_code} {r.text}"
+        bal = r.json()["balance"]
+        if bal < 0:
+            return False, f"negative bitemporal balance for {u['handle']} at as_of={as_of}: {bal}"
+        bitemporal_total += bal
+    if bitemporal_supported and bitemporal_total != ctx["seeded_total"]:
+        return False, (f"sum of bitemporal balances {bitemporal_total} at as_of={as_of} "
+                        f"!= seeded total {ctx['seeded_total']}")
+
+    # R-3-016: an as_of strictly before the earliest seeded payment must show
+    # each user's pre-payment opening balance, not their current one.
+    before_earliest = (ctx["now"] - timedelta(days=2, seconds=1)).isoformat()
+    for u in ctx["users"]:
+        r = _get(base_url, "/me", headers=_auth(u["token"]), params={"as_of": before_earliest})
+        if r.status_code == 404:
+            break
+        if r.status_code != 200:
+            return False, f"GET /me?as_of (pre-earliest) failed for {u['handle']}: {r.status_code} {r.text}"
+        expected = ctx["opening_balances"].get(u["id"])
+        if expected is not None and r.json()["balance"] != expected:
+            return False, (f"as_of={before_earliest} (before any seeded payment) balance for "
+                            f"{u['handle']} is {r.json()['balance']}, expected opening balance {expected}")
+
+    # R-3-003, R-3-004: every corrected payment's revision history must start
+    # at revision 1 (reason ""), be consecutive, and have strictly increasing
+    # recorded_at.
+    with ctx["lock"]:
+        corrected_ids = sorted({c["payment_id"] for c in ctx["applied_corrections"]})
+    for payment_id in corrected_ids:
+        token = ctx["users"][0]["token"]
+        r = _get(base_url, f"/payments/{payment_id}/revisions", headers=_auth(token))
+        if r.status_code == 404:
+            continue
+        if r.status_code != 200:
+            return False, f"GET /payments/{payment_id}/revisions failed: {r.status_code} {r.text}"
+        revisions = sorted(r.json().get("revisions", r.json() if isinstance(r.json(), list) else []),
+                            key=lambda rv: rv["revision"])
+        if not revisions or revisions[0]["revision"] != 1:
+            return False, f"payment {payment_id} revision history does not start at revision 1: {revisions}"
+        if revisions[0].get("reason", "") != "":
+            return False, f"payment {payment_id} revision 1 must have reason '': {revisions[0]}"
+        for a, b in zip(revisions, revisions[1:]):
+            if b["revision"] != a["revision"] + 1:
+                return False, f"payment {payment_id} revisions are not consecutive: {revisions}"
+            if b["recorded_at"] <= a["recorded_at"]:
+                return False, f"payment {payment_id} revision recorded_at is not strictly increasing: {revisions}"
+
+    # R-3-005: a snapshot token taken before the storm started must page
+    # identically after the storm has run (frozen pagination), regardless of
+    # how many corrections/payments have since been recorded.
+    if ctx.get("statement_snapshot_token"):
+        token = next(u["token"] for u in ctx["users"] if u["handle"] == ctx["statement_snapshot_user"])
+        r = _get(base_url, "/statement", headers=_auth(token),
+                 params={"limit": 5, "snapshot_token": ctx["statement_snapshot_token"]})
+        if r.status_code == 200 and r.json() != ctx["statement_first_page"]:
+            return False, (f"statement page re-fetched with the pre-storm snapshot_token changed: "
+                            f"before={ctx['statement_first_page']} after={r.json()}")
+
     return True, "ok"
 
 
@@ -359,6 +513,17 @@ def _read_wallets(base_url, ctx):
     return out
 
 
+def _read_historical_bound(base_url, ctx):
+    """R-3-002: a client-side bound taken from a single as_of read mid-storm —
+    never a torn snapshot assembled across multiple reads."""
+    user = ctx["users"][0]
+    r = _get(base_url, "/me", headers=_auth(user["token"]),
+             params={"as_of": ctx["now"].isoformat()})
+    if r.status_code != 200:
+        return None
+    return r.json()["balance"]
+
+
 def transient(base_url: str, ctx: dict) -> tuple[bool, str]:
     before = _read_wallets(base_url, ctx)
     if before is None:
@@ -369,6 +534,9 @@ def transient(base_url: str, ctx: dict) -> tuple[bool, str]:
         return False, f"negative available observed mid-storm: {before}"  # R-2-002
     if any(w.get("available", w["balance"]) > w["balance"] for w in before):
         return False, f"available > total observed mid-storm: {before}"
+    historical_before = _read_historical_bound(base_url, ctx)
+    if historical_before is not None and historical_before < 0:
+        return False, f"negative as_of balance observed mid-storm: {historical_before}"
 
     after = _read_wallets(base_url, ctx)
     if after is None:
@@ -379,6 +547,9 @@ def transient(base_url: str, ctx: dict) -> tuple[bool, str]:
         return False, f"negative available observed mid-storm: {after}"
     if any(w.get("available", w["balance"]) > w["balance"] for w in after):
         return False, f"available > total observed mid-storm: {after}"
+    historical_after = _read_historical_bound(base_url, ctx)
+    if historical_after is not None and historical_after < 0:
+        return False, f"negative as_of balance observed mid-storm: {historical_after}"
     return True, "ok"
 
 
@@ -521,8 +692,75 @@ def populate(base_url: str) -> dict:
         _UPGRADE["remembered_capture_authorization_id"] = partial_auth_id
         _UPGRADE["remembered_capture_receiver_handle"] = part_receiver["handle"]
 
+    # Capability probe for stage 3's bitemporal/corrections surface, same
+    # one-probe-used-twice discipline as supports_holds above.
+    corrections_probe = _get(base_url, "/statement", headers=_auth(users[0]["token"]))
+    supports_corrections = corrections_probe.status_code == 200
+    assert corrections_probe.status_code in (200, 404), \
+        f"unexpected probe status: {corrections_probe.status_code} {corrections_probe.text}"
+
+    _UPGRADE["supports_corrections"] = supports_corrections
+    _UPGRADE["known_correction_payment_ids"] = []
+    _UPGRADE["remembered_correction_key"] = None
+    _UPGRADE["remembered_correction_body"] = None
+    _UPGRADE["remembered_correction_payment_id"] = None
+    _UPGRADE["remembered_correction_caller_handle"] = None
+    _UPGRADE["statement_snapshot_handle"] = None
+    _UPGRADE["statement_snapshot_token"] = None
+    _UPGRADE["statement_first_page"] = None
+
+    if supports_corrections:
+        # two applied corrections against the seeded payments: one increase,
+        # one decrease (R-3-050..069) — both must land on revision 1, the
+        # implicit original revision every payment, including a seeded one,
+        # must already have.
+        seeded_payer_1 = next(u for u in users if u["id"] == fixture["payments"][0]["from_user_id"])
+        seeded_payment_1_id = fixture["payments"][0]["id"]
+        inc = _post(base_url, f"/payments/{seeded_payment_1_id}/corrections",
+                    json={"expected_revision": 1, "amount": fixture["payments"][0]["amount"] + 100,
+                          "effective_at": datetime.now(timezone.utc).isoformat(), "reason": "populate-increase"},
+                    headers={**_auth(seeded_payer_1["token"]), "Idempotency-Key": "populate-correction-increase-1"})
+        assert inc.status_code == 201, inc.text
+
+        seeded_payer_2 = next(u for u in users if u["id"] == fixture["payments"][1]["from_user_id"])
+        seeded_payment_2_id = fixture["payments"][1]["id"]
+        dec = _post(base_url, f"/payments/{seeded_payment_2_id}/corrections",
+                    json={"expected_revision": 1, "amount": max(1, fixture["payments"][1]["amount"] - 100),
+                          "effective_at": datetime.now(timezone.utc).isoformat(), "reason": "populate-decrease"},
+                    headers={**_auth(seeded_payer_2["token"]), "Idempotency-Key": "populate-correction-decrease-1"})
+        assert dec.status_code == 201, dec.text
+
+        # a zero-amount correction on a freshly made payment — a distinct
+        # legal case from a decrease, remembered for the post-import retry
+        # idempotency check below.
+        zero_payer, zero_payee = users[4], users[5]
+        zero_pay = _post(base_url, "/payments",
+                          json={"to_handle": zero_payee["handle"], "amount": 50, "note": "pre-zero-correction"},
+                          headers={**_auth(zero_payer["token"]), "Idempotency-Key": "populate-payment-for-zero-correction"})
+        assert zero_pay.status_code == 201, zero_pay.text
+        zero_payment_id = zero_pay.json()["payment_id"]
+        correction_key = "populate-correction-zero-1"
+        correction_body = {"expected_revision": 1, "amount": 0,
+                            "effective_at": datetime.now(timezone.utc).isoformat(), "reason": "populate-zero"}
+        zero_corr = _post(base_url, f"/payments/{zero_payment_id}/corrections", json=correction_body,
+                           headers={**_auth(zero_payer["token"]), "Idempotency-Key": correction_key})
+        assert zero_corr.status_code == 201, zero_corr.text
+
+        _UPGRADE["known_correction_payment_ids"] = [seeded_payment_1_id, seeded_payment_2_id, zero_payment_id]
+        _UPGRADE["remembered_correction_key"] = correction_key
+        _UPGRADE["remembered_correction_body"] = correction_body
+        _UPGRADE["remembered_correction_payment_id"] = zero_payment_id
+        _UPGRADE["remembered_correction_caller_handle"] = zero_payer["handle"]
+
+        snap = _get(base_url, "/statement", headers=_auth(users[0]["token"]), params={"limit": 5})
+        if snap.status_code == 200:
+            snap_body = snap.json()
+            _UPGRADE["statement_snapshot_handle"] = users[0]["handle"]
+            _UPGRADE["statement_snapshot_token"] = snap_body.get("snapshot_token")
+            _UPGRADE["statement_first_page"] = snap_body
+
     return {"ctx": ctx, "settlement_id": settlement_id, "pending_request_id": pending_request_id,
-            "supports_holds": supports_holds}
+            "supports_holds": supports_holds, "supports_corrections": supports_corrections}
 
 
 def snapshot(base_url: str) -> dict:
@@ -624,6 +862,50 @@ def snapshot(base_url: str) -> dict:
             f"replay of the remembered capture must stay a 200 replay: {capture_replay.status_code} {capture_replay.text}"
         capture_retry_identity = (capture_replay.status_code, capture_replay.json())
 
+    # Same anti-silent-downgrade discipline as the holds guard above, for
+    # stage 3's corrections/statement surface: if the OLD side had none
+    # (this probe only ran once, in populate(), against populated_url), the
+    # NEW side must still have it — a regression there must be loud, never
+    # masked by corrections/statement fields simply being absent/empty.
+    if not _UPGRADE["supports_corrections"] and base_url != _UPGRADE["populated_url"]:
+        token = next(iter(tokens.values()))
+        liveness = _get(base_url, "/statement", headers=_auth(token))
+        assert liveness.status_code == 200, (
+            "new-side service must still expose statements/corrections even when the old "
+            f"side had none: GET /statement returned {liveness.status_code} {liveness.text}, "
+            "which would be a silent regression if not checked here")
+
+    revision_state = []
+    for payment_id in sorted(set(_UPGRADE["known_correction_payment_ids"])):
+        token = next(iter(tokens.values()))
+        r = _get(base_url, f"/payments/{payment_id}/revisions", headers=_auth(token))
+        assert r.status_code == 200, f"known corrected payment {payment_id} lost its revision history: " \
+                                      f"{r.status_code} {r.text}"
+        revisions = r.json().get("revisions", r.json() if isinstance(r.json(), list) else [])
+        revision_state.append((payment_id, tuple(sorted((rv["revision"], rv["amount"]) for rv in revisions))))
+    revision_state.sort()
+
+    correction_retry_identity = None
+    if _UPGRADE.get("remembered_correction_key"):
+        correction_replay_token = tokens[_UPGRADE["remembered_correction_caller_handle"]]
+        correction_replay = _post(
+            base_url, f"/payments/{_UPGRADE['remembered_correction_payment_id']}/corrections",
+            json=_UPGRADE["remembered_correction_body"],
+            headers={**_auth(correction_replay_token), "Idempotency-Key": _UPGRADE["remembered_correction_key"]})
+        assert correction_replay.status_code == 200, \
+            f"replay of the remembered correction must stay a 200 replay: " \
+            f"{correction_replay.status_code} {correction_replay.text}"
+        correction_retry_identity = (correction_replay.status_code, correction_replay.json())
+
+    statement_snapshot_page = None
+    if _UPGRADE.get("statement_snapshot_token"):
+        snap_token = tokens[_UPGRADE["statement_snapshot_handle"]]
+        snap = _get(base_url, "/statement", headers=_auth(snap_token),
+                    params={"limit": 5, "snapshot_token": _UPGRADE["statement_snapshot_token"]})
+        assert snap.status_code == 200, f"remembered statement snapshot_token stopped resolving: " \
+                                         f"{snap.status_code} {snap.text}"
+        statement_snapshot_page = snap.json()
+
     return {
         "balances": balances,
         "identities": identities,
@@ -634,6 +916,9 @@ def snapshot(base_url: str) -> dict:
         "settlement_members": settlement_members,
         "retry_identity": (replay.status_code, replay.json()),
         "capture_retry_identity": capture_retry_identity,
+        "revision_state": revision_state,
+        "correction_retry_identity": correction_retry_identity,
+        "statement_snapshot_page": statement_snapshot_page,
     }
 
 
