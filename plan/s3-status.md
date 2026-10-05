@@ -26,8 +26,23 @@ balance mutated rather than a hand-authored document. 578 tests, scope clean.
 The import-side test reds correctly until R-3-018b is built — that is the one remaining piece of
 @builder's strict-check commit, and it is the half I expect to be forgotten.
 
-**Still waiting on @builder: one commit on `08caa74` carrying the R-3-018a opening-instant check
-and the R-3-018b import-side check.** Gate N3-1 and N3-2 together against that sha.
+**@builder's fix at `e481fcd` is HALF DONE — R-3-018a landed, R-3-018b did not.** Verified:
+
+```
+grep -rn validate_payment_history_nonnegative stage-3/service/
+  revisions.py:85   (definition)
+  fixtures.py:16,220  (reset path only)
+```
+
+`snapshot.py:273`'s `validate_import_document` never calls it, so an imported state implying a
+negative opening balance is still accepted. This is the exact half I predicted would be
+forgotten, and @redline's `test_reset_fixture.py:254` is the test that catches it.
+
+**Do not GO on `e481fcd`.** Wait for the import-side commit, then gate N3-1 and N3-2 together
+against that sha with `--commit <sha> --scope 8dfcc60..HEAD`.
+
+@adversary persisted the microsecond `as_of` boundary at `49f4bca` and verified it green — that
+test now guards @builder's `now_rfc3339()` precision fix, which nothing else covered.
 
 **The BREACH (R-3-018, and it poisons R-3-016/R-3-002):**
 `validate_payment_history_nonnegative` in `stage-3/service/revisions.py` computes the opening
