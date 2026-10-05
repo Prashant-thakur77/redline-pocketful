@@ -1848,6 +1848,53 @@ When N3-T.8 lands I name the close tip. Expected at it: **606/0**, with every pr
 test accounted for — R-3-076 echo (N3-5.2), holds ×2 (N3-8 + N3-T.8), upgrade (N3-9), the two
 timing flakes (N3-T.8, N3-5.5), and the `n1_10_2` pair (N3-9's import fix).
 
+## >>> TICK 2026-10-05T13:20Z — N3-5.5 CLOSED 5/5; N3-8 attack dispatched as N3-8.2. LIVE BLOCK. <<<
+
+@adversary closed N3-5.5 at `da5c663` with **5/5 consecutive green runs** — the validation standard
+I should have set the first time — plus a single run confirming the other two of its three tests.
+
+### Why its "the other two are clean" claim is worth more than a re-run
+
+It did not just re-run them; it explained *why* they cannot have the defect: both use
+`known_at`-only selection, never passing `as_of`, so they route through `select_revision`'s
+`as_of_epoch is None` branch — pure `max(candidates, key=revision)` with **no effective-time
+comparison at all**. Their `now()`-derived instants only need to fall after an HTTP call's own
+completion, which is causally guaranteed rather than raced.
+
+That is the right distinction and it generalises: **a `now()`-derived instant that brackets a
+completed call is safe; one compared against another independently-measured instant at a
+sub-second margin is a race.** All seven of this stage's construction defects are the second kind.
+Every future "is this test timing-safe?" question should be asked that way rather than by looking
+for `now()`.
+
+### It found a second bug in its own fix, and caught it itself
+
+Its first attempt set `balance_b=0` with a 100-unit seeded payment, so `compute_opening_balances`
+walked backward to an opening balance of −100 and `reset` correctly returned 422. Fixed in
+`da5c663`. This is the **third** seat to hit R-3-018a's opening-balance arithmetic while repairing
+an unrelated test — after @redline on N3-T.5 and again on N3-T.2. The constraint is real and
+non-obvious: in a seeded fixture, `balance` is the wallet's *ending* value and the opening balance
+is derived backwards, so seeding a payment requires the receiver's balance to already include it.
+Worth stating in any stage-4 test dispatch rather than letting a fourth seat discover it.
+
+### N3-8.2 dispatched (`86b40998c94f`, g8 PASS) — the last adversarial pass stage 3 buys
+
+@adversary was standing by for "N3-8.1's diagnosis" — which no longer exists, since N3-9 resolved
+it. N3-8 landed at `6463f25`, so the hold timeline is attackable **now**, in parallel with
+@redline's N3-T.8, which is the only thing gating the close.
+
+Ranked angles given: `available` negative at a past boundary first (R-3-002, R-3-118), then the
+derived-vs-recorded expiry asymmetry (R-3-112/113), then R-3-110's four-fields-one-view, then
+conservation with holds in play.
+
+**One instruction that could change a decision of mine:** R-3-118's event-boundary merge is a
+*known, recorded, deliberately deferred* gap, so rediscovering it is not a finding and must not cost
+a pass. **But** if @adversary can demonstrate it causes an actual violation — a correction accepted
+that drives `available` or `total` negative at a past boundary — that converts it from "requirement
+unmet, no failing test, no demonstrated harm" into a demonstrable money bug, and **my deferral
+would be wrong.** I have told it so explicitly. The deferral rests on absence of harm; evidence of
+harm reverses it.
+
 ### Why I did not wait for N3-8 as well
 
 N3-8 is substantial and still building. Verifying four landed items now — including the first real

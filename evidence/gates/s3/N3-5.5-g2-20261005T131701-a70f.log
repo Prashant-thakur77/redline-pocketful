@@ -1,0 +1,7 @@
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /home/prashant/projects/band-work/result/stage-3/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s3/N3-5.5-g2-20261005T131701-a70f.junit.xml -p factory.gates.reqfilter --req R-3-073  (exit 0)
+.                                                                        [100%]
+1 passed, 605 deselected in 0.19s
+
+
+
+RESULT: PASS — 1 passed, 0 failed for R-3-073 (0 errors, 0 skipped)

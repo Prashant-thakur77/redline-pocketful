@@ -1,0 +1,61 @@
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /home/prashant/projects/band-work/result/stage-3/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s3/N3-5.5-g2-20261005T131621-e145.junit.xml -p factory.gates.reqfilter --req R-3-073  (exit 1)
+F                                                                        [100%]
+=================================== FAILURES ===================================
+___________ test_crossed_as_of_and_known_at_both_directions_r_3_073 ____________
+
+    def test_crossed_as_of_and_known_at_both_directions_r_3_073():
+        """R-3-073: known_at selects WHICH revision is in play (by
+        recorded_at); as_of then applies the selected set by EFFECTIVE
+        time. A correction recorded late but effective early is the case
+        where an implementation that conflates the two axes breaks, in
+        either direction:
+    
+        - known_at before the correction was recorded (so it isn't known
+          yet) + as_of after the correction's effective_at must still use
+          the ORIGINAL revision, not the not-yet-known one.
+        - known_at after the correction was recorded (so it IS known) +
+          as_of before the correction's effective_at must still use the
+          ORIGINAL revision, because as_of has not reached it yet even
+          though it is already known.
+    
+        Every instant compared against another is either a fixed offset
+        from a seeded, explicit past created_at (minutes apart, so no
+        amount of request latency can flip their order), or is captured
+        immediately before/after an HTTP call whose own completion is the
+        only ordering guarantee it needs (recorded_at is always stamped
+        strictly after a pre-request capture and strictly before a
+        post-response capture) -- never two independently-measured now()
+        values compared at sub-second margins, which is what made the
+        previous version of this test flake (3/5, builder-reported).
+        """
+        a_id, b_id = unique("u"), unique("u")
+        a_handle, b_handle = unique_handle("a"), unique_handle("b")
+        created_at = datetime.now(timezone.utc) - timedelta(hours=2)
+        pay_id = unique("p")
+        fixture = make_fixture(
+            [user(a_id, a_handle, balance=5000), user(b_id, b_handle, balance=0)],
+            payments=[{"id": pay_id, "from_user_id": a_id, "to_user_id": b_id, "amount": 100,
+                       "note": "", "visibility": "public", "created_at": _iso(created_at)}],
+        )
+>       reset_ok(fixture)
+
+stage-3/tests/adversarial/test_n3_5_adversarial.py:160: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+fixture = {'currency': 'EUR', 'minor_units': 2, 'users': [{'id': 'u2f3b065a0', 'email': 'a2f3b065a2@example.com', 'password': 'p.....}], 'payments': [{'id': 'p2f3b065a4', 'from_user_id': 'u2f3b065a0', 'to_user_id': 'u2f3b065a1', 'amount': 100, ...}]}
+
+    def reset_ok(fixture: dict) -> httpx.Response:
+        r = reset(fixture)
+>       assert r.status_code == 204, f"reset failed: {r.status_code} {r.text}"
+E       AssertionError: reset failed: 422 {"error": {"code": "validation_failed", "message": "seeded payment history implies a negative opening balance"}}
+E       assert 422 == 204
+E        +  where 422 = <Response [422 Unprocessable Entity]>.status_code
+
+stage-3/tests/conftest.py:70: AssertionError
+=========================== short test summary info ============================
+FAILED stage-3/tests/adversarial/test_n3_5_adversarial.py::test_crossed_as_of_and_known_at_both_directions_r_3_073
+1 failed, 605 deselected in 0.19s
+
+
+
+RESULT: FAIL — 0 passed, 1 failed for R-3-073 (0 errors, 0 skipped)
