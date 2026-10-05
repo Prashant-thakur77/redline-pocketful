@@ -126,3 +126,46 @@ def test_correct_double_click_on_unchanged_form_hits_idempotency_key_reuse_r_u_0
         f"R-U-042: a genuinely unchanged double-click must replay cleanly (one 201, the rest 200), "
         f"never a same-key-different-body conflict -- got {responses!r}"
     )
+
+
+def test_batch_double_click_on_unchanged_row_hits_idempotency_key_reuse_r_u_042(page):
+    """Straight adaptation of
+    `test_correct_double_click_on_unchanged_form_hits_idempotency_key_reuse_r_u_042`
+    to the operator batch table, which shares the identical
+    `new Date().toISOString()`-on-blank-effective-field root cause (and,
+    after `8ebe8d2`, the identical `batchDefaultEffective`-snapshot fix).
+    Filters on POST only -- the page's own `GET /correction-batches`
+    (serving the SSR shell on navigation) matches the same URL substring
+    and would otherwise pollute the response list with an unrelated 200.
+    """
+    uid_a, h_a = unique("u"), unique_handle("bda")
+    uid_b, h_b = unique("u"), unique_handle("bdb")
+    emails = [f"{h}@x.com" for h in (h_a, h_b)]
+    reset_ok(make_fixture([user(uid_a, h_a, balance=1000, email=emails[0]),
+                            user(uid_b, h_b, balance=0, email=emails[1])],
+                           settlement_operator_ids=[uid_a]))
+    token_a = httpx.post(url("/auth/login"), json={"email": emails[0], "password": "password123"},
+                          timeout=5).json()["token"]
+    pay = httpx.post(url("/payments"), json={"to_handle": h_b, "amount": 100},
+                      headers={**auth(token_a), "Idempotency-Key": unique("bd")}, timeout=5)
+    assert pay.status_code == 201, pay.text
+    pid = pay.json()["payment_id"]
+
+    responses = []
+    page.on("response", lambda r: responses.append(r.status)
+            if r.request.method == "POST" and "correction-batches" in r.url else None)
+    ui_login(page, emails[0], "password123")
+    page.goto(url("/correction-batches"), wait_until="load")
+    page.click(tid("batch-add"))
+    page.fill(tid("batch-payment-id-0"), pid)
+    page.fill(tid("batch-amount-0"), "0.50")
+    page.fill(tid("batch-reason-0"), "x")
+    page.evaluate(
+        "() => { var b = document.querySelector('[data-testid=\"batch-submit\"]'); b.click(); b.click(); }"
+    )
+    page.wait_for_timeout(2000)
+
+    assert responses and responses[0] == 201 and all(r == 200 for r in responses[1:]), (
+        f"R-U-042: a genuinely unchanged double-click on the batch table must replay cleanly "
+        f"(one 201, the rest 200), never a same-key-different-body conflict -- got {responses!r}"
+    )
