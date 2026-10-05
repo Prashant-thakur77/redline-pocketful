@@ -135,7 +135,10 @@ class StatementEndpoint(Endpoint):
         all_entries = frozen["entries"]
         page = all_entries[start_offset:start_offset + limit]
         has_more = start_offset + limit < len(all_entries)
-        next_token = f"{snapshot_id}.{start_offset + limit}" if has_more else None
+        # R-3-032/080: "snapshot" is always present, even on the last page —
+        # a token must still exist to replay a frozen page that happens to
+        # have no further pages after it.
+        next_token = f"{snapshot_id}.{start_offset + limit}"
 
         body = {
             "entries": page,
