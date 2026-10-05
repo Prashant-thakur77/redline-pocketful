@@ -52,3 +52,33 @@ def test_g2_fails_with_no_tests(dummy):
     for f in (folder / "tests").glob("test_*.py"):
         f.unlink()
     assert g2_spec_tests.main([str(folder)]) == 1
+
+
+def test_g2_scoped_to_an_items_requirements(dummy):
+    folder = dummy("racy")  # r4 (concurrency) fails on this service, r1 passes
+    assert g2_spec_tests.main([str(folder), "--req", "r1"]) == 0
+    assert g2_spec_tests.main([str(folder), "--req", "r4"]) == 1
+    assert g2_spec_tests.main([str(folder), "--req", "r9"]) == 1  # no test names r9: nothing proves it
+
+
+def test_g2_reports_a_timed_out_suite_as_a_timeout_not_a_removed_test(tmp_path, monkeypatch):
+    """Regression: a stage-2 suite ran past 900 s, pytest never wrote its report, and gate 2
+    said a test had been removed (the seats had to work out it was a timeout)."""
+    from types import SimpleNamespace
+    (tmp_path / "tests").mkdir()
+    gate = SimpleNamespace(stage_dir=tmp_path, reqs="", timeout=5.0, evidence=tmp_path,
+                           finish=lambda passed, detail, **kw: (passed, detail))
+    monkeypatch.setattr(g2_spec_tests, "previous_high", lambda gate: 314)
+    monkeypatch.setattr(g2_spec_tests, "run_pytest", lambda *a, **kw: {
+        "tests": 0, "failures": 0, "errors": 1, "skipped": 0, "exit": 124, "timed_out": True, "passed": -1})
+    passed, detail = g2_spec_tests.check(gate, "http://x")
+    assert not passed and "did not finish within 5s" in detail and "removed" not in detail.replace("no test was removed", "")
+
+
+def test_run_pytest_flags_a_timeout(tmp_path):
+    from factory.gates.common import run_pytest
+    from types import SimpleNamespace
+    (tmp_path / "test_slow.py").write_text("import time\n\ndef test_slow():\n    time.sleep(30)\n")
+    gate = SimpleNamespace(log_path=tmp_path / "g2.log", seat=None, log=lambda *a: None)
+    counts = run_pytest([tmp_path], "http://x", gate, timeout=3)
+    assert counts["timed_out"] and counts["exit"] == 124

@@ -116,3 +116,32 @@ def test_gzipped_room_log_loads(tmp_path):
     gz = tmp_path / "room.json.gz"
     gz.write_bytes(gzip.compress(path.read_bytes()))
     assert len(roomlog.load(gz)) == len(roomlog.load(path)) == 5
+
+
+def test_a_rejection_counts_as_recovered_when_its_item_or_fix_item_later_holds():
+    """Regression: the official run closed items on HOLDS (GO waits for the stage close) and fixed
+    breaches under their own ids (N2-4B for N2-4), so the report called every rejection unrecovered."""
+    from factory.events import Event
+
+    def v(node, verdict, minute, seat="verifier"):
+        return Event(kind="verdict", stage=2, node=node, seat=seat, source=f"seat:{seat}:{minute}",
+                     ts=f"2026-10-05T03:{minute:02d}:00+00:00", payload={"verdict": verdict})
+
+    rows = rejections([v("N2-4A", "BREACH", 1, "adversary"), v("N2-4B", "HOLDS", 9),
+                       v("N2-5", "NEEDS_WORK", 2), v("N2-5", "HOLDS", 8),
+                       v("N2-7'", "NEEDS_WORK", 3), v("N2-8", "HOLDS", 7)])
+    got = {r["node"]: r["recovered_by"] for r in rows}
+    assert got == {"N2-4A": "seat:verifier:9", "N2-5": "seat:verifier:8", "N2-7'": None}  # N2-8 is another item
+
+
+def test_log_spend_is_the_difference_between_running_totals(tmp_path):
+    """Regression: the seat log prints the session's running total after each turn; the official
+    run's report summed those totals and showed ~$27,000 where ~$370 was spent."""
+    logs = tmp_path / "logs"
+    logs.mkdir()
+    line = "2026-10-04 15:3{}:00,000 INFO band.adapters.claude_sdk: Room R1: Complete - 1000ms, ${}\n"
+    (logs / "planner.log").write_text(line.format(1, "2.0000") + line.format(2, "5.5000")
+                                      + line.format(3, "1.2500"))  # a restart begins a new running total
+    ledger = Ledger(tmp_path / "l.jsonl")
+    assert ingest.ingest_logs(logs, "R1", ledger) == 3
+    assert [e.payload["usd"] for e in ledger.events()] == [2.0, 3.5, 1.25]

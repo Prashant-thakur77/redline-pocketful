@@ -58,7 +58,7 @@ def write_opencode_config(env: dict) -> Path:
 
 
 PIDS = LOGS.parent / "band.pids"
-PATTERNS = ("factory.launch --repo", "factory.seat ", "opencode serve --hostname=127.0.0.1")
+PATTERNS = ("factory.launch --repo", "factory.seat ", "factory.watchdog", "opencode serve --hostname=127.0.0.1")
 
 
 def band_pids_matching(pattern: str) -> list[int]:
@@ -106,6 +106,13 @@ def git_identity(seat) -> dict:
             "GIT_COMMITTER_NAME": seat.name, "GIT_COMMITTER_EMAIL": email, "REDLINE_SEAT": seat.key}
 
 
+# A seat's turn must end with its report. A command left running in the background finishes after
+# the turn, and the report written then never reaches the room, so long gate runs stay in the
+# foreground, with room for a full close run.
+FOREGROUND = {"CLAUDE_CODE_DISABLE_BACKGROUND_TASKS": "1",
+              "BASH_DEFAULT_TIMEOUT_MS": "7200000", "BASH_MAX_TIMEOUT_MS": "7200000"}
+
+
 def start(cmd: list[str], log: Path, env: dict) -> subprocess.Popen:
     log.parent.mkdir(parents=True, exist_ok=True)
     return subprocess.Popen(cmd, stdout=open(log, "a"), stderr=subprocess.STDOUT, env=env,
@@ -144,7 +151,7 @@ def main(argv=None) -> int:
                "--opencode-url", f"http://127.0.0.1:{args.port}"]
         if args.kickoff:
             cmd += ["--kickoff", str(args.kickoff)]
-        procs.append(start(cmd, LOGS / f"{key}.log", {**env, "PYTHONPATH": str(REPO), **git_identity(seats[key])}))
+        procs.append(start(cmd, LOGS / f"{key}.log", {**env, "PYTHONPATH": str(REPO), **FOREGROUND, **git_identity(seats[key])}))
         print(f"started {key} (log {LOGS / f'{key}.log'})")
     if args.detach:
         PIDS.write_text("\n".join(str(p.pid) for p in procs) + "\n")

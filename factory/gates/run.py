@@ -84,6 +84,7 @@ def main(argv=None) -> int:
     parser.add_argument("--kickoff", type=Path)
     parser.add_argument("--routes", nargs="*")
     parser.add_argument("--mutants", type=int, default=10)
+    parser.add_argument("--req", help="gate 2 runs only the tests naming these requirement ids (a work item)")
     parser.add_argument("--health-path", default="/health")
     parser.add_argument("--json-out", type=Path, help="also write the summary here")
     args = parser.parse_args(argv)
@@ -121,7 +122,8 @@ def run_gates(args, stage_dir: Path, evidence: Path) -> int:
             service.build()
             url = service.start()
             for g in shared:
-                extra = ["--routes", *args.routes] if g == "7" and args.routes else []
+                extra = (["--routes", *args.routes] if g == "7" and args.routes else
+                         ["--req", args.req] if g == "2" and args.req else [])
                 results[f"g{g}"] = guarded(f"g{g}", lambda g=g, extra=extra: MODULES[g].main([*common, "--base-url", url, *extra]))
         except Exception as exc:
             for g in shared:

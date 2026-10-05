@@ -9,12 +9,14 @@ Payload conventions:
 """
 from __future__ import annotations
 
+import re
 from collections import defaultdict
 from dataclasses import dataclass, field
 
 from factory.events import Event
 
 REJECTIONS = {"NEEDS_WORK", "BLOCK", "BREACH"}
+ACCEPTED = {"GO", "HOLDS"}  # an item closes on GO, or on HOLDS while a stage-level gate is still advisory
 
 
 @dataclass
@@ -52,8 +54,14 @@ def chronological(events: list[Event]) -> list[Event]:
     return sorted(events, key=lambda e: e.ts)
 
 
+def item_of(node: str) -> str:
+    """The work item a node belongs to: a fix item ("N2-4B"), an attack ("N2-4A") or a re-plan
+    ("N2-6'") counts toward the item it came from."""
+    return re.sub(r"(?<=\d)[A-Z]?['′]*$", "", node)
+
+
 def rejections(events: list[Event]) -> list[dict]:
-    """Each NEEDS_WORK/BLOCK/BREACH, and whether its item later got a GO."""
+    """Each NEEDS_WORK/BLOCK/BREACH, and whether its item was later accepted (GO or HOLDS)."""
     rows = []
     events = chronological(events)
     for i, e in enumerate(events):
@@ -62,7 +70,8 @@ def rejections(events: list[Event]) -> list[dict]:
             continue
         recovered = None if e.node is None else next(
             (later for later in events[i + 1:]
-             if later.node == e.node and later.stage == e.stage and verdict_of(later) == "GO"), None)
+             if later.node is not None and item_of(later.node) == item_of(e.node) and later.stage == e.stage
+             and verdict_of(later) in ACCEPTED), None)
         rows.append({"stage": e.stage, "node": e.node, "seat": e.seat, "verdict": verdict,
                      "what": (e.payload.get("text") or e.payload.get("detail") or "")[:200],
                      "to": e.payload.get("to", []), "source": e.source, "commit": e.payload.get("commit"),

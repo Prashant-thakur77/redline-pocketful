@@ -75,3 +75,11 @@ def test_commit_under_another_seats_name_is_flagged(tmp_path):
     commit(tmp_path, "Builder", {"stage-1/app.py": "a"}, committer="Prashant")
     found = violations(tmp_path, f"{base}..HEAD")
     assert len(found) == 2 and "committed by 'Planner' under 'Redline'" in found[1]
+
+
+def test_a_human_factory_only_fix_is_maintenance_but_any_other_path_is_not(tmp_path):
+    base = repo(tmp_path)
+    commit(tmp_path, "Human", {"factory/gates/common.py": "fix"})
+    assert violations(tmp_path, f"{base}..HEAD") == []
+    commit(tmp_path, "Human", {"factory/x.py": "y", "stage-1/app.py": "hand-written"})
+    assert "not a seat" in violations(tmp_path, f"{base}..HEAD")[0]

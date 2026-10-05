@@ -37,8 +37,8 @@ def test_record_and_gate8_end_to_end(tmp_path):
     (tmp_path / "stage-1").mkdir()
     record.main(["dispatch", "--stage", "1", "--node", "n1", "--to", "builder", "--evidence", str(evidence)])
     assert g8_budget.main([str(tmp_path / "stage-1"), "--node", "n1", "--evidence", str(evidence)]) == 0
-    for _ in range(5):
-        record.main(["verdict", "--stage", "1", "--node", "n1", "--verdict", "NEEDS_WORK",
+    for i in range(5):  # five rejected commits (re-checking one commit would be one attempt)
+        record.main(["verdict", "--stage", "1", "--node", "n1", "--verdict", "NEEDS_WORK", "--commit", f"c{i}aaaaaa",
                      "--text", "gate 2 red", "--evidence", str(evidence)])
     assert g8_budget.main([str(tmp_path / "stage-1"), "--node", "n1", "--evidence", str(evidence)]) == 1
     ledger = Ledger(evidence / "ledger.jsonl")
@@ -60,3 +60,31 @@ def test_go_is_refused_while_a_gate_is_red(tmp_path):
     assert record.main(go) == 0
     assert record.main(["verdict", "--stage", "1", "--node", "n2", "--verdict", "GO", "--commit", "abc1234",
                         "--evidence", str(evidence)]) == 1  # no gate results at all for n2
+
+
+def test_rechecking_the_same_commit_is_not_another_attempt():
+    events = [ev("handoff")] + [ev("verdict", i, verdict="NEEDS_WORK", commit="aaaaaaa1") for i in range(5)]
+    assert governor.trips(events, 1, "n1", CAPS, now=T0) == []
+    events += [ev("verdict", 6, verdict="NEEDS_WORK", commit=c) for c in ("bbbbbbb2", "ccccccc3")]
+    assert any("attempts" in t for t in governor.trips(events, 1, "n1", CAPS, now=T0 + timedelta(minutes=7)))
+
+
+def test_a_deleted_test_scope_finding_does_not_block_go_but_other_scope_findings_do(tmp_path):
+    """Regression: the stage-1 close deadlocked because a sanctioned one-for-one test
+    replacement kept the scope gate red, and the guard refused GO on eight clean gates."""
+    evidence = tmp_path / "evidence"
+    ledger = Ledger(evidence / "ledger.jsonl")
+    for gate in ("g1", "g2"):
+        ledger.append(Event(kind="gate_result", stage=1, node="close", source=f"gate:{gate}",
+                            payload={"gate": gate, "passed": True, "commit": "abc1234def"}))
+    ledger.append(Event(kind="gate_result", stage=1, node="close", source="gate:scope", payload={
+        "gate": "scope", "passed": False, "commit": "abc1234def",
+        "violations": ["714f5e4: adversary deleted test stage-1/tests/adversarial/test_a.py"]}))
+    go = ["verdict", "--stage", "1", "--node", "close", "--verdict", "GO", "--commit", "abc1234",
+          "--evidence", str(evidence)]
+    assert record.main(go) == 0
+    ledger.append(Event(kind="gate_result", stage=1, node="close", source="gate:scope2", payload={
+        "gate": "scope", "passed": False, "commit": "abc1234def",
+        "violations": ["714f5e4: adversary deleted test stage-1/tests/adversarial/test_a.py",
+                       "9abc123: builder edited stage-1/tests/test_spec.py outside its lane"]}))
+    assert record.main(go) == 1

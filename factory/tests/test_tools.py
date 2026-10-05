@@ -84,3 +84,13 @@ def test_regression_gate_gets_a_fresh_service_after_the_storm(dummy):
                    check=True)
     second = dummy("good", name="stage-2")
     assert gate_run.main([str(second), "--gates", "4,5", "--node", "f"]) == 0
+
+
+def test_a_timed_out_command_logs_text_not_bytes(tmp_path):
+    import argparse
+    from factory.gates.common import Gate, run
+    (tmp_path / "stage-1").mkdir()
+    gate = Gate("gx", argparse.Namespace(stage_dir=tmp_path / "stage-1", stage=1, node="t", evidence=tmp_path / "ev"))
+    proc = run(["python3", "-c", "import time,sys; print('partial', flush=True); time.sleep(5)"], timeout=1, gate=gate)
+    assert proc.returncode == 124 and isinstance(proc.stdout, str)
+    assert "timed out" in gate.log_path.read_text()

@@ -100,14 +100,20 @@ def ingest_logs(logs: Path, room_id: str, ledger: Ledger) -> int:
     seen = {e.source for e in ledger.events()}
     added = 0
     for log in sorted(Path(logs).glob("*.log")):
+        total = 0.0  # the logged figure is the session's running total; a restart starts it again
         for number, line in enumerate(log.read_text(errors="replace").splitlines(), 1):
             match = LOG_TURN.match(line)
+            if not match or match.group(2) != room_id:
+                continue
+            running = float(match.group(4))
+            turn = running - total if running >= total else running
+            total = running
             source = f"log:{log.stem}:{number}"
-            if not match or match.group(2) != room_id or source in seen:
+            if source in seen:
                 continue
             local = datetime.strptime(match.group(1), "%Y-%m-%d %H:%M:%S,%f").astimezone(timezone.utc)
             ledger.append(Event(kind="cost", seat=log.stem, source=source, ts=local.isoformat(timespec="seconds"),
-                                payload={"usd": float(match.group(4)), "seconds": int(match.group(3)) / 1000}))
+                                payload={"usd": round(turn, 4), "seconds": int(match.group(3)) / 1000}))
             added += 1
     return added
 

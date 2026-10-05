@@ -64,9 +64,14 @@ def split_model(seat: Seat, model: str) -> tuple[str, str]:
     return seat.provider or "google", model
 
 
+# Commands run in the foreground (see launch.FOREGROUND), so a turn holds its longest command and
+# then the report: it must outlast the two-hour command limit.
+CLAUDE_TURN_S = 3 * 3600.0
+
+
 def claude_config(seat: Seat, repo: Path, kickoff: Path | None, model: str) -> dict:
     return dict(model=model, custom_section=standing_instructions(repo, seat, kickoff), effort=seat.effort,
-                permission_mode="dontAsk", cwd=str(repo), turn_timeout_s=3600.0,
+                permission_mode="dontAsk", cwd=str(repo), turn_timeout_s=CLAUDE_TURN_S,
                 setting_sources=("project",), cli=dict(add_dirs=tuple(str(p) for p in [kickoff] if p)))
 
 

@@ -38,7 +38,9 @@ def trips(events: list[Event], stage: int | None, node: str | None, caps: dict,
     if node and node != "close":
         mine = [e for e in staged if e.node == node]
         cap = caps.get("node", {})
-        attempts = sum(1 for e in mine if verdict_of(e) in REJECTIONS)
+        # one attempt per rejected commit: re-checking the same commit is not another attempt
+        attempts = len({str(e.payload.get("commit"))[:7] if e.payload.get("commit") else (e.hash or e.ts)
+                        for e in mine if verdict_of(e) in REJECTIONS})
         checks = [("attempts", attempts), ("minutes", _minutes_since(mine, now)),
                   ("tokens", _spend(mine, "tokens")), ("usd", _spend(mine, "usd"))]
         found += [f"item {node}: {name} {value:,.1f} > cap {cap[name]}" for name, value in checks
