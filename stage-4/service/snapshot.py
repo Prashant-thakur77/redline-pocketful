@@ -449,6 +449,18 @@ def validate_import_document(body: dict) -> dict:
             for sid, raw_snapshot in raw_snapshots_map.items():
                 if not isinstance(raw_snapshot, dict) or raw_snapshot.get("user_id") not in users:
                     raise validation_failed("statement_snapshots entries must reference a known user")
+                # R-1-005: statement.py's read path does plain dict access
+                # on these three keys with no fallback -- an import that
+                # stored a shape-incomplete token would 500 on a later,
+                # unrelated caller's read instead of being rejected here,
+                # at the one door that can still say no.
+                entries = raw_snapshot.get("entries")
+                if not isinstance(entries, list) or not all(isinstance(e, dict) for e in entries):
+                    raise validation_failed("statement_snapshots entries.entries must be a list of objects")
+                for key in ("opening_balance", "closing_balance"):
+                    value = raw_snapshot.get(key)
+                    if isinstance(value, bool) or not isinstance(value, int):
+                        raise validation_failed(f"statement_snapshots entries.{key} must be an integer")
                 statement_snapshots[sid] = dict(raw_snapshot)
     except (KeyError, TypeError, AttributeError, ValueError) as exc:
         raise validation_failed(f"state is malformed: {exc}")
