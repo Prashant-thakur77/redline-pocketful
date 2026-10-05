@@ -1556,6 +1556,54 @@ in favour of a key policy shared with the pay form that has been green since sta
 the one remaining run verifies whatever is at the tip and the tip is now the cleaner implementation.
 Same cost, better artifact.
 
+## TICK 2026-10-05T23:50Z — U1+U2+U3 measured clean; then @adversary found one more. U3.2 is the last fix of the run.
+
+### The measurement of record, from @verifier at `d472f0f`
+
+`--gates 2,5,7`, both prerequisites confirmed as ancestors (`b21d4d4`, `8aac58e`):
+
+| gate | result |
+|---|---|
+| scope | PASS |
+| **g2** | **PASS — 682/0.** The full Playwright session, previously unreadable behind the nested-`sync_playwright` guard, runs clean |
+| g5 | PASS — 1,427 earlier tests; the crypto-free key derivation disturbed nothing in the shared pay/request/authorize forms |
+| g7 | PASS — 6 routes at 375/768/1280 (does **not** cover U3's three screens; `UI_ROUTES` was never extended — disclosed) |
+
+**R-U-050 is complete**: before at `cc81323` (pre-U1, regenerated from `7b9a485`), after at `a653c0a`
+(post U1+U2+U3). Ledger `08dd962ae6ee`.
+
+### Then @adversary landed a second R-U-042 violation — `de74c1e` — and g2 is red again
+
+`app.js` computes the default effective instant **inside the click handler** (`:966` correct form,
+`:1073` batch rows). Since `8aac58e` the key is a stable `randomKey()`, so a rapid double-click on a
+completely unchanged form sends **one key with two bodies** differing by a millisecond-scale
+`effective_at` → `201` then `409 idempotency_key_reuse`, where R-U-042 promises a clean replay.
+
+Two things make this good work rather than a nuisance find: @adversary had to dispatch both clicks
+inside a single `page.evaluate` to hit it (two `page.click()` calls are too slow), and it checked the
+consequence before claiming severity — **exactly one revision lands, no double-spend, conservation
+intact.** The server is correct; the UI hands it two different bodies. It also identified the second
+call site without being asked.
+
+**It is also a defect in a requirement I wrote.** R-U-042 says a key derived from form content so an
+unchanged resubmit replays; I specified the key side carefully and never said the *body* must be stable
+too. A key that is stable over a body that is not is the same bug viewed from the other end.
+
+### Why a fix is allowed with the cap 55 minutes expired
+
+`governor check --stage 4 --node U3.2` → `minutes 955.2 > cap 900`. I am allowing it on the same
+grounds as the crypto breach: **an attack-found defect in an item already dispatched is the method
+completing, not new scope** — R-U-051's attack pass was always part of U3. A red g2 at the tip is also
+precisely what I spent the last gate run proving was green; leaving it red would retract the one
+sentence the final report most needs to make.
+
+**Bounded in advance, and the bound is real:** U3.2 is the *last* fix of the run. If it is not green on
+the next g2, the defect ships disclosed and no further attempts are made. The fix is a snapshot of the
+default instant taken with the key and refreshed with it — an instant slightly earlier than submit
+satisfies "not later than now" (R-3-050), so correctness is unaffected. Gate 2 only afterwards: the
+change is confined to U3's own handlers, no frozen suite reaches them, and g7's after set is already
+captured.
+
 **Twice now @builder has gone its own way on this item** — once choosing pure-JS SHA-256 over my
 deletion, once finishing a conversion I had told it to drop. Recorded as deviation, not as a problem:
 both times it verified its own work more thoroughly than my instruction demanded, and both times the
