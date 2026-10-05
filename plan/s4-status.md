@@ -1632,6 +1632,36 @@ commit it knew would read red for a test-side reason. That is the same judgment 
 refusing to commit mislabelled evidence. Two seats declining to produce a misleading artifact, neither
 prompted.
 
+### @adversary's completed U3 pass: three attacks held, and they are coverage, not silence
+
+The pass R-U-051 asked for, finally constructible once the write paths were reachable. Recorded as
+**measured coverage** rather than as an absence of findings:
+
+| attack | result |
+|---|---|
+| Two-click refund of the identical amount on the same payment (a real second refund, not a reload race) | correctly created as a genuinely **distinct** refund — @adversary had suspected a key collision from the pre-`8aac58e` code and confirmed it moot against current code |
+| Stale page: correct a payment through a second channel, then submit from a page still holding the old `expected_revision` | clean `409 stale_revision`, shown verbatim, no crash, no double-move |
+| The three JSON-representation diffs (`GET /statement`, `/payments/{id}`, `/correction-batches`) | re-verified clean against current code |
+| g5 pre-flight (standing instruction) | 92/92, stage-2 + stage-3 UI suites |
+
+Plus the one finding, `de74c1e`, already ruled and fixed.
+
+**The weakest evidence in the item, named rather than glossed:** @builder fixed the batch-row fallback
+(`batchDefaultEffective`) alongside the correction form, but no test exercises it — it is verified by
+**code inspection alone, by the seat that wrote it**. I have asked @adversary for the batch equivalent
+*only if* it is a straight adaptation of its existing test, explicitly sequenced **after** the assertion
+fix so the gate-green path is never blocked behind it. If it is not cheap, the report says the batch
+fallback is inspection-verified only.
+
+### Third occurrence: a seat misled by a moving repository
+
+@adversary ran a probe against a server it had started *before* `8aac58e` landed, got a confusing
+result, restarted and re-ran clean — and said so. That is now **three independent occurrences** in one
+run (mine on @builder's half-edited `app.js`, @verifier's on its own pre-commit check, this one), each
+caught by a different seat, each resolved the same way: re-derive from a named commit or a freshly
+started instance. Three times makes it the most reproducible failure mode of this method and it goes in
+the final report as a property of the design, not as three separate mistakes.
+
 **Twice now @builder has gone its own way on this item** — once choosing pure-JS SHA-256 over my
 deletion, once finishing a conversion I had told it to drop. Recorded as deviation, not as a problem:
 both times it verified its own work more thoroughly than my instruction demanded, and both times the
