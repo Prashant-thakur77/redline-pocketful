@@ -6,8 +6,8 @@ Stage 3 opens with its own fresh budget: 480 minutes, $120 (`factory/budget.yaml
 | id | state | commit | evidence |
 |---|---|---|---|
 | N3-T | **closed** | `0de89ec` | 573 tests (floor 497); R-3-078/079 fixed, N3-T.1 fixed, scope clean |
-| N3-1 | dispatched | `900d36d` | ledger `0be7e8f6d051`, g8 PASS |
-| N3-2 | planned | — | — |
+| N3-1 | built, with @adversary/@verifier | `3f480dc` | scope/g1/g8 PASS; g2 528/573 + g4 advisory (see policy below) |
+| N3-2 | dispatched | `3f480dc` | owns R-3-020+; unblocks N3-1's g4 |
 | N3-3 | planned | — | — |
 | N3-4 | planned | — | — |
 | N3-5 | planned | — | — |
@@ -82,6 +82,38 @@ the other ten response checks in the file all use `!= 200`. Scope `8dfcc60..HEAD
 guard, conditional comparison, and the feed fallback. That is why `plan/lessons.md` states the
 rule generically: it is the failure mode most likely to let a hidden check through, and it is
 invisible to a green test run by construction.
+
+## PLANNER DECISION: which gates bind per item in stage 3
+
+@builder's N3-1 report exposed a sequencing error in my own DAG, and it is mine, not its.
+I wrote `plan/s3-dag.md` saying every item runs `--gates 1,2,4,8`, but stage 3's suite and
+gate hook were written against the **whole stage**:
+
+- **g2** runs all 573 tests, so every test belonging to a later item fails until that item is
+  built. At N3-1: 528/573, and all 45 failures are in `test_corrections*.py`,
+  `test_historical_holds.py`, `test_historical_overdraft.py`, `test_known_at.py`,
+  `test_me_as_of.py`, `test_snapshots.py`, `test_statement.py` and one import test — every one
+  calling an endpoint or query parameter N3-1 does not build.
+- **g4**'s `invariant()` checks R-3-016 through `GET /me?as_of=<before earliest payment>`.
+  `as_of` is N3-2's scope, and verified absent from `stage-3/service/routes/me.py` today, so
+  under R-1-023 it is ignored and the check compares the opening balance against the current
+  one. **N3-1's g4 cannot pass no matter how correct N3-1 is.**
+
+Demanding a per-item GO on those two would mean either blocking N3-1 forever or weakening the
+hook — and weakening it is exactly the silent-skip failure we removed four times in N3-T. So:
+
+**For every stage-3 item, binding gates are `1`, `8` and the scope check. `g2` and `g4` are
+advisory with one binding condition: no test that was green at the previous item may fail, and
+no invariant that was passing may break (no regression).** Both become fully binding at the
+item that completes their dependency, and unconditionally at stage close (`--gates all`), where
+the whole suite and the full hook must pass. This is the same treatment @verifier already
+applied in stages 1 and 2, where mid-stage g2 was recorded advisory; I am stating it up front
+for stage 3 instead of rediscovering it per item.
+
+Consequence for N3-1: it may close on scope/g1/g8 plus content review, with g2 at 528/573 and
+g4 failing **only** on the `as_of` check above. N3-2 is dispatched to remove that cause, and
+**g4 becomes binding at N3-2** — if it still fails there for any reason other than a later
+item's endpoint, that is a defect.
 
 ## Carried into this stage from stage 2's partial close
 
