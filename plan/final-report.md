@@ -221,11 +221,22 @@ The fix snapshots the default instant alongside the key and refreshes the two to
 rounding was considered and **rejected**: it narrows the window instead of closing it, and a slow
 double-click would still straddle a boundary.
 
-**Weakest evidence in the item, named rather than glossed:** the batch-row half of that fix
-(`batchDefaultEffective`) is exercised by **no test** — it ships verified by code inspection alone, by
-the seat that wrote it. @adversary was asked for a batch-row test *only* if it were a straight
-adaptation of its existing one; it was not added, which is the authorised outcome and is disclosed here
-rather than carried quietly.
+**The gap that was nearly left standing, and how it closed.** The batch-row half of that fix
+(`batchDefaultEffective`) was exercised by no test — verified by code inspection alone, by the seat that
+wrote it. The planner labelled it "the weakest evidence in the item", then **closed the item over it**
+when the expired clock made closing attractive. @adversary continued anyway, found the batch version to
+be a straight adaptation of its existing test, and committed it at `67b0edf`.
+
+**The fix was correct**: a rapid double-click on an unchanged batch row replays `[201, 200]`, exactly as
+the correction form does. So the outcome was not a hidden defect — it was the difference between a fix
+believed correct by the two seats who wrote and read it, and a fix **measured** by a seat that did
+neither. That distinction is this factory's entire thesis, and it would have shipped unexamined had
+@adversary taken the planner's "nothing further needed" at face value.
+
+One instrument detail worth preserving: the page's own `GET /correction-batches` serves the SSR shell
+and matches the same URL substring as the write, so the test's response listener filters on
+`method == "POST"`; otherwise an unrelated `200` would have polluted the capture. The third occasion in
+this run on which @adversary debugged its own apparatus before blaming its subject.
 
 A second disclosure of the same kind, and it ends in a planner error worth recording. The double-click
 assertion went through three forms: @adversary's original `responses == [201]`, which could not pass
