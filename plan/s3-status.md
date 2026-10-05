@@ -1342,5 +1342,62 @@ real thing. Tip assembles when N3-T.6 lands; candidates so far are `ffe9f0f`, `8
 Spend $84.13 of $120; clock 495.5 of 900. Nothing is idle: @builder on N3-8, @redline on N3-T.6,
 @adversary writing N3-5 attacks, @verifier holding for the tip.
 
+## >>> TICK 2026-10-05T12:50Z — BATCH TIP NAMED: `ceef813`. LIVE BLOCK. <<<
+
+@redline landed N3-T.6 at `ceef813`, so the tip is ready and **named**. It covers four items in
+one pass: **N3-5.1** (`ffe9f0f`), **N3-6** (`8c03bc2`), **N3-T.5** (`0f6159c`), **N3-T.6**
+(`ceef813`).
+
+```
+python -m factory.gates.run stage-3 --node N3-6 --gates 1,2,4,8 \
+  --commit ceef813 --scope 7d8405b..ceef813
+```
+
+### N3-T.6 is a complete fix, and it answered the question I set
+
+`offset_days = (i % 9) - 4` is gone, replaced by an explicit table with the per-residue path
+enumerated **in the file**:
+
+```python
+_CORRECTION_OFFSET_HOURS = (-40, -30, -20, -12, -6, -3, -2, -1, 24)
+```
+
+8 of 9 residues past — spread 40 h to 1 h back, every one of them **after** the seeded correction
+targets' own `created_at` of now − 2 days, so each reaches the money/overdraft path rather than the
+pre-existence rejection — and residue 8 deliberately future to keep R-3-053 exercised under load.
+The enumeration is now a comment in the hook, which is the standard I asked for and better than a
+report, because the next seat to touch it inherits the reasoning.
+
+### Gate 4 is the interesting gate on this run, and a failure there means something specific
+
+This is the **first** storm in which the correction slice actually corrects: 8 of 9 residues reach
+the money path where 4 of 9 did. If g4 fails at `ceef813`, the default reading is **a real money
+bug in corrections that the 5-of-9 hole was hiding** — not a regression from @redline's hook edit.
+The hook now tests more, so it may find more, and that is the fix working rather than breaking.
+
+Expected g2: **598/3** — `test_historical_holds_*` ×2 (N3-8, in flight) and
+`test_export_import_preserves_revision_history` (N3-9). @builder reports `test_historical_overdraft`
+4/4 locally, so N3-6's own test file should be green.
+
+### A latent re-introduction, recorded rather than fixed
+
+`effective_at` is `ctx["now"] + timedelta(hours=offset_hours, seconds=i)`. The `seconds=i` term is
+harmless at today's op count — residue 7 is −1 h, so it stays past for any `i` below 3600 — but at
+a storm of 3600+ operations residue 7 would cross into the future and the hole starts to
+reappear, one residue at a time. Gate 4 runs ~1300 ops, so there is no live defect.
+
+Not dispatching a fix: with $35.87 left, N3-8 and N3-9 are the only things between here and gate 2
+green, and this costs a seat turn for no current effect. **It is written down here instead, and it
+belongs to the stage-4 hook work** — `tests/invariants/hook.py` copies forward, so stage 4 inherits
+both the fix and this coupling. Clamping the per-op jitter below the smallest offset, or deriving
+it from `i % 3600`, closes it permanently.
+
+### Why I did not wait for N3-8 as well
+
+N3-8 is substantial and still building. Verifying four landed items now — including the first real
+measurement of the strengthened storm — beats holding them unverified behind it, because N3-8
+builds on the same correction machinery: a money bug found now is found before it is built upon.
+Two passes rather than one is the right spend here.
+
 Expect g2 to go to **596/5** after the revert and back to **597/4** after the test repair. A
 temporary red from an intentional revert is the honest state, not a regression.
