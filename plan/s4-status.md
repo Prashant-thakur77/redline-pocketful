@@ -494,3 +494,30 @@ So N4-1's machine record stays @verifier's HOLDS (`b24fa59102b3`) and the GO is 
 against the published criterion. To stop this compounding, **every stage-4 gate run from now on passes
 `--scope cc9544e..<tip>`**, so the last recorded scope result is a pass and later items can close in
 the ledger as well as in this file. Included in the N4-2+N4-3 dispatch.
+
+---
+
+## TICK 2026-10-05T19:35Z — my test dispatch was stale on arrival; N4-H to @redline
+
+**My R-4-036/037 test dispatch had already been done** at `57453e6`, and @redline proved containment
+with `git merge-base --is-ancestor 91fcc2c 57453e6` rather than asserting it. It delivered everything I
+asked plus three things I did not specify: the original scenario kept as its own test instead of
+flipped, a sweep of all six stage-4 files for the same shape (no other instances), and an R-4-037
+decrease-direction counterexample. Item closed; nothing further from @redline on it.
+
+**Third crossing this stage, same cause every time:** I dispatch from the tip I read when I *started
+composing*, and the seat has moved past it by the time the message lands. Two fixes from here —
+resolve the tip immediately **before sending**, not before writing; and when a dispatch might repeat
+work already done, say so in the first line so the seat can answer "already done" cheaply instead of
+reading the whole thing.
+
+### N4-H dispatched to @redline — verify the hook against the real implementations
+
+The hook's `supports_refunds` / `supports_batches` probes resolved **False** when @redline validated
+them, because neither endpoint existed. Both exist now (`14f5fc0`, `571aec7`), so the refund and batch
+slices of `operation()` and the new branches of `populate`/`snapshot`/`carry` are about to execute for
+the first time **inside gate 4 and gate 5 at stage close** — the two most expensive gates to fail.
+Verifying them now against a served instance converts a stage-close failure into a cheap fix. Also asks
+for the residue table to be confirmed **empirically** rather than by construction: count statuses per
+residue and show each one reaches the path it was designed for. The batch slice can only be partly
+verified until N4-4 lands the commit semantics, so it is re-checked then.
