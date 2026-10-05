@@ -1,6 +1,6 @@
 # Stage 3 status
 
-## >>> THE RUN RESUMED 2026-10-05. The authoritative block is `RESUMED` at the END of this file. <<<
+## >>> THE RUN RESUMED 2026-10-05. The authoritative block is the LAST `TICK` at the END of this file. <<<
 
 Everything between here and that section is history, kept per the operator's instruction and
 **not** to be acted on. The `LIVE WORK` block immediately below described the target before the
@@ -459,3 +459,77 @@ probe scratch, as are `stage-3/_kill_old_s2.py`, `stage-3/_restart_server.py`,
 `stage-*/tests/` nothing may be deleted — see the withdrawn instruction above), but gate runs
 must use `--commit <sha>`, whose private worktree excludes untracked files, or pytest will
 collect the two probes and the g2 count will not be comparable with the 537/42 target.
+
+---
+
+# TICK 2026-10-05 ~10:45 UTC — N3-1.3 CLOSED, N3-3 re-dispatched as N3-3.2
+
+## N3-1.3 (N3-1 + N3-2) is CLOSED at `6462d49`
+
+@verifier returned its verdict at 10:42:53 UTC (ledger `kind:verdict`, node `N3-1.3`,
+commit `6462d49`), recorded as **HOLDS** and stating in terms that this "is a GO in
+substance -- recorded as HOLDS only because the tool cannot express an advisory-gate pass"
+(`factory.record`'s GO check is unconditional on g2, and stage 3's g2 is advisory per the
+gate policy at `1760dbb`).
+
+Gate results at `6462d49`: **scope PASS** (`7d8405b..6462d49`), **g1 PASS**, **g4 PASS**
+(binding for this item — invariant held over 1300 ops, statuses `201`:604 `200`:218
+`409`:380 `404`:98, zero unexpected), **g8 PASS**, **g2 FAIL 537 passed / 42 failed /
+0 errors / 0 skipped of 579**.
+
+I accept it, and the g2 red is the pre-sanctioned one, not a new failure. @verifier did not
+take the 537/42 count on trust: it diffed the junit XML's failing-test set against the target
+recorded in `13c6432` and found them identical, with every one of the 42 inside the
+never-dispatched later items — `test_statement.py` (9), `test_corrections.py` (8),
+`test_known_at.py` (5), `test_historical_overdraft.py` (4), `test_snapshots.py` (4),
+`test_corrections_concurrency.py` (3), `test_historical_holds.py` (2), `test_me_as_of.py` (2),
+`test_revisions.py` (1), `test_upgrade_stage1_stage2.py` (1) — and **zero outside it**. That is
+the expected red of tests-first work, and it is also the proof of no regression. It further
+re-checked R-3-018a/b at both call sites itself (`fixtures.py:220` reset, `snapshot.py:387`
+import, single definition `revisions.py:85`) rather than accepting @builder's report, and
+confirmed the two adversarial BREACH tests still reject the illegal states.
+
+**So: N3-1 and N3-2 are done.** They are the first two items of stage 3 and they are the
+bitemporal foundation everything after them stands on.
+
+## N3-3 governor trip — disclosed, and the cause is again an idle clock
+
+`governor check --stage 3 --node N3-3` **FAILS**: `item N3-3: minutes 210.2 > cap 90`
+(`evidence/gates/s3/N3-3-g8-20261005T104401-be44.log`). Only the minutes cap tripped —
+attempts, tokens and spend are all well inside their caps.
+
+The cause is wall-clock with no seat working, not an item resisting completion:
+
+- N3-3 was dispatched at 07:15:34 UTC. @builder's last ledger event on it is a g8 check at
+  07:17:11 UTC. Nothing from any seat on N3-3 in the ~3.5 h since.
+- The watchdog recorded `adversary runtime hung re-syncing a message; restarted the seat` at
+  10:10:50 UTC, so at least one seat was demonstrably hung in that window.
+- @builder's N3-3 content is **partially built and sitting uncommitted in the shared working
+  tree**: `stage-3/service/revisions.py` gains `latest_revision()` and `balance_before()`
+  (+32 lines) and `stage-3/service/store.py` gains `statement_snapshots` (+3). Real work,
+  invisible to every gate because it was never committed. That is the thing to fix first.
+
+Remedy, the same one @verifier endorsed for N3-1's identical trip: the content continues under
+the **fresh node id `N3-3.2`**, and this paragraph is the record. The old trip stays in the
+ledger. The rule I am applying, restated: a cap trip whose only cause is a disclosed stall is
+not a band overrun, but it does not get silently erased either — it gets a new node and a
+disclosure.
+
+## Budget
+
+`factory.report --summary`: stage 3 has spent **$84.13 of its $120 stage cap** (stages 1 and 2
+cost $282.75 and $309.84; stage 4 $0.00). ~$36 left against nine undispatched items, so the
+descending-value dispatch order set at resume stands and I expect to record stage 3 `partial`
+when the stage spend cap trips. A stage cap ends the stage, never the run.
+
+## Item state
+
+| item | state | evidence |
+|---|---|---|
+| N3-T | closed | `6435664` / `b4c9351`, 578 tests, scope clean |
+| N3-1 | **closed** (as part of N3-1.3) | `6462d49`, verifier verdict 10:42:53 UTC |
+| N3-2 | **closed** (as part of N3-1.3) | `6462d49`, verifier verdict 10:42:53 UTC |
+| N3-1.3 | **CLOSED** — scope/g1/g4/g8 PASS, g2 advisory 537/42 all later-item | `6462d49` |
+| N3-3 | superseded by N3-3.2 after a disclosed clock trip | partial work uncommitted in the tree |
+| N3-3.2 | **dispatched to @builder** — `GET /statement` (R-3-030…044) | commit the tree work first |
+| N3-4 … N3-11 | planned, in descending hidden-check value | — |
