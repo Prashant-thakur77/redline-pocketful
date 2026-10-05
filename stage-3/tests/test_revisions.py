@@ -152,13 +152,27 @@ def test_revision_history_visible_to_payer_and_receiver():
     assert revisions_a == revisions_b
 
 
-def test_revision_history_not_visible_to_unrelated_user():
-    """R-3-015: a third party with no role in the payment must not be able
-    to read its revision history."""
+def test_revision_history_not_visible_to_unrelated_user_even_if_public():
+    """R-3-064, per planner's confirmed ruling: only the two parties to a
+    payment may read its revision history; a third party gets 404, not
+    403 — even when the payment itself is public."""
     fixture3, ids3, handles3, tokens3 = n_user_fixture(3)
-    pay = api_post("/payments", json={"to_handle": handles3[1], "amount": 50},
+    pay = api_post("/payments", json={"to_handle": handles3[1], "amount": 50, "visibility": "public"},
                    headers={**auth(tokens3[0]), **idem(unique("k"))})
     assert pay.status_code == 201, pay.text
     pay_id = pay.json()["payment_id"]
     r = api_get(f"/payments/{pay_id}/revisions", headers=auth(tokens3[2]))
-    assert r.status_code in (403, 404), r.text
+    assert r.status_code == 404, r.text
+
+
+def test_revision_history_requires_auth():
+    """R-3-064: no bearer token at all is 401, distinct from the
+    non-party 404 above."""
+    fixture, token_a, _ = two_user_fixture()
+    b_handle = fixture["users"][1]["handle"]
+    pay = api_post("/payments", json={"to_handle": b_handle, "amount": 50},
+                   headers={**auth(token_a), **idem(unique("k"))})
+    assert pay.status_code == 201, pay.text
+    pay_id = pay.json()["payment_id"]
+    r = api_get(f"/payments/{pay_id}/revisions")
+    assert r.status_code == 401, r.text

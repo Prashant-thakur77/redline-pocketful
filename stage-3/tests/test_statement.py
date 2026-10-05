@@ -1,12 +1,14 @@
 """GET /statement: R-3-030..044.
 
-ASSUMED CONTRACT (flagged for @planner/@builder to confirm): GET /statement
-requires auth, returns 200 with {"entries": [...], "opening_balance": int,
-"closing_balance": int, "snapshot_token": str|None, "has_more": bool}.
+ASSUMED CONTRACT (the "snapshot" field/param name is CONFIRMED by
+@planner, commit 900d36d, R-3-079; the rest of this shape is still
+flagged for @planner/@builder to confirm): GET /statement requires auth,
+returns 200 with {"entries": [...], "opening_balance": int,
+"closing_balance": int, "snapshot": str|None, "has_more": bool}.
 Each entry has at least {"payment_id": str, "amount": int (signed: positive
 for money in, negative for money out), "effective_at": iso8601}. Entries
 are ordered by effective_at ascending. `limit` bounds page size; a second
-page is fetched by passing the previous page's `snapshot_token` back.
+page is fetched by passing the previous page's `snapshot` token back.
 """
 from __future__ import annotations
 
@@ -81,8 +83,8 @@ def test_statement_opening_plus_deltas_equals_closing():
 
 
 def test_statement_pagination_covers_every_entry_exactly_once():
-    """R-3-036..039: walking every page via snapshot_token must yield every
-    entry exactly once, in the same order the unpaginated call gives."""
+    """R-3-036..039: walking every page via the "snapshot" token must yield
+    every entry exactly once, in the same order the unpaginated call gives."""
     fixture, token_a, _ = two_user_fixture(balance_a=5000, balance_b=0)
     b_handle = fixture["users"][1]["handle"]
     for amount in range(1, 8):
@@ -96,11 +98,11 @@ def test_statement_pagination_covers_every_entry_exactly_once():
     paged_ids = []
     token = None
     for _ in range(10):
-        page = _statement(token_a, **({"limit": 2, "snapshot_token": token} if token else {"limit": 2}))
+        page = _statement(token_a, **({"limit": 2, "snapshot": token} if token else {"limit": 2}))
         paged_ids += [e["payment_id"] for e in page["entries"]]
         if not page["has_more"]:
             break
-        token = page["snapshot_token"]
+        token = page["snapshot"]
     assert paged_ids == [e["payment_id"] for e in full["entries"]]
 
 

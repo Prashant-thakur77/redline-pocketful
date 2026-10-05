@@ -1,12 +1,11 @@
 """Payment corrections: R-3-050..069.
 
-ASSUMED CONTRACT (not directly confirmed against a shipped endpoint —
-flagged in the N3-T handoff for @planner/@builder to confirm or correct):
+CONFIRMED CONTRACT (per @planner, commit 900d36d — exactly as originally
+assumed, no changes needed here):
   POST /payments/{id}/corrections
     body: {"expected_revision": int, "amount": int, "effective_at": iso8601,
-           "reason": str}
-    header: Idempotency-Key (required, same replay semantics as every other
-    mutating endpoint in this API)
+           "reason": str} — all four required.
+    header: Idempotency-Key — required.
     201 on success, body includes at least "revision" (the new revision
     number) and "amount".
     403 if the caller is not the payment's payer (from_user).
@@ -18,6 +17,11 @@ flagged in the N3-T handoff for @planner/@builder to confirm or correct):
     422 linked_payment_immutable if the payment is settlement- or
     capture-produced (not a direct/request-settling payment eligible for
     correction).
+
+R-3-068's confirmed precedence, checked in order: 401 -> 404 -> 403 ->
+400 missing_idempotency_key -> idempotency resolution -> 422
+validation_failed -> 422 linked_payment_immutable -> 409 stale_revision ->
+409 insufficient_funds -> 409 historical_overdraft.
 """
 from __future__ import annotations
 
@@ -166,6 +170,41 @@ def test_correction_missing_required_fields_422():
         r = api_post(f"/payments/{pay_id}/corrections", json=body,
                      headers={**auth(token_a), **idem(unique("k"))})
         assert_error(r, 422, "validation_failed")
+
+
+def test_correction_missing_idempotency_key_is_400():
+    """R-3-068: Idempotency-Key is required on this endpoint exactly like
+    every other mutating one — missing it is 400 missing_idempotency_key,
+    checked before any body validation."""
+    fixture, token_a, _ = two_user_fixture()
+    b_handle = fixture["users"][1]["handle"]
+    pay_id = _make_payment(token_a, b_handle, amount=500)
+
+    r = api_post(f"/payments/{pay_id}/corrections",
+                 json={"expected_revision": 1, "amount": 600,
+                       "effective_at": datetime.now(timezone.utc).isoformat(), "reason": "x"},
+                 headers=auth(token_a))
+    assert_error(r, 400, "missing_idempotency_key")
+
+
+def test_correction_precedence_404_before_403():
+    """R-3-068: an unknown payment id is 404 even when the caller would
+    otherwise have failed the payer check too — 404 is checked first."""
+    fixture, token_a, _ = two_user_fixture()
+    r = _correct(token_a, "no-such-payment-at-all", expected_revision=1, amount=100)
+    assert r.status_code == 404, r.text
+
+
+def test_correction_precedence_403_before_422_validation():
+    """R-3-068: a non-payer caller is 403 even when the body is also
+    invalid — the auth check runs before body validation."""
+    fixture, token_a, token_b = two_user_fixture()
+    b_handle = fixture["users"][1]["handle"]
+    pay_id = _make_payment(token_a, b_handle, amount=500)
+
+    r = api_post(f"/payments/{pay_id}/corrections", json={"amount": -1},
+                 headers={**auth(token_b), **idem(unique("k"))})
+    assert r.status_code == 403, r.text
 
 
 def test_correction_linked_settlement_payment_is_immutable():
