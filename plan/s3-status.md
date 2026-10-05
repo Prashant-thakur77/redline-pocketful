@@ -1555,6 +1555,46 @@ checks, which have never once been run for stage 3**, plus g5/g6/g7. If g2 is gr
 close succeeds in one pass; if it is not, I record stage 3 partial on the evidence from that same
 run. Either way no pass is spent twice.
 
+## >>> TICK 2026-10-05T13:05Z — N3-5 ATTACK PASS COMPLETE: HOLDS. N3-T.7 was load-bearing within 10 minutes. LIVE BLOCK. <<<
+
+@adversary's continuation (my angles 2–4 and 6) returns **HOLDS, no new breach**, at `6d20cd9`. It
+first proved the code it was attacking had not moved —
+`git log 938b569..6d20cd9 -- revisions.py me.py statement.py` empty — which is the right way to
+establish that an older sha's finding still applies.
+
+What it cleared, and these are the answers I most wanted:
+
+| angle | result |
+|---|---|
+| **Conservation at a historical view** (R-3-001, my #1 priority) | alice 4900 + bob 100 = 5000 = seeded total, at **both** `(as_of, known_at)` pairs. No leak. |
+| **Crossed axes** (R-3-073) | correct in **both** directions: a correction recorded late but effective early is ignored under an earlier `known_at`, and still correctly superseded by effective time under a later one |
+| **Exclude vs zero** (R-3-077) | `known_at` before a payment's `recorded_at` → `entries: []`, not a zero-delta row. Exclusion, not clamping — the trap I flagged as invisible to balance assertions |
+| **Both-future / mixed** (R-3-074) | `known_at=2099` with `as_of=2020` → payment excluded, existence floor holds |
+| **Echo format** (R-3-076) | `/me` preserves a `Z`-suffixed value byte-for-byte, no normalisation to `+00:00`. So the echo *mechanism* is right and the only defect is `/statement` never invoking it — exactly N3-5.2 and nothing wider |
+| Malformed/empty `known_at` | `422` on both endpoints, consistent |
+
+### The storm at 3900 ops, and why N3-T.7 mattered within ten minutes of landing
+
+It re-ran g4 harder than anyone had: `--ops 3000 --concurrency 50` → **PASS, 3900 ops in 14.0 s**,
+invariant held. That is a third independent g4 confirmation, at 3× the default load.
+
+The detail worth keeping: **that run would have re-opened the coverage hole without N3-T.7.** The
+old jitter was `seconds=i`; residue 7 sits at −1 h = 3600 s; at 3900 ops every residue-7 operation
+with `i > 3600` would have been future-dated and died at R-3-053 validation. `seconds=i % 600`
+caps the jitter at 599 s, so it cannot cross at any op count. I confirmed `1c496ea` is an ancestor
+of `6d20cd9`, so the fix was in the tree for this run.
+
+I had written that issue up as **deferred to the stage-4 hook work on budget grounds**, then
+reversed myself because the seat was idle and the fix was one line. The reversal was correct, and
+the margin was about ten minutes: @adversary ran the exact load that would have exposed it. A
+latent defect in the *binding* gate's hook is worth a one-line fix the moment a seat is free — the
+budget argument for deferring it was reasoning about the wrong cost.
+
+**N3-5's attack pass is complete:** two breaches found (R-3-076 → N3-5.2 open; R-3-053 → fixed and
+locked by a permanent test), everything else HOLDS. @adversary stands by for **N3-8**, which is the
+attack surface I most want hit — the hold timeline under `as_of`/`known_at` is where `available`
+can go negative at a past boundary (R-3-002, R-3-118).
+
 ### Why I did not wait for N3-8 as well
 
 N3-8 is substantial and still building. Verifying four landed items now — including the first real
