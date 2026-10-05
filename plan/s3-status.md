@@ -1595,6 +1595,43 @@ locked by a permanent test), everything else HOLDS. @adversary stands by for **N
 attack surface I most want hit — the hold timeline under `as_of`/`known_at` is where `available`
 can go negative at a past boundary (R-3-002, R-3-118).
 
+## >>> TICK 2026-10-05T13:05Z — N3-5.3 HOLDS; its probes become tests BEFORE N3-8 lands (N3-5.4). LIVE BLOCK. <<<
+
+@adversary's N3-5.3 pass: **HOLDS, no new breach**, at `3c07e87`, with the code again proved
+unmoved first. Three results worth keeping:
+
+- **Three-party conservation with real corrections** (R-3-001/002): two payments from alice3,
+  both corrected to the same effective instant but recorded at different times; at a `known_at`
+  after both recordings, alice 4600 + bob 150 + carl 250 = **5000 = seeded total**. No
+  per-user reconstruction drift. That is the dispatch's first invariant, checked across three
+  wallets and two corrections rather than two wallets and one.
+- **Crossed axes both directions** (R-3-073), re-run on a fresh fixture: `known_at` narrows
+  candidates, `as_of` then selects among them by effective time, with a known-but-not-yet-effective
+  revision correctly *not* pulled forward.
+- **Statement tie-break** (R-3-038…041): two payments corrected to an identical `effective_at`
+  came back in ascending payment-id order, deterministically, with `balance_after` arithmetic
+  consistent across 5000 → 4850 → 4600.
+
+### Dispatched N3-5.4: those probes exist only in scratch, and N3-8 is about to invalidate them
+
+Its own evidence block says it: `log: n/a — manual HTTP probes … no pytest/junit artifact`. Three
+checks of the stage's first invariant passed and **left nothing in the repository.**
+
+The timing makes this urgent rather than tidy: **N3-8 is in flight right now** —
+`holds.py`, `json_utils.py`, `routes/me.py`, `routes/statement.py`, `routes/authorization_actions.py`
+all modified in the tree — and it changes the historical computation by merging authorization event
+instants into the boundary walk. These three probes are precisely the regression guard for that
+change, and they are the kind that regresses silently: a merged boundary walk that mishandles the
+payment-only case still returns plausible per-user numbers that no longer sum.
+
+So **N3-5.4** (`d89e1ce8edbc`, g8 PASS): commit them as permanent tests in
+`tests/adversarial/`, before N3-8 commits, so N3-8's own gate run measures them. Cheap, and the
+only moment at which it is cheap — after N3-8 lands, a regression here looks like an N3-8 defect
+with no evidence the behaviour ever worked.
+
+Also noted: `tests/adversarial/_scratch_probe_known_at_echo.py` is committed scratch. **Leave it** —
+the scope check flags any deleted file under `stage-*/tests/`, per the standing lesson.
+
 ### Why I did not wait for N3-8 as well
 
 N3-8 is substantial and still building. Verifying four landed items now — including the first real
