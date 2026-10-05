@@ -31,7 +31,6 @@ from ..validation import parse_amount, validate_idempotency_key
 _MIN_AMOUNT = 0
 _MAX_AMOUNT = 1_000_000_000
 _MAX_REASON_LEN = 200
-_CLOCK_SKEW_TOLERANCE_SECONDS = 10
 
 
 class CorrectionEndpoint(Endpoint):
@@ -94,12 +93,11 @@ class CorrectionEndpoint(Endpoint):
             effective_epoch = parse_rfc3339(effective_at_raw)
         except (ValueError, TypeError):
             raise validation_failed("effective_at must be an RFC 3339 timestamp with an explicit offset")
-        # R-3-053: "not later than now" tolerates ordinary request latency
-        # and client/server clock skew rather than demanding the caller's
-        # clock be perfectly synchronized with the server's — a few
-        # seconds ahead is still "now" in that sense; a payment dated into
-        # next year is not.
-        if effective_epoch > time.time() + _CLOCK_SKEW_TOLERANCE_SECONDS:
+        # R-3-053: "not later than now" stands verbatim, no tolerance
+        # window (planner ruling, N3-5.1) — reads may ask about the
+        # future (R-3-074's as_of/known_at), writes may not claim to have
+        # happened in it.
+        if effective_epoch > time.time():
             raise validation_failed("effective_at cannot be later than now")
 
         reason = body["reason"]
