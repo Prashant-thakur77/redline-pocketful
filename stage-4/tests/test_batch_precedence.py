@@ -12,7 +12,8 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
-from conftest import api_get, api_post, assert_error, auth, idem, n_user_fixture, open_authorization, unique
+from conftest import (api_get, api_post, assert_error, auth, idem, login_token, make_fixture,
+                       n_user_fixture, open_authorization, reset_ok, unique, unique_handle, user)
 
 
 def _pay(token_from, to_handle, amount=1000):
@@ -173,3 +174,62 @@ def test_concurrent_corrections_sharing_a_revision_across_single_and_batch():
     delta = winning_amount - 500
     assert api_get("/me", headers=auth(tokens[1])).json()["balance"] == 10_000 - 500 - delta
     assert api_get("/me", headers=auth(tokens[2])).json()["balance"] == 10_000 + 500 + delta
+
+
+def test_batch_historical_check_is_combined_not_per_item():
+    """R-4-049 stage 4, R-4-050: planner's counterexample. Two payments to
+    the SAME receiver (B), each corrected down in the SAME batch, each of
+    which is clean at every boundary IN ISOLATION (holding the other at
+    its original amount) but NOT clean when both corrections apply at
+    once -- a per-item historical check (reusing the single-correction
+    primitive on one candidate at a time) misses this; only a combined
+    walk over every item's proposed revision together catches it.
+
+      fixture: A=10_000 (operator+sender), B=0, C=10_000
+      T1 (pinned, before everything else): A pays B 100 (p1), A pays B 100 (p2)
+      T2 (B's real, unpinned history): B pays C 150  -> B=50 originally
+      T3:                               C pays B 1000 -> B=1050 originally
+      batch: p1 100->50, p2 100->50, BOTH pinned to T1
+
+    Per item (holding the other at its ORIGINAL 100): B at T1 = 50+100=150,
+    at T2 = 150-150=0 -- clean, for EITHER item alone. Combined: B at T1 =
+    50+50=100, at T2 = 100-150=-50 -- historical_overdraft. The real
+    payments (B pays C, C pays B) are never backdated: their effective
+    position is simply their own real creation instant, which lands AFTER
+    the pinned T1 by construction, giving T1 < T2 < T3 without racing
+    now()."""
+    a_id, b_id, c_id = unique("u"), unique("u"), unique("u")
+    a_handle, b_handle, c_handle = unique_handle("a"), unique_handle("b"), unique_handle("c")
+    fixture = make_fixture([user(a_id, a_handle, balance=10_000), user(b_id, b_handle, balance=0),
+                             user(c_id, c_handle, balance=10_000)],
+                            settlement_operator_ids=[a_id])
+    reset_ok(fixture)
+    token_a = login_token(fixture["users"][0]["email"])
+    token_b = login_token(fixture["users"][1]["email"])
+    token_c = login_token(fixture["users"][2]["email"])
+
+    p1 = _pay(token_a, b_handle, amount=100)
+    p2 = _pay(token_a, b_handle, amount=100)
+    assert api_get("/me", headers=auth(token_b)).json()["balance"] == 200
+
+    bc = _pay(token_b, c_handle, amount=150)
+    assert bc["payment_id"]
+    assert api_get("/me", headers=auth(token_b)).json()["balance"] == 50
+
+    cb = _pay(token_c, b_handle, amount=1000)
+    assert cb["payment_id"]
+    assert api_get("/me", headers=auth(token_b)).json()["balance"] == 1050
+    assert api_get("/me", headers=auth(token_a)).json()["balance"] == 10_000 - 100 - 100
+    assert api_get("/me", headers=auth(token_c)).json()["balance"] == 10_000 + 150 - 1000
+
+    r = _batch(token_a, [
+        _item(p1["payment_id"], 1, 50, minutes_ago=180),
+        _item(p2["payment_id"], 1, 50, minutes_ago=180),
+    ])
+    assert_error(r, 409, "historical_overdraft")
+
+    # the rejected batch must leave every balance exactly as the three
+    # real payments left it
+    assert api_get("/me", headers=auth(token_a)).json()["balance"] == 10_000 - 100 - 100
+    assert api_get("/me", headers=auth(token_b)).json()["balance"] == 1050
+    assert api_get("/me", headers=auth(token_c)).json()["balance"] == 10_000 + 150 - 1000
