@@ -1,0 +1,5 @@
+ops 1300 (1000 unique, 300 replays), concurrency 50, 3.3s
+statuses {200: 292, 201: 606, 409: 396, 422: 6}
+invariant: True — ok
+
+RESULT: PASS — invariant held over 1300 ops in 3.3s

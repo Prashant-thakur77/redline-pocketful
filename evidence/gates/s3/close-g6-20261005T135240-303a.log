@@ -1,0 +1,335 @@
+$ docker build --label redline-gate=1 -t redline-mut-c98c4978-base /tmp/redline-mut-q1nuqvmn/stage-3  (exit 0)
+
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 176B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/4] FROM docker.io/library/python:3.12-slim
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 2.07kB done
+#5 DONE 0.0s
+
+#6 [3/4] COPY main.py ./main.py
+#6 CACHED
+
+#7 [2/4] WORKDIR /app
+#7 CACHED
+
+#8 [4/4] COPY service ./service
+#8 CACHED
+
+#9 exporting to image
+#9 exporting layers done
+#9 writing image sha256:5184a0148e4b224454679d97ea155381fa0523f1ebbb6a667194a6ed92b63c65 done
+#9 naming to docker.io/library/redline-mut-c98c4978-base done
+#9 DONE 0.0s
+
+$ docker network create --internal redline-net-d30ae83b82  (exit 0)
+58c9a61956af7b4bf25b26c098856a44aa848bf0f6d9d870648cda223cc9b882
+
+
+$ docker run -d --network redline-net-d30ae83b82 --cpus 2 --memory 2g -e PORT=8080 redline-mut-c98c4978-base  (exit 0)
+aaa101bd7d29f27b661374e83ad0d1e1c5c08bab4ebb43a470eeb31f6d4357e3
+
+
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /tmp/redline-mut-q1nuqvmn/stage-3/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s3/close-g6-20261005T135240-303a.junit.xml  (exit 0)
+........................................................................ [ 11%]
+........................................................................ [ 23%]
+........................................................................ [ 35%]
+........................................................................ [ 47%]
+........................................................................ [ 59%]
+........................................................................ [ 70%]
+........................................................................ [ 82%]
+........................................................................ [ 94%]
+..................................                                       [100%]
+610 passed in 277.99s (0:04:37)
+
+
+--- service log (tail) ---
+
+baseline green in 280s; mutant time limit 619s
+$ docker build --label redline-gate=1 -t redline-mut-c98c4978-1 /tmp/redline-mut-q1nuqvmn/stage-3  (exit 0)
+
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 176B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/4] FROM docker.io/library/python:3.12-slim
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 5.00kB done
+#5 DONE 0.0s
+
+#6 [2/4] WORKDIR /app
+#6 CACHED
+
+#7 [3/4] COPY main.py ./main.py
+#7 CACHED
+
+#8 [4/4] COPY service ./service
+#8 DONE 0.0s
+
+#9 exporting to image
+#9 exporting layers 0.0s done
+#9 writing image sha256:2f0f71b27414764d208ae62497f1c93a12e494cc0cf59afa23dcf5bfaae74820 done
+#9 naming to docker.io/library/redline-mut-c98c4978-1 done
+#9 DONE 0.1s
+
+$ docker network create --internal redline-net-a9627339a1  (exit 0)
+8b1dbb1a04d1a44bc7412931690bace161cecec0ffb8e167646249a3f21ab3ba
+
+
+$ docker run -d --network redline-net-a9627339a1 --cpus 2 --memory 2g -e PORT=8080 redline-mut-c98c4978-1  (exit 0)
+e7faffaaa767b02c148e0aa91addeed7807a7e085c4bbed55a7528c6f06e5e5a
+
+
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /tmp/redline-mut-q1nuqvmn/stage-3/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s3/close-g6-20261005T135240-303a.junit.xml -x  (exit 0)
+........................................................................ [ 11%]
+........................................................................ [ 23%]
+........................................................................ [ 35%]
+........................................................................ [ 47%]
+........................................................................ [ 59%]
+........................................................................ [ 70%]
+........................................................................ [ 82%]
+........................................................................ [ 94%]
+..................................                                       [100%]
+610 passed in 279.77s (0:04:39)
+
+
+--- service log (tail) ---
+
+#1 service/routes/requests_read.py:63 [ne to eq]: SURVIVED
+   - if status is not None and r["status"] != status:
+   + if status is not None and r["status"] == status:
+$ docker build --label redline-gate=1 -t redline-mut-c98c4978-2 /tmp/redline-mut-q1nuqvmn/stage-3  (exit 0)
+
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 176B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/4] FROM docker.io/library/python:3.12-slim
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 10.89kB done
+#5 DONE 0.0s
+
+#6 [2/4] WORKDIR /app
+#6 CACHED
+
+#7 [3/4] COPY main.py ./main.py
+#7 CACHED
+
+#8 [4/4] COPY service ./service
+#8 DONE 0.0s
+
+#9 exporting to image
+#9 exporting layers 0.0s done
+#9 writing image sha256:19ca89f221a05d617c5bc9f07979b7bae0eaa135354893d9862a80d2d045857d done
+#9 naming to docker.io/library/redline-mut-c98c4978-2 done
+#9 DONE 0.1s
+
+$ docker network create --internal redline-net-79b4c8ae72  (exit 0)
+3bd8021a62210218ce079e3c6d3d730ed6a1f1aedaf17dbbcfeaf91a983a8435
+
+
+$ docker run -d --network redline-net-79b4c8ae72 --cpus 2 --memory 2g -e PORT=8080 redline-mut-c98c4978-2  (exit 0)
+43aef6a05f3745baf294a63078864e0b31b2ad60069e08f66163f4681b8b3011
+
+
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /tmp/redline-mut-q1nuqvmn/stage-3/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s3/close-g6-20261005T135240-303a.junit.xml -x  (exit 1)
+.......................................................F
+=================================== FAILURES ===================================
+___________ test_r_1_229_failed_settlement_claims_no_idempotency_key ___________
+
+    def test_r_1_229_failed_settlement_claims_no_idempotency_key():
+        """R-1-229: a settlement that fails validation or affordability claims
+        NO idempotency key — the same key must be reusable afterward as a
+        genuine first use, same shape as the R-1-107 x R-1-108 payments
+        interaction."""
+        u = _users({"ada": 10, "bob": 0}, operator_handles=("ada",))
+        key = unique("settle-fail-release")
+    
+        bad_transfers = [{"from_handle": u["ada"]["handle"], "to_handle": u["bob"]["handle"], "amount": 10_000}]
+        r1 = _settle(u["ada"]["token"], bad_transfers, key=key)
+>       assert_error(r1, 409, "insufficient_funds")
+
+/tmp/redline-mut-q1nuqvmn/stage-3/tests/adversarial/test_n1_8_adversarial.py:142: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+resp = <Response [422 Unprocessable Entity]>, status = 409
+code = 'insufficient_funds'
+
+    def assert_error(resp: httpx.Response, status: int, code: str):
+>       assert resp.status_code == status, f"expected {status} got {resp.status_code}: {resp.text}"
+E       AssertionError: expected 409 got 422: {"error": {"code": "validation_failed", "message": "transfers must be an array of 1 to 32 entries"}}
+E       assert 422 == 409
+E        +  where 422 = <Response [422 Unprocessable Entity]>.status_code
+
+/tmp/redline-mut-q1nuqvmn/stage-3/tests/conftest.py:233: AssertionError
+=========================== short test summary info ============================
+FAILED ../../../../../tmp/redline-mut-q1nuqvmn/stage-3/tests/adversarial/test_n1_8_adversarial.py::test_r_1_229_failed_settlement_claims_no_idempotency_key
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+1 failed, 55 passed in 151.76s (0:02:31)
+
+
+--- service log (tail) ---
+
+#2 service/routes/settlements.py:73 [cmp <= to <]: killed
+   - if not isinstance(transfers, list) or not (1 <= len(transfers) <= _MAX_TRANSFERS):
+   + if not isinstance(transfers, list) or not (1 < len(transfers) <= _MAX_TRANSFERS):
+$ docker build --label redline-gate=1 -t redline-mut-c98c4978-3 /tmp/redline-mut-q1nuqvmn/stage-3  (exit 0)
+
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 176B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/4] FROM docker.io/library/python:3.12-slim
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 17.72kB done
+#5 DONE 0.0s
+
+#6 [2/4] WORKDIR /app
+#6 CACHED
+
+#7 [3/4] COPY main.py ./main.py
+#7 CACHED
+
+#8 [4/4] COPY service ./service
+#8 DONE 0.1s
+
+#9 exporting to image
+#9 exporting layers 0.1s done
+#9 writing image sha256:b91df13c691e7d04c26ed9fc8a06bbc52f038937af9302627caacc58d1db3b6d done
+#9 naming to docker.io/library/redline-mut-c98c4978-3 0.0s done
+#9 DONE 0.2s
+
+$ docker network create --internal redline-net-d5aaa92d82  (exit 0)
+c34ff91f8fe8e68272abab38abc32f322831260c7929ed107271a6b65a8c0c2b
+
+
+$ docker run -d --network redline-net-d5aaa92d82 --cpus 2 --memory 2g -e PORT=8080 redline-mut-c98c4978-3  (exit 0)
+d7a0b11da4a4d842847cdc0140b4a8a09f4a7dce159be27e451865733d561256
+
+
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /tmp/redline-mut-q1nuqvmn/stage-3/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s3/close-g6-20261005T135240-303a.junit.xml -x  (exit 1)
+........................................................................ [ 11%]
+..................................................................F
+=================================== FAILURES ===================================
+__ test_frozen_snapshot_unaffected_by_a_payment_made_after_it_r_3_082_086_088 __
+
+    def test_frozen_snapshot_unaffected_by_a_payment_made_after_it_r_3_082_086_088():
+        """R-3-082/086/088: a frozen result keeps paging the same entries and
+        balances 'even after later payments or corrections' / 'concurrent
+        payments or corrections'."""
+        fixture, token_a, _ = two_user_fixture(balance_a=5000, balance_b=0)
+        b_handle = fixture["users"][1]["handle"]
+        for amount in (10, 20, 30):
+            r = api_post("/payments", json={"to_handle": b_handle, "amount": amount},
+                         headers={**auth(token_a), **idem(unique("k"))})
+            assert r.status_code == 201, r.text
+    
+        page1 = _statement_ok(token_a, limit=10)
+        token = page1["snapshot"]
+>       assert len(page1["entries"]) == 3
+E       assert 0 == 3
+E        +  where 0 = len([])
+
+/tmp/redline-mut-q1nuqvmn/stage-3/tests/adversarial/test_n3_3_2_adversarial.py:37: AssertionError
+=========================== short test summary info ============================
+FAILED ../../../../../tmp/redline-mut-q1nuqvmn/stage-3/tests/adversarial/test_n3_3_2_adversarial.py::test_frozen_snapshot_unaffected_by_a_payment_made_after_it_r_3_082_086_088
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+1 failed, 138 passed in 184.01s (0:03:04)
+
+
+--- service log (tail) ---
+
+#3 service/routes/statement.py:110 [eq to ne]: killed
+   - is_from = p["from_user_id"] == user_id
+   + is_from = p["from_user_id"] != user_id
+$ docker build --label redline-gate=1 -t redline-mut-c98c4978-4 /tmp/redline-mut-q1nuqvmn/stage-3  (exit 0)
+
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 176B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/4] FROM docker.io/library/python:3.12-slim
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 20.17kB done
+#5 DONE 0.0s
+
+#6 [2/4] WORKDIR /app
+#6 CACHED
+
+#7 [3/4] COPY main.py ./main.py
+#7 CACHED
+
+#8 [4/4] COPY service ./service
+#8 DONE 0.0s
+
+#9 exporting to image
+#9 exporting layers 0.0s done
+#9 writing image sha256:ca9f243f1d609cf14110631d606806f7edcb88d28a1e66ff7f5bcf3ef04b7e98 done
+#9 naming to docker.io/library/redline-mut-c98c4978-4 done
+#9 DONE 0.1s
+
+$ docker network create --internal redline-net-b902caa98e  (exit 0)
+aef09d5c0ad44ab12228e3b4df406d0ebe9ce3a20dea16c8160d5c7b058a8e0a
+
+
+$ docker run -d --network redline-net-b902caa98e --cpus 2 --memory 2g -e PORT=8080 redline-mut-c98c4978-4  (exit 0)
+5cd902aba290fcecf12a601103646fe18a019ff703f6faf1c1e5a127a5963079
+
+
