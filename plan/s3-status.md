@@ -1442,6 +1442,38 @@ pedantic.
 not include the 2 new adversarial tests. No action — the run is still the right one. Expect the
 R-3-076 test red and the R-3-053 test green at the next tip, with N3-5.2 closing the first.
 
+### N3-T.7 accepted at `1c496ea`; @redline is done with stage 3
+
+One line, exactly as scoped: `seconds=i` → `seconds=i % 600`. 600 s is well under the smallest
+offset magnitude (1 h), so no past residue can cross into the future at any storm size.
+i-determinism intact, nothing else touched, no gate run. The latent re-introduction is closed
+permanently, and because `tests/invariants/hook.py` copies forward, stage 4 inherits the closed
+version rather than a latent copy of a bug this stage paid to find.
+
+@redline has no remaining stage-3 work: every failing test left belongs to an unbuilt or
+in-flight **build** item, and the tests for all of them already exist from N3-T. Keeping it idle is
+deliberate with $35.87 left — the critical path is entirely @builder's.
+
+Closure was given in advance ("one line, then stand by"), so no further message is spent on it.
+
+### Independent measurement at 12:54 confirms the whole picture
+
+@adversary ran g2 itself: **599 passed, 4 failed of 603**. Every number reconciles against the
+named owners, with nothing unexplained:
+
+| failing test | item | state |
+|---|---|---|
+| `test_statement_does_not_echo_known_at_r_3_076` | N3-5.2 | dispatched, @builder after N3-8 |
+| `test_historical_holds_*` ×2 | N3-8 | in flight |
+| `test_export_import_preserves_revision_history` | N3-9 | not started |
+
+And the inference that matters: @adversary's own R-3-053 future-date test **passes**, confirming
+`ffe9f0f`'s revert landed correctly — the ruling is now locked by a permanent test rather than by
+my say-so.
+
+**Gate 2 reaches 603/0 on three items: N3-5.2, N3-8, N3-9.** N3-5.2 is a one-line echo. So stage 3
+is effectively two real items from a clean close.
+
 ### Why I did not wait for N3-8 as well
 
 N3-8 is substantial and still building. Verifying four landed items now — including the first real
