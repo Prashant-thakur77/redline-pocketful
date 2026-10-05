@@ -119,6 +119,8 @@ def test_batch_captures_and_refunds_remain_immutable():
                    headers={**auth(tokens[2]), **idem(unique("k"))})
     assert cap.status_code == 201, cap.text
     capture_payment_id = cap.json().get("payment_id") or cap.json()["payment_ids"][0]
+    assert api_get("/me", headers=auth(tokens[1])).json()["balance"] == 10_000 - 300
+    assert api_get("/me", headers=auth(tokens[2])).json()["balance"] == 10_000 + 300
     now = datetime.now(timezone.utc) - timedelta(minutes=5)
 
     r = _batch(tokens[0], [
@@ -126,6 +128,10 @@ def test_batch_captures_and_refunds_remain_immutable():
          "effective_at": now.isoformat(), "reason": "x"}
     ])
     assert_error(r, 422, "linked_payment_immutable")
+
+    # the rejected batch must leave balances exactly as the capture left them
+    assert api_get("/me", headers=auth(tokens[1])).json()["balance"] == 10_000 - 300
+    assert api_get("/me", headers=auth(tokens[2])).json()["balance"] == 10_000 + 300
 
 
 def test_batch_may_correct_settlement_members_including_every_member():
@@ -136,6 +142,8 @@ def test_batch_may_correct_settlement_members_including_every_member():
                       headers={**auth(tokens[0]), **idem(unique("k"))})
     assert settle.status_code == 201, settle.text
     member_id = settle.json()["payments"][0]["payment_id"]
+    assert api_get("/me", headers=auth(tokens[1])).json()["balance"] == 10_000 - 300
+    assert api_get("/me", headers=auth(tokens[2])).json()["balance"] == 10_000 + 300
     now = datetime.now(timezone.utc) - timedelta(minutes=5)
 
     r = _batch(tokens[0], [
@@ -143,6 +151,10 @@ def test_batch_may_correct_settlement_members_including_every_member():
          "effective_at": now.isoformat(), "reason": "x"}
     ])
     assert r.status_code == 201, r.text
+    # a decrease (300->250) debits the original RECEIVER and credits the
+    # original sender back the difference
+    assert api_get("/me", headers=auth(tokens[1])).json()["balance"] == 10_000 - 300 + 50
+    assert api_get("/me", headers=auth(tokens[2])).json()["balance"] == 10_000 + 300 - 50
 
 
 def test_batch_incomplete_settlement_422():
@@ -154,6 +166,9 @@ def test_batch_incomplete_settlement_422():
     ]}, headers={**auth(tokens[0]), **idem(unique("k"))})
     assert settle.status_code == 201, settle.text
     members = settle.json()["payments"]
+    assert api_get("/me", headers=auth(tokens[1])).json()["balance"] == 10_000 - 100
+    assert api_get("/me", headers=auth(tokens[2])).json()["balance"] == 10_000 + 100 - 100
+    assert api_get("/me", headers=auth(tokens[3])).json()["balance"] == 10_000 + 100
     now = datetime.now(timezone.utc) - timedelta(minutes=5)
 
     r = _batch(tokens[0], [
@@ -161,6 +176,11 @@ def test_batch_incomplete_settlement_422():
          "effective_at": now.isoformat(), "reason": "x"}
     ])
     assert_error(r, 422, "incomplete_settlement")
+
+    # the rejected batch must leave balances exactly as the settlement left them
+    assert api_get("/me", headers=auth(tokens[1])).json()["balance"] == 10_000 - 100
+    assert api_get("/me", headers=auth(tokens[2])).json()["balance"] == 10_000 + 100 - 100
+    assert api_get("/me", headers=auth(tokens[3])).json()["balance"] == 10_000 + 100
 
 
 def test_batch_settlement_members_must_share_identical_effective_instant():
@@ -193,6 +213,11 @@ def test_batch_settlement_members_must_share_identical_effective_instant():
          "effective_at": same_instant_b, "reason": "y"},
     ])
     assert matched.status_code == 201, matched.text
+    # both members increased 100->150: each increase debits its own sender
+    # and credits its own receiver by the +50 delta
+    assert api_get("/me", headers=auth(tokens[1])).json()["balance"] == 10_000 - 100 - 50
+    assert api_get("/me", headers=auth(tokens[2])).json()["balance"] == 10_000 + 100 - 100 + 50 - 50
+    assert api_get("/me", headers=auth(tokens[3])).json()["balance"] == 10_000 + 100 + 50
 
 
 def test_ordinary_single_payment_correction_still_available_for_non_member():
@@ -205,6 +230,8 @@ def test_ordinary_single_payment_correction_still_available_for_non_member():
                       "reason": "single"},
                 headers={**auth(tokens[1]), **idem(unique("k"))})
     assert r.status_code == 201, r.text
+    assert api_get("/me", headers=auth(tokens[1])).json()["balance"] == 10_000 - 500 - 100
+    assert api_get("/me", headers=auth(tokens[2])).json()["balance"] == 10_000 + 500 + 100
 
 
 def test_batch_ignores_unknown_fields():
@@ -221,3 +248,6 @@ def test_batch_ignores_unknown_fields():
         "unexpected_top_level_field": "surprise",
     }, headers={**auth(tokens[0]), **idem(unique("k"))})
     assert r.status_code == 201, r.text
+    # a decrease (500->100) debits the receiver and credits the sender back
+    assert api_get("/me", headers=auth(tokens[1])).json()["balance"] == 10_000 - 500 + 400
+    assert api_get("/me", headers=auth(tokens[2])).json()["balance"] == 10_000 + 500 - 400

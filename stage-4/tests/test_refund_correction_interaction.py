@@ -42,6 +42,8 @@ def test_corrections_remain_available_for_direct_and_request_payments():
     pay = _make_payment(token_a, b_handle, amount=500)
     r = _correct(token_a, pay["payment_id"], 1, 600)
     assert r.status_code == 201, r.text
+    assert api_get("/me", headers=auth(token_a)).json()["balance"] == 10_000 - 600
+    assert api_get("/me", headers=auth(token_b)).json()["balance"] == 600
 
 
 def test_capture_cannot_be_corrected():
@@ -52,9 +54,15 @@ def test_capture_cannot_be_corrected():
                    headers={**auth(tokens[1]), **idem(unique("k"))})
     assert cap.status_code == 201, cap.text
     payment_id = cap.json().get("payment_id") or cap.json()["payment_ids"][0]
+    assert api_get("/me", headers=auth(tokens[0])).json()["balance"] == 10_000 - 300
+    assert api_get("/me", headers=auth(tokens[1])).json()["balance"] == 10_000 + 300
 
     r = _correct(tokens[0], payment_id, 1, 200)
     assert_error(r, 422, "linked_payment_immutable")
+
+    # the rejected correction attempt must leave balances exactly as the capture left them
+    assert api_get("/me", headers=auth(tokens[0])).json()["balance"] == 10_000 - 300
+    assert api_get("/me", headers=auth(tokens[1])).json()["balance"] == 10_000 + 300
 
 
 def test_refund_cannot_itself_be_corrected():
@@ -64,12 +72,18 @@ def test_refund_cannot_itself_be_corrected():
     pay = _make_payment(token_a, b_handle, amount=500)
     refund = _refund(token_b, pay["payment_id"], 200)
     assert refund.status_code == 201, refund.text
+    assert api_get("/me", headers=auth(token_a)).json()["balance"] == 1000 - 500 + 200
+    assert api_get("/me", headers=auth(token_b)).json()["balance"] == 500 - 200
 
     # corrections require the payment's SENDER (R-3-051), not its receiver --
     # the refund flows b->a, so b is the sender and is the one who would
     # attempt to correct it
     r = _correct(token_b, refund.json()["payment_id"], 1, 50)
     assert_error(r, 422, "linked_payment_immutable")
+
+    # the rejected correction attempt must leave balances exactly as the refund left them
+    assert api_get("/me", headers=auth(token_a)).json()["balance"] == 1000 - 500 + 200
+    assert api_get("/me", headers=auth(token_b)).json()["balance"] == 500 - 200
 
 
 def test_correction_may_not_reduce_below_already_refunded_amount():

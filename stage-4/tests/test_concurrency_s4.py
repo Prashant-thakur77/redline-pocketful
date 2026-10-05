@@ -122,3 +122,14 @@ def test_two_concurrent_batches_sharing_a_payment_not_both_succeed():
 
     assert all(s in (201, 409) for s in results), f"no status outside {{201,409}} is legal: {results}"
     assert results.count(201) <= 1, f"two batches sharing a payment at the same revision cannot both succeed: {results}"
+
+    # whichever batch won, the resulting balances must match THAT amount
+    # exactly -- a sign-flip or wrong-delta mutation would still pass the
+    # status-code checks above
+    revisions = api_get(f"/payments/{pay['payment_id']}/revisions", headers=auth(tokens[1])).json()
+    revs = revisions["revisions"] if isinstance(revisions, dict) else revisions
+    winning_amount = max(revs, key=lambda rv: rv["revision"])["amount"]
+    assert winning_amount in (700, 800), f"unexpected winning amount: {winning_amount}"
+    delta = winning_amount - 1000
+    assert api_get("/me", headers=auth(tokens[1])).json()["balance"] == 10_000 - 1000 - delta
+    assert api_get("/me", headers=auth(tokens[2])).json()["balance"] == 10_000 + 1000 + delta

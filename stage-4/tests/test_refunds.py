@@ -99,6 +99,10 @@ def test_refund_target_may_be_a_request_payment():
 
     r = _refund(token_a, pay.json()["payment_id"], 100)
     assert r.status_code == 201, r.text
+    # the original payment flowed b->a; a was its receiver, so a is the
+    # refund's SENDER (debited 100) and b is the refund's receiver (credited 100)
+    assert api_get("/me", headers=auth(token_a)).json()["balance"] == 0 + 300 - 100
+    assert api_get("/me", headers=auth(token_b)).json()["balance"] == 1000 - 300 + 100
 
 
 def test_refund_target_may_be_a_capture():
@@ -112,6 +116,12 @@ def test_refund_target_may_be_a_capture():
 
     r = _refund(tokens[1], payment_id, 50)
     assert r.status_code == 201, r.text
+    # tokens[0] (payer, capture's sender) regains 50; tokens[1] (receiver,
+    # refund's sender) loses 50 -- 9700 is tokens[0]'s balance after the
+    # 300 capture (n_user_fixture seeds 10_000 and opening a hold alone
+    # does not debit; only the capture does)
+    assert api_get("/me", headers=auth(tokens[0])).json()["balance"] == 10_000 - 300 + 50
+    assert api_get("/me", headers=auth(tokens[1])).json()["balance"] == 10_000 + 300 - 50
 
 
 def test_refund_of_a_refund_is_422_invalid_refund_target():
@@ -126,6 +136,10 @@ def test_refund_of_a_refund_is_422_invalid_refund_target():
     # second refund flows a->b and targets the refund itself
     second = _refund(token_a, refund.json()["payment_id"], 50)
     assert_error(second, 422, "invalid_refund_target")
+
+    # the rejected second refund must leave balances exactly as the first left them
+    assert api_get("/me", headers=auth(token_a)).json()["balance"] == 1000 - 500 + 200
+    assert api_get("/me", headers=auth(token_b)).json()["balance"] == 500 - 200
 
 
 def test_refund_invalid_amount_422():
@@ -231,6 +245,8 @@ def test_refund_never_reopens_request_or_restores_hold():
 
     r = _refund(token_a, pay.json()["payment_id"], 100)
     assert r.status_code == 201, r.text
+    assert api_get("/me", headers=auth(token_a)).json()["balance"] == 0 + 300 - 100
+    assert api_get("/me", headers=auth(token_b)).json()["balance"] == 1000 - 300 + 100
 
     still = api_get("/requests", headers=auth(token_a), params={"limit": 50}).json()["requests"]
     match = next(x for x in still if x["request_id"] == req_id)
@@ -266,6 +282,8 @@ def test_settlement_member_payment_may_be_refunded_without_changing_membership()
 
     r = _refund(token_b, settlement_payment_id, 100)
     assert r.status_code == 201, r.text
+    assert api_get("/me", headers=auth(token_a)).json()["balance"] == 1000 - 300 + 100
+    assert api_get("/me", headers=auth(token_b)).json()["balance"] == 0 + 300 - 100
 
     feed = api_get("/activity", headers=auth(token_a)).json()["payments"]
     original = next(p for p in feed if p["payment_id"] == settlement_payment_id)
@@ -305,12 +323,19 @@ def test_refund_precedence_invalid_target_before_exceeds_before_funds():
     # a now has 1000 (got the full 500 back); spend it all so funds would
     # also fail, and ask for an absurd amount so refund_exceeds_payment
     # would also apply -- invalid_refund_target must win over both.
+    assert api_get("/me", headers=auth(token_a)).json()["balance"] == 1000 - 500 + 500
     spend = api_post("/payments", json={"to_handle": b_handle, "amount": 1000},
                      headers={**auth(token_a), **idem(unique("k"))})
     assert spend.status_code == 201, spend.text
+    assert api_get("/me", headers=auth(token_a)).json()["balance"] == 0
+    assert api_get("/me", headers=auth(token_b)).json()["balance"] == 1000
 
     second = _refund(token_a, refund.json()["payment_id"], 999999)
     assert_error(second, 422, "invalid_refund_target")
+
+    # the rejected refund must leave balances exactly as the spend left them
+    assert api_get("/me", headers=auth(token_a)).json()["balance"] == 0
+    assert api_get("/me", headers=auth(token_b)).json()["balance"] == 1000
 
 
 def test_refund_appears_in_activity_and_statement_with_own_revision():
@@ -347,3 +372,5 @@ def test_refund_of_appears_as_the_immediately_targeted_id():
     r = _refund(token_b, pay["payment_id"], 200)
     assert r.status_code == 201, r.text
     assert r.json()["refund_of"] == pay["payment_id"]
+    assert api_get("/me", headers=auth(token_a)).json()["balance"] == 1000 - 500 + 200
+    assert api_get("/me", headers=auth(token_b)).json()["balance"] == 500 - 200

@@ -123,9 +123,14 @@ def test_rejected_batch_claims_no_idempotency_key():
 
     rejected = _batch(tokens[0], [_item(pay["payment_id"], 1, 1_000_000)], key=key)
     assert rejected.status_code == 409, rejected.text
+    assert api_get("/me", headers=auth(tokens[0])).json()["balance"] == 1000 - 500
+    assert api_get("/me", headers=auth(tokens[1])).json()["balance"] == 1000 + 500
 
     retried = _batch(tokens[0], [_item(pay["payment_id"], 1, 600)], key=key)
     assert retried.status_code == 201, retried.text
+    # the retry's increase (500->600) debits the sender and credits the receiver
+    assert api_get("/me", headers=auth(tokens[0])).json()["balance"] == 1000 - 500 - 100
+    assert api_get("/me", headers=auth(tokens[1])).json()["balance"] == 1000 + 500 + 100
 
 
 def test_concurrent_corrections_sharing_a_revision_across_single_and_batch():
@@ -158,3 +163,13 @@ def test_concurrent_corrections_sharing_a_revision_across_single_and_batch():
 
     assert all(s in (201, 409) for s in results), f"no status outside {{201,409}} is legal: {results}"
     assert results.count(201) == 1, f"exactly one of the single/batch race must win: {results}"
+
+    # whichever side won, the resulting balances must match that side's
+    # amount exactly -- not the loser's, and not some third value
+    revisions = api_get(f"/payments/{pay['payment_id']}/revisions", headers=auth(tokens[1])).json()
+    revs = revisions["revisions"] if isinstance(revisions, dict) else revisions
+    winning_amount = max(revs, key=lambda rv: rv["revision"])["amount"]
+    assert winning_amount in (600, 700), f"unexpected winning amount: {winning_amount}"
+    delta = winning_amount - 500
+    assert api_get("/me", headers=auth(tokens[1])).json()["balance"] == 10_000 - 500 - delta
+    assert api_get("/me", headers=auth(tokens[2])).json()["balance"] == 10_000 + 500 + delta

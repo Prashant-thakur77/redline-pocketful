@@ -54,6 +54,11 @@ def test_batch_success_shape_and_input_order():
     body = r.json()
     assert "correction_batch_id" in body and "recorded_at" in body
     assert [rv["payment_id"] for rv in body["revisions"]] == [pay1["payment_id"], pay2["payment_id"]]
+    assert [rv["amount"] for rv in body["revisions"]] == [150, 250]
+    # pay1 (tokens[1]->tokens[2], +50) and pay2 (tokens[2]->tokens[1], +50)
+    # net out to each party's post-creation balance being unchanged
+    assert api_get("/me", headers=auth(tokens[1])).json()["balance"] == 10_000 - 100 + 200
+    assert api_get("/me", headers=auth(tokens[2])).json()["balance"] == 10_000 + 100 - 200
 
 
 def test_batch_revisions_expose_batch_id_singles_expose_null():
@@ -70,12 +75,18 @@ def test_batch_revisions_expose_batch_id_singles_expose_null():
     assert single.status_code == 201, single.text
     single_revisions = _revisions(tokens[1], pay1["payment_id"])
     assert single_revisions[-1].get("correction_batch_id") is None
+    assert single_revisions[-1]["amount"] == 150
 
     batch = _batch(tokens[0], [_item(pay2["payment_id"], 1, 250)])
     assert batch.status_code == 201, batch.text
     batch_id = batch.json()["correction_batch_id"]
     batch_revisions = _revisions(tokens[2], pay2["payment_id"])
     assert batch_revisions[-1].get("correction_batch_id") == batch_id
+    assert batch_revisions[-1]["amount"] == 250
+
+    # pay1 (+50, tokens[1]->tokens[2]) then pay2 (+50, tokens[2]->tokens[1]) net to even
+    assert api_get("/me", headers=auth(tokens[1])).json()["balance"] == 10_000 - 100 + 200
+    assert api_get("/me", headers=auth(tokens[2])).json()["balance"] == 10_000 + 100 - 200
 
 
 def test_batch_shared_recorded_at_strictly_later_than_every_prior_one():
@@ -99,9 +110,12 @@ def test_batch_shared_recorded_at_strictly_later_than_every_prior_one():
     revisions_after_batch = _revisions(tokens[1], pay["payment_id"])
     revision_3 = revisions_after_batch[-1]
     assert revision_3["revision"] == 3
+    assert revision_3["amount"] == 175
     assert revision_3["recorded_at"] > revision_2_recorded_at, \
         f"batch recorded_at {revision_3['recorded_at']} must be strictly later than the prior " \
         f"revision's {revision_2_recorded_at}, never equal"
+    assert api_get("/me", headers=auth(tokens[1])).json()["balance"] == 10_000 - 175
+    assert api_get("/me", headers=auth(tokens[2])).json()["balance"] == 10_000 + 175
 
 
 def test_batch_shared_recorded_at_identical_across_every_member():
@@ -115,6 +129,9 @@ def test_batch_shared_recorded_at_identical_across_every_member():
     rev1 = _revisions(tokens[1], pay1["payment_id"])[-1]
     rev2 = _revisions(tokens[2], pay2["payment_id"])[-1]
     assert rev1["recorded_at"] == rev2["recorded_at"] == r.json()["recorded_at"]
+    assert rev1["amount"] == 150 and rev2["amount"] == 250
+    assert api_get("/me", headers=auth(tokens[1])).json()["balance"] == 10_000 - 100 + 200
+    assert api_get("/me", headers=auth(tokens[2])).json()["balance"] == 10_000 + 100 - 200
 
 
 def test_batch_never_changes_original_payment_or_its_retry_identity():
@@ -128,6 +145,8 @@ def test_batch_never_changes_original_payment_or_its_retry_identity():
 
     batch = _batch(tokens[0], [_item(pay.json()["payment_id"], 1, 150)])
     assert batch.status_code == 201, batch.text
+    assert api_get("/me", headers=auth(tokens[1])).json()["balance"] == 10_000 - 150
+    assert api_get("/me", headers=auth(tokens[2])).json()["balance"] == 10_000 + 150
 
     replay = api_post("/payments", json={"to_handle": handles[2], "amount": 100},
                       headers={**auth(tokens[1]), **idem(pay_key)})
@@ -145,9 +164,15 @@ def test_batch_replay_returns_original_response():
 
     first = _batch(tokens[0], [item], key=key)
     assert first.status_code == 201, first.text
+    assert api_get("/me", headers=auth(tokens[1])).json()["balance"] == 10_000 - 150
+    assert api_get("/me", headers=auth(tokens[2])).json()["balance"] == 10_000 + 150
+
     replay = _batch(tokens[0], [item], key=key)
     assert replay.status_code == 200, replay.text
     assert replay.json() == first.json()
+    # the replay must not move money a second time
+    assert api_get("/me", headers=auth(tokens[1])).json()["balance"] == 10_000 - 150
+    assert api_get("/me", headers=auth(tokens[2])).json()["balance"] == 10_000 + 150
 
 
 def test_snapshot_token_survives_a_batch_moving_its_window():
