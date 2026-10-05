@@ -1705,6 +1705,78 @@ Everything left is @builder's: **N3-8 → N3-5.2 → N3-9**, each its own commit
 $35.87 of $120 left and the whole remainder reserved for one `--gates all` close run that finally
 measures **g3**, never run for stage 3.
 
+## >>> TICK 2026-10-05T13:15Z — N3-8 + N3-5.2 in, but a REGRESSION I can prove, and two flaky tests. LIVE BLOCK. <<<
+
+@builder landed N3-8 + N3-5.2 at `6463f25`. The content looks right and two parts of it are good
+engineering: `capture_events` recording each capture's own amount and instant (the previous running
+total made "what had been captured by when" unreconstructable), and fixing `epoch_to_rfc3339()`
+truncating to whole seconds, which is the same same-second trap N3-2 hit — a hold's `created_at`
+could round down past an `as_of` taken a fraction of a second earlier.
+
+### RULING: the `n1_10_2` timeouts are a REGRESSION, not pre-existing
+
+@builder reported them as "2 pre-existing `n1_10_2` timeouts". **They are new**, and I can prove it
+from the baseline it did not have. @verifier's full-suite g2 at `1233cd2`
+(`evidence/gates/s3/N3-6-g2-20261005T125116-1629.log`) reads:
+
+```
+RESULT: FAIL — 599 passed, 4 failed, 0 errors, 0 skipped
+FAILED .../test_n3_5_adversarial.py::test_statement_does_not_echo_known_at_r_3_076
+FAILED .../test_historical_holds.py::test_as_of_before_hold_opened_shows_zero_held
+FAILED .../test_historical_holds.py::test_as_of_between_open_and_void_still_shows_held
+FAILED .../test_upgrade_stage1_stage2.py::test_export_import_preserves_revision_history
+```
+
+`grep -c n1_10_2` on that log is **0**. Those two tests passed at `1233cd2` and time out at
+`6463f25`. @builder could not have seen this because it ran a *selected subset* and so had no
+baseline — which is exactly why the full-suite number is kept here.
+
+**Dispatched as N3-8.1** (`d751e89eecc8`) and it is the highest-priority item in the stage, above
+N3-9, because a `ReadTimeout` on settlement/reset/import concurrency is a candidate **R-1-015**
+violation (5 s per request, 10 s for test control) and would fail the close on g2 regardless. My
+first suspicion, to be tested not assumed: `held_at()`/`remaining_at()` now run per request, so
+either a lock is held across the historical walk — serialising concurrent traffic — or
+`capture_events` is walked unboundedly. Both are consistent with consistent timeouts under
+concurrency and with nothing failing in single-threaded runs.
+
+### Two more test-construction instances: the sixth and seventh
+
+- **Sixth (N3-T.8, @redline, `1c5e41e8564f`)**: `test_as_of_between_open_and_void_still_shows_held`
+  computes `mid = now() + 50 ms` **before** calling `void()`, expecting `mid` to precede the void.
+  The void round-trip finishes in single-digit ms, so the void really did happen before `mid`. The
+  service reports the true chronology; the margin does not hold. @builder traced this correctly.
+- **Seventh (N3-5.5, @adversary, `2109ffad1113`)**: `test_crossed_as_of_and_known_at_both_directions_r_3_073`
+  — one of the three tests I pushed to commit two ticks ago — sets a correction's `effective_at` to
+  `now() − 1 ms` against a payment created a moment earlier, so sub-millisecond request latency
+  decides which side of the payment's `created_at` it lands on. **3 passes, 2 fails over 5 reruns
+  with no code change.**
+
+### My validation instruction was too weak, and this is the lesson
+
+I made @adversary validate those three tests before the close precisely to avoid a construction bug
+failing the expensive pass. It complied exactly and reported **green on the first run** — and that
+was not enough, because **a single green run cannot detect a timing-margin flake.** I asked for the
+right thing and specified it badly. A timing-sensitive test needs repeated runs, or better, no
+reliance on wall-clock margins at all: the remedy that worked for N3-T.5 is to seed instants
+explicitly instead of deriving them from `now()` under latency.
+
+Six of the seven instances this stage share one root: **a test deriving an instant from `now()` and
+assuming request latency will land on the intended side of a boundary.**
+
+### Open gap carried, not closed: R-3-118's event-boundary widening
+
+@builder flagged honestly that `would_cause_historical_overdraft` is still payment-revisions-only,
+though `remaining_at()` and the event timeline now exist to merge in. **I am not dispatching it.**
+It has no failing test, so it cannot block gate 2; the three repairs above and N3-9 can, and at
+**$84.13 of $120** they have to come first. It carries to stage 4, where R-3-* still binds, and it
+is recorded here as a known unmet requirement rather than quietly dropped — the hidden checks may
+well reach it, and if they do, that is the honest cost of this ordering.
+
+### Also unexplained, deliberately: the `n1_10_2` diagnosis is not mine to guess
+
+@builder flagged the timeouts without diagnosing them, correctly treating it as outside N3-8's
+scope. The diagnosis belongs with N3-8.1.
+
 ### Why I did not wait for N3-8 as well
 
 N3-8 is substantial and still building. Verifying four landed items now — including the first real
