@@ -1308,3 +1308,62 @@ Both are inside redline's boundary (`stage-4/tests/`) and neither can be done so
 
 - **`UI_ROUTES`** in `stage-4/tests/invariants/hook.py` must gain `/statement`, `/payments/{a real seeded payment id}` and `/correction-batches` so gate 7 actually measures the new screens at 375/768/1280 and with axe. Dispatching this **before** U3 exists would make g7 fail on three 404s, which is why it waits. U2's pinned run at `3995d78` reads the hook as it was at that commit, so it is unaffected either way.
 - **Scratch-file cleanup:** `stage-4/tests/_manual_check_n24b.py`, `_probe_created_at.py`, `_probe_hook_sanity.py` are committed probes, not tests. They are not collected under `test_*`, so removing them does not touch the gate-2 ratchet — but they must go out as @redline's own commit, not mine or @builder's.
+
+## TICK 2026-10-05T22:10Z — THE STAGE CAP HAS TRIPPED. U3 BREACHED. No new scope; one bounded repair, then the final report.
+
+Two things landed within minutes of each other and they have to be read in the right order.
+
+### 1. The stage cap tripped — this ends the stage, and stage 4 is the last stage
+
+```
+governor check --stage 4 --node U3.1
+  g8: FAIL — stage: minutes 915.6 > cap 900 — return the item to @planner
+  log: evidence/gates/s4/U3.1-g8-20261005T220617-be76.log
+```
+
+Recorded: `stage_closed --stage 4 --result partial` (ledger `cda9c1a6fd53`). **Stage 4 was already
+`partial` from its own close run; this records the cap trip against it.** Per the standing rule a stage
+cap ends the stage and never the run — but stage 4 is the last stage, so **the run ends here.**
+
+**No new scope is dispatched after this point.** U3's remaining surface (the double-submit / stale-page
+/ lost-response attacks @adversary had not yet reached, the `UI_ROUTES` addition, the scratch-file
+cleanup) is **not done and will be reported as not done.**
+
+### 2. @adversary's U3 BREACH is real, and the root cause is mine
+
+At `3e61203`: `app.js`'s `sha256Hex16` calls `crypto.subtle.digest(...)`. **`window.crypto.subtle`
+exists only in a secure context** — `https:`, or the browser's special case for `localhost`/`127.0.0.1`
+— and is `undefined` on a plain-HTTP container IP, which is exactly what `factory.gates.serve` hands
+out and exactly what an untrusted deployment would be. Clicking `refund-submit`, `correct-submit` or
+`batch-submit` throws a synchronous `TypeError` **inside the click handler, before any `fetch()`**, so
+no request is sent and no error slot appears. The user clicks and nothing happens, silently. Confirmed
+live on all three buttons at `192.168.160.2:8080`, with `isSecureContext === false`.
+
+**I caused this.** My U3 dispatch prescribed the mechanism — `ui-rf-{payment_id}-{sha256(amount)[:16]}`
+— rather than the behaviour. Two consequences I checked rather than assumed:
+
+| question | answer | how I know |
+|---|---|---|
+| Are the frozen stages affected? | **No.** `crypto.subtle` appears in `stage-4/` only. | `grep -rn "crypto\.subtle\|isSecureContext" stage-1 stage-2 stage-3 stage-4` → only `stage-4/service/ui/static/app.js` and @adversary's own test |
+| Do the *existing* write paths hash anything? | **No** — and this is the whole fix. `bindForm` (`app.js:400-420`) uses `randomKey()` held in closure, regenerated on each field's `input` event. Zero crypto, and it has been green through every gate since stage 2. | read at `3e61203` |
+| Does anything require a key to survive a page reload? | **No.** R-2-159 says no recovery across reloads is required. | `plan/s2-requirements.md` |
+
+So a content hash bought **nothing** that the policy already in the same file does not, and cost all
+three new write paths. R-U-042 is amended in `plan/s4-ui-requirements.md` to state the behaviour and
+name the proven mechanism. Lesson filed against myself (`plan/lessons.md`, seat `planner`).
+
+### Why I dispatch a repair at all, with the cap already expired
+
+The cap forbids new scope. It does not oblige me to leave the delivered folder in a state where **its
+own suite is red** (681 passed / 1 failed) — the stage-4 tip is now strictly worse than the commit the
+close was recorded at. Of the two ways to fix that, both costing one @builder turn:
+
+- **swap the key mechanism** (~5 lines, to code already green in the same file), or
+- **revert U3 entirely**, discarding the operator's three screens.
+
+The swap is cheaper and keeps the screens, so that is **U3.1** (ledger `4fc65f167ee3`): one attempt,
+that change only, no new scope, and no full gate cycle. If it does not come back green, @builder reverts
+`service/` to `67ba702` and U3 is reported absent. I am not permitted to do the revert myself —
+`service/` is @builder's boundary and I took a scope BLOCK for crossing one in stage 1.
+
+I cannot repair this by editing anything of mine: the defect is one line in @builder's file.
