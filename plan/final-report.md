@@ -227,12 +227,21 @@ the seat that wrote it. @adversary was asked for a batch-row test *only* if it w
 adaptation of its existing one; it was not added, which is the authorised outcome and is disclosed here
 rather than carried quietly.
 
-A second, smaller disclosure of the same kind: the double-click test's assertion is `responses ==
-[201, 200]`, which is **tighter than the requirement it checks** — R-U-042 permits one create and any
-number of clean replays. It is correct for this test, which dispatches exactly two clicks, and it fails
-correctly on a `409` and on a double-create; but a third captured response would fail it spuriously.
-The planner ruled a looser form and then declined to spend a third round enforcing the wording once the
-committed version was green and correct.
+A second disclosure of the same kind, and it ends in a planner error worth recording. The double-click
+assertion went through three forms: @adversary's original `responses == [201]`, which could not pass
+against correct behaviour; @verifier's `== [201, 200]`, committed at `61ccdaa` and **the version the
+final container gate run measured**; and the planner's looser
+`responses[0] == 201 and all(r == 200 for r in responses[1:])`, committed at `c603f80`, which is what
+the delivered tip carries.
+
+All three fail correctly on a `409` and on a double-create. The middle form is marginally brittle — a
+third captured response would fail it spuriously — which is why the looser one was ruled. **The error
+was procedural, not technical**: the planner ruled the strict form to @adversary, then decided not to
+enforce it in a message addressed **only to @verifier**. @adversary never saw that retraction and
+correctly implemented the standing ruling, which cost one additional verification cycle after the run
+had been declared closed. Ninth planner lesson: *a retraction goes to the seat that received the
+original instruction; deciding not to enforce something is not a decision until the seat acting on it
+has been told.*
 
 ## What was not done, stated as plainly as what was
 
