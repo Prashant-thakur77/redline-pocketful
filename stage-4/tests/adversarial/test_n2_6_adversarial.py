@@ -42,7 +42,8 @@ import time
 
 import httpx
 
-from conftest import BASE_URL, auth, make_fixture, reset_ok, tid, ui_login, unique, unique_handle, url, user
+from conftest import (BASE_URL, auth, make_fixture, reset_ok, tid, ui_login, unique, unique_handle, url, user,
+                       wait_for_dom_change)
 
 
 def _two_user_fixture(balance_a=100_000, balance_b=0):
@@ -76,9 +77,14 @@ def test_refused_payment_actually_refreshes_the_displayed_balance(page):
                    headers={**auth(a_token), "Idempotency-Key": unique("drain")}, timeout=10.0)
         route.continue_()
 
+    before_balance = page.locator(tid("wallet-balance")).get_attribute("data-amount")
     page.route("**/payments", drain_then_continue)
     page.click(tid("pay-submit"))
-    page.wait_for_timeout(1500)
+    # Wait on the actual outcome under test (the balance refreshing),
+    # not a fixed sleep -- the drain itself is already causally ordered
+    # (drain_then_continue's httpx.post blocks before route.continue_()),
+    # so only the browser round-trip + refresh needs a condition wait.
+    wait_for_dom_change(page, tid("wallet-balance"), before_balance, attr="data-amount")
 
     assert page.locator(tid("pay-error")).count() > 0, "a refused payment must show pay-error"
     assert page.input_value(tid("pay-handle")) == b_handle, "inputs must be preserved on refusal"
@@ -106,7 +112,10 @@ def test_double_click_rapid_resubmit_never_moves_money_twice(page):
     page.fill(tid("pay-amount"), "1.00")
     page.click(tid("pay-submit"))
     page.click(tid("pay-submit"))
-    page.wait_for_timeout(1500)
+    # The race under test is the two back-to-back clicks themselves, not
+    # this wait -- settling on the form leaving "loading" is the outcome
+    # the assertions below depend on, so wait on it instead of a sleep.
+    wait_for_dom_change(page, tid("pay-form"), "loading", attr="data-state")
 
     a_token = httpx.post(url("/auth/login"), json={"email": fixture["users"][0]["email"], "password": "password123"}, timeout=10.0).json()["token"]
     me = httpx.get(url("/me"), headers=auth(a_token), timeout=10.0).json()
@@ -131,9 +140,9 @@ def test_resubmit_unchanged_then_change_field_moves_money_correctly(page):
     page.fill(tid("pay-handle"), b_handle)
     page.fill(tid("pay-amount"), "0.50")
     page.click(tid("pay-submit"))
-    page.wait_for_timeout(1200)
+    wait_for_dom_change(page, tid("pay-form"), "loading", attr="data-state")
     page.click(tid("pay-submit"))  # unchanged resubmit
-    page.wait_for_timeout(1200)
+    wait_for_dom_change(page, tid("pay-form"), "loading", attr="data-state")
 
     a_token = httpx.post(url("/auth/login"), json={"email": fixture["users"][0]["email"], "password": "password123"}, timeout=10.0).json()["token"]
     me = httpx.get(url("/me"), headers=auth(a_token), timeout=10.0).json()
@@ -141,7 +150,7 @@ def test_resubmit_unchanged_then_change_field_moves_money_correctly(page):
 
     page.fill(tid("pay-amount"), "0.51")  # change -> new key, new payment
     page.click(tid("pay-submit"))
-    page.wait_for_timeout(1200)
+    wait_for_dom_change(page, tid("pay-form"), "loading", attr="data-state")
     a_token2 = httpx.post(url("/auth/login"), json={"email": fixture["users"][0]["email"], "password": "password123"}, timeout=10.0).json()["token"]
     me2 = httpx.get(url("/me"), headers=auth(a_token2), timeout=10.0).json()
     assert me2["total"] == 99_899, f"a changed field must create a distinct new payment: balance={me2['total']}"
@@ -177,7 +186,21 @@ def test_latest_refresh_wins_against_a_real_out_of_order_network_response(page):
                headers={**auth(a_token), "Idempotency-Key": unique("mutate")}, timeout=10.0)
 
     page.click(tid("wallet-refresh"))  # seq=2, fast, arrives and applies first
-    page.wait_for_timeout(2500)  # let the delayed seq=1 response arrive last
+    # The engineered delay (time.sleep(1.5) in delay_first) IS the
+    # deliberate timing construction R-2-154 needs and stays as a sleep
+    # -- but waiting for it to finish arriving should be a condition on
+    # the actual outcome, not a fixed duration guessed to outlast it.
+    # A fixed 2500ms sleep here was the demonstrated flake (g2 680/1,
+    # clean on an isolated rerun): under host contention the delayed
+    # response can take longer than the guessed margin to arrive AND be
+    # (correctly) discarded, so the assertion below raced the sleep
+    # instead of the real event. Poll for the final, correct value
+    # directly, with a generous timeout that has no bearing on the race
+    # itself -- it only needs to outlast worst-case host contention.
+    page.wait_for_function(
+        "(sel) => document.querySelector(sel)?.getAttribute('data-amount') === '98766'",
+        arg=tid("wallet-balance"), timeout=15000,
+    )
 
     final = page.locator(tid("wallet-balance")).get_attribute("data-amount")
     assert final == "98766", f"a stale/earlier refresh response must never overwrite a later one: got {final!r}"

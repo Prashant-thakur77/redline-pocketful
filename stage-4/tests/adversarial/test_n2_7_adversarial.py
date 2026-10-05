@@ -40,7 +40,8 @@ import time
 
 import httpx
 
-from conftest import authorization, make_fixture, reset_ok, tid, unique, unique_handle, url, user
+from conftest import authorization, make_fixture, reset_ok, tid, unique, unique_handle, url, user, \
+    wait_for_absent, wait_for_present
 
 
 def _auth_pair(amount=2000, balance=2000):
@@ -71,7 +72,10 @@ def test_malformed_capture_amount_silently_captures_full_remaining_instead_of_er
     cap_input = page.locator('[data-testid^="authorization-capture-amount-"]')
     cap_input.fill("garbage")
     page.click('[data-testid^="authorization-capture-"][data-action="capture"]')
-    page.wait_for_timeout(1000)
+    # A malformed amount is rejected client-side before any fetch, so the
+    # error slot appears synchronously -- wait on it directly rather than
+    # a fixed sleep sized for a network round trip that never happens.
+    wait_for_present(page, '[data-testid="authorization-error-slot"] [data-state="error"]')
 
     b_token = httpx.post(url("/auth/login"), json={"email": fixture["users"][1]["email"], "password": "password123"}, timeout=10.0).json()["token"]
     me_b = httpx.get(url("/me"), headers={"Authorization": f"Bearer {b_token}"}, timeout=10.0).json()
@@ -147,7 +151,15 @@ def test_split_preview_matches_the_exact_divmod_share_rule(page):
         page.fill(tid("split-handles"), "")
         page.fill(tid("split-amount"), amount)
         page.fill(tid("split-handles"), ",".join(handles))
-        page.wait_for_timeout(200)
+        # Pure client-side computation triggered by the input events above
+        # -- wait for each share to actually settle on its expected text
+        # instead of guessing how long a re-render takes.
+        for h, w in zip(handles, want):
+            page.wait_for_function(
+                "([h, w]) => { var el = document.querySelector('[data-testid=\"split-share-' + h + '\"]'); "
+                "return !!el && el.innerText.trim() === w; }",
+                arg=[h, w], timeout=5000,
+            )
         got = [page.locator(f'[data-testid="split-share-{h}"]').inner_text() for h in handles]
         assert got == want, f"amount={amount} handles={handles}: want {want}, got {got}"
 
@@ -180,7 +192,7 @@ def test_stale_pay_button_disappears_after_another_client_pays_first(page):
     assert r2.status_code == 201, r2.text
 
     page.click(f'[data-testid="request-pay-{req_id}"]')
-    page.wait_for_timeout(2000)
+    wait_for_absent(page, f'[data-testid="request-pay-{req_id}"]')
 
     assert page.locator(f'[data-testid="request-pay-{req_id}"]').count() == 0, "the stale pay button must disappear"
     assert page.locator(f'[data-testid="request-item-{req_id}"]').get_attribute("data-status") == "paid"
