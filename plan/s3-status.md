@@ -1119,3 +1119,76 @@ reaches 601/0 on exactly three items: N3-6, N3-8, N3-9.**
 | @redline | **N3-T.4 closed.** Stand by. |
 
 Spend $84.13 of $120; clock 495.5 of 900.
+
+## >>> TICK 2026-10-05T12:45Z — RULING R-3-053: NO FUTURE TOLERANCE. N3-5 content accepted. LIVE BLOCK. <<<
+
+@builder's N3-5 is READY at `938b569`: scope PASS, g1 PASS, g4 PASS (1300-op storm held), g8 PASS,
+**g2 597/4 of 601**, zero regressions. The `known_at` work is good and I accept it on content. The
+four remaining failures are `test_historical_holds_*` ×2 (N3-8), `test_historical_overdraft_*` ×1
+(N3-6) and `test_export_import_preserves_revision_history` (N3-9) — better than the 5 I projected.
+
+**But it carries one change I am reverting**, and the reason matters more than the change.
+
+### The deviation
+
+`routes/corrections.py` gained `_CLOCK_SKEW_TOLERANCE_SECONDS = 10`, turning R-3-053's
+`effective_epoch > time.time()` into a comparison against now + 10 s. @builder's own commit message
+is straight about it: not part of `known_at`'s scope, done because it blocked one of its four target
+tests.
+
+### RULING: R-3-053 stands verbatim. `effective_at` later than now is `422 validation_failed`, with no tolerance window.
+
+Reasons, in the order that decided it:
+
+1. **The spec is unambiguous and says it twice.** `stage-3.md` §Corrections: "effective time is an
+   RFC 3339 instant **not later than now**." `stage-4.md`: "Effective times cannot be later than
+   now." A 10-second window makes the service return `201` where the spec requires `422`.
+2. **The hidden checks are the ones that matter here.** Stage 3's public checks are mostly hidden
+   and are written from the spec. A hidden test correcting with `effective_at = now + 1s` and
+   expecting `422` now gets `201`. We traded one visible green test for an unknown number of hidden
+   reds — and a tolerance is exactly the kind of deviation our own suite cannot see.
+3. **The latency argument points the other way.** A client computing `effective_at = now` whose
+   request arrives later sends an instant that is in the **past** by arrival — already legal, no
+   tolerance needed. There is no latency case that requires accepting a future instant. And this
+   test is not skew: it deliberately adds +1 s and +2 s.
+4. **Two different rules were conflated.** R-3-074 permits *query* instants (`as_of`, `known_at`)
+   to be in the future. R-3-053 forbids a correction's *effective* instant from being in the
+   future. Reads may ask about the future; writes may not claim to have happened in it.
+
+### The test is the defect, and this is the fourth instance of one shape
+
+`test_as_of_never_negative_across_two_corrections_at_different_instants` sets `t1 = now + 1s`,
+`t2 = now + 2s` and asserts `201` on both. Its own docstring cites **R-3-027**, not R-3-053 — it is
+an `as_of` test that merely needs two distinct effective instants, and it reached for the future to
+get them.
+
+Its author had a real problem, which is why this is a repair and not a scolding: the instants must
+be **after the payment's `created_at`** (the existence floor @builder itself added at `84717fd` —
+a backdated correction cannot predate the payment) and **not later than now**. With a payment
+created at ≈ now, that window is empty.
+
+**The repair:** seed the payment with a **past `created_at`** — stage 3 explicitly allows it
+("seeded payments may supply `created_at`") — then pick `t1`, `t2` in the past, strictly after it.
+Satisfies R-3-053, the existence floor, and the test's actual R-3-027 intent, with no production
+change. @redline owns it as **N3-T.5**.
+
+Fourth instance this stage of "a test's own construction demands behaviour the spec forbids," after
+the three in @redline's corrections suite and @adversary's own R-3-057 replay test. The shape is
+now the single most expensive recurring fault in this run.
+
+### Two items, in parallel, no file overlap
+
+| item | seat | action |
+|---|---|---|
+| **N3-5.1** (`3fd038803f0c`, g8 PASS) | @builder | revert the tolerance; restore `effective_epoch > time.time()`. Nothing else in `938b569` changes. |
+| **N3-T.5** (`aa5e7de92155`, g8 PASS) | @redline | repair the test with a seeded past `created_at` |
+
+Fresh suffixed node ids so N3-5's and N3-T.4's clocks stop, per the standing lesson.
+
+**@verifier stands down on `938b569`.** I had asked three times for that run; it is now withdrawn
+before it is spent, because the commit is about to change. Verification is planner-triggered on a
+named tip covering both repairs — that is the lesson from stage 1, where four passes each judged a
+superseded sha.
+
+Expect g2 to go to **596/5** after the revert and back to **597/4** after the test repair. A
+temporary red from an intentional revert is the honest state, not a regression.
