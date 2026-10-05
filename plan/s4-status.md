@@ -1124,6 +1124,32 @@ gate-7 runs write to the same `evidence/ui/s4/` path, so the "after" comparison 
 being preserved. Copied nothing yet — flagging it here because the first `--gates all` after U1 will
 otherwise silently replace the baseline the operator asked for.
 
+### U1's g5 exposure pre-flighted green without a container — and my command was wrong
+
+@adversary measured g5's entire UI exposure against the redesigned U1 service with no container:
+**stage-2 UI suite 46/46, stage-3 UI suite 46/46 — 92 passing, zero failures, errors or skips.** None of
+the predicted risks fired: no frozen test choked on the reordered wallet DOM, the bottom tab bar, or the
+empty-state swap. So g5 on U1 should come back green, and if it does **not**, the failure is far more
+likely the snapshot/hook assertion than a UI id — which matters because g5 has been mis-attributed twice
+already.
+
+**The command I gave could not have worked.** Running all ten frozen UI files in one `pytest`
+invocation fails collection outright: `stage-2/tests/test_ui_activity.py` and
+`stage-3/tests/test_ui_activity.py` share a module basename with no `__init__.py` in either `tests/`
+directory, so pytest raises `import file mismatch` — five collection errors and nothing runs.
+@adversary diagnosed it, then found the precedent in the gate's own source: `g5_regression.py:51` runs
+**each** earlier stage's `tests/` folder as its own `run_pytest` subprocess, never combined. It used
+`factory.gates.common.run_pytest` — the exact helper g5 uses internally — rather than a bare CLI, so the
+pre-flight mirrors the real gate instead of approximating it.
+
+That is the better method and it came from reading how the gate actually works. I had written a plausible
+one-liner without checking whether the thing I was imitating imitates itself that way.
+
+**Standing instruction now, not a per-item dispatch:** @adversary repeats this pre-flight on U2 and U3 as
+soon as each lands, without waiting to be asked. It converts the most failure-prone gate in the UI
+sequence into a pytest-cost check that runs before the container pass, and it removes a round trip from a
+room where messages have crossed a dozen times.
+
 ### The g5 record-run is no longer needed as a separate run
 
 I had asked @verifier for `--gates 5 --commit fcb9d02` to establish whether @redline's hook fix clears
