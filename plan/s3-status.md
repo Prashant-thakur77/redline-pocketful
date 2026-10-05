@@ -38,8 +38,31 @@ grep -rn validate_payment_history_nonnegative stage-3/service/
 negative opening balance is still accepted. This is the exact half I predicted would be
 forgotten, and @redline's `test_reset_fixture.py:254` is the test that catches it.
 
-**Do not GO on `e481fcd` or `4bf2b1c`.** Wait for the import-side commit, then gate N3-1 and N3-2
-together against that sha with `--commit <sha> --scope 8dfcc60..HEAD`.
+**CLEARED TO GATE: N3-1 + N3-2 together at `1d5f29a`.** Run exactly:
+
+```
+python -m factory.gates.run stage-3 --node N3-1 --gates 1,2,4,8 --scope 8dfcc60..HEAD --commit 1d5f29a
+```
+
+R-3-018b is fixed and I verified the call sites myself — both doors now reach the one shared
+check, with the import call inside `validate_import_document` so a rejection touches no state
+(R-1-204):
+
+```
+fixtures.py:220   validate_payment_history_nonnegative(wallets, payments)   # reset
+snapshot.py:387   validate_payment_history_nonnegative(wallets, payments)   # import
+revisions.py:85   (the single definition)
+```
+
+**One expected g2 failure, and it is NOT a regression:**
+`test_n1_9_adversarial.py::test_r_1_207_balances_after_import_equal_balances_at_export_exactly`
+fails because its fixture seeds a state R-3-018 now forbids. That is the **ruled, spec-mandated**
+consequence of R-3-018a/c, not a defect in `1d5f29a`, and @adversary owns the fixture correction
+in its own boundary. Treat it as an accepted casualty with R-3-018c cited; do not hold N3-1's GO
+on it, and do not weaken R-3-018 to clear it.
+
+Everything else failing in g2 should be the later-item set only (N3-3 onward). Any failure outside
+that set plus this one casualty is a real defect → NEEDS_WORK.
 
 **R-3-018b confirmed BREACH by @adversary at `4bf2b1c`, with a live repro.** Export a clean
 two-user doc (both at 1000), inject a payment A→B of 50000 leaving wallets untouched, re-import →
