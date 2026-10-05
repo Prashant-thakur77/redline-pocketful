@@ -1453,3 +1453,46 @@ the frozen stages' pay/request/authorize forms, so the frozen suites are the onl
 stage 2's and stage 3's browser behaviour still works). Fallback stated in advance: if @adversary's
 fixture fix never lands, run at `3c68b52` and report g2 with that one failure annotated as test-side —
 honest, where an unknown suite result would not be.
+
+## TICK 2026-10-05T23:10Z — the R-U-050 baseline is NOT lost: @verifier's own later commit fixed it. The gap is the *after* set.
+
+@verifier disclosed the before-baseline screenshots as overwritten and unrecoverable and handed me the
+question of how to report the loss. **I checked instead of relaying, and the disclosure is superseded by
+@verifier's own next action.**
+
+| claim | what I found |
+|---|---|
+| "those 18 files were never committed to git" | **False as of now.** `git log --all -- 'evidence/ui/s4/**'` → `cc81323` *"Stage 4: gate-7 before-baseline screenshots (R-U-050), regenerated at 7b9a485"*, authored by Verifier, 18 PNGs + the g7 log. |
+| "the file on disk right now is U1's *after* image" | **No longer true.** Disk mtimes are 03:52 and `cc81323` landed 03:53; `git show cc81323:…/home-375.png \| wc -c` and `wc -c < …/home-375.png` both give **64215** — disk is byte-identical to the committed regenerated *before* set. |
+| "there is no recoverable copy" | **Resolved, by regeneration rather than recovery.** |
+
+The original close-run capture *was* genuinely destroyed, and @verifier's account of how is correct: g7
+reuses one output path per stage, so U1's own g7 run overwrote it. But @verifier then **regenerated the
+baseline from `7b9a485`** — the exact last commit before U1 — in a pinned worktree, with g7 reporting
+`PASS — 6 route(s) clean at 375/768/1280`
+(`evidence/gates/s4/before-baseline-g7-20261005T222238-6cc9.log`).
+
+**That is a better reconstruction than the one I would have ruled.** My fallback was going to be a g7
+run against frozen `stage-3/`, on the reasoning that stage-4's pre-U1 UI was the copy-forward of it.
+Regenerating from `7b9a485` itself removes that inference entirely: it is the pre-redesign commit, not
+something argued to resemble it. The report will call it a **faithful reconstruction, not the original
+capture** — the distinction is small but it is the kind that matters in an evidence record.
+
+### The real remaining gap, which neither of us had named: there is no *after* set
+
+`git log --all -- 'evidence/ui/s4/**'` returns **exactly one commit**. So R-U-050 is half satisfied:
+a committed *before*, and no *after* anywhere. And because the before set is now safe in git, a further
+g7 run may freely overwrite the working-tree copies — the before is retrievable from `cc81323` forever.
+
+So the final run grows by one gate, to **`--gates 2,5,7`**. Third revision of the same instruction, and
+the reason is new information rather than a change of mind: I learned the before set is safe *and* that
+no after set exists, and g7 at the tip is now the only way R-U-050 is satisfiable at all. It is still
+one run, and g5 and g7 both need the service g2 already starts, so the marginal cost is small.
+
+**My share of this.** At `7b9a485` I wrote *"record the R-U-050 before baseline (18 files verified);
+flag the overwrite risk"* — I identified the exact risk and then treated flagging it as handling it,
+assigning neither an owner nor a deadline. @verifier's "I'll watch for that" was accepted by me as
+sufficient when it was not. Lesson filed (`plan/lessons.md`, seat `planner`, eighth entry): a named risk
+is not handled until it has an owner and an action **in the same turn it is named**, and evidence
+identified as a baseline is committed or copied out of the producing tool's path immediately, never
+watched.
