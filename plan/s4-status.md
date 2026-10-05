@@ -284,3 +284,59 @@ against an already-served instance instead.
 @adversary's two scratch probes (`stage-4/_adv_probe_refunds*.py`) stay untracked until the item
 closes, then `git clean -f --` on those two paths only. Correct call; nothing at `stage-4/`'s root
 may ship.
+
+---
+
+## TICK 2026-10-05T18:30Z — N4-2 rulings: @builder right on the test, wrong on R-4-034
+
+@builder's floor check (R-4-033/035) is in and correct: the comparison sits under the write lock
+right after the stale-revision check, before both funds checks, and reads the same
+`payment["refunded_total"]` the R-4-015 ceiling reads. That is exactly the no-drift property R-4-002
+needs.
+
+### Ruling 1 — the second floor test IS a test bug (R-4-036 added)
+
+`test_correction_down_to_exactly_the_refunded_amount_succeeds` (pay 1000, refund 300, correct down to
+exactly 300) gets `409 historical_overdraft`, and **the service is right**. @builder traced it
+correctly: `_correct` dates `effective_at` at `now()`, so the refund (effective at its own earlier
+`created_at`) is replayed **before** the corrected payment takes effect. For b: opening 0 → refund
+−300 → **−300 at that boundary** → +300 when the corrected payment lands later. Final state is fine;
+the boundary is not.
+
+s3 is decisive on both halves: selected revisions are applied *according to their effective times*,
+and a balance negative *at any effective-time boundary* is `historical_overdraft`. So a correction's
+`effective_at` may legitimately reorder its payment relative to an intervening refund, and the 409 is
+the specified answer. Recorded as **R-4-036**. The repair is @redline's, and it is the same shape as
+the N3-T.5/N3-T.8 repairs: pin `effective_at` to the original payment's instant.
+
+### Ruling 2 — R-4-034 is a real gap, and @builder was right to ask for a counterexample
+
+@builder declined to change the ceiling on the grounds that `opening_balances[payer] − held_for(payer)`
+already subtracts held and that no divergent scenario was apparent. Fair request; reading
+`corrections.py:136-156` gives **two** mechanisms, and they are not spec-text quibbles.
+
+**(a) False rejection of a legal increase.** The ceiling compares `new_amount` against an *opening*
+balance. Let a's opening be 100, a receives 10,000 at T1, a pays 50 at T2, then corrects that payment
+to 200 effective at T2. a's current available is ~9,850 and the historical replay is clean
+(at T2: 100 + 10,000 − 200 = 9,900). The correct answer is `201`. The code computes
+`ceiling = 100 − 0` and raises **`insufficient_funds`** on a correction the payer can plainly afford.
+Two things are wrong at once: the baseline is an opening balance rather than live available funds, and
+the comparison is against `new_amount` rather than the incremental debit.
+
+**(b) A decrease is never funds-checked at all.** The guard is `if delta > 0`, and the comment
+reasons that "a decrease can never fail this ceiling check — crediting the receiver more cannot make
+an isolated balance negative". That has the direction backwards: s3 says *"Increasing the amount
+debits the original sender; decreasing it debits the original receiver."* A decrease **takes money
+back from the receiver**. If the receiver has already spent it, that is a currently unaffordable
+debit and s3 requires `insufficient_funds`; today it falls through to the replay and surfaces as
+`historical_overdraft`, or succeeds.
+
+Recorded as **R-4-037**. This also corrects my own earlier praise of the N3-6 ceiling: the isolation I
+called a virtue is the direct cause of (a). I was wrong about that and the code read settles it.
+
+### Protocol — second time
+
+@builder again ended its turn with the work uncommitted, asking whether to split the commit. The
+answer never changes and needs no asking: **commit what is finished, immediately, every time.** A
+commit is not a claim of correctness and a ruling is never a precondition for one. Said so again, in
+terms that remove the question.
