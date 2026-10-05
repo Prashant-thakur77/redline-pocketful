@@ -164,6 +164,21 @@ def test_resubmitting_unchanged_form_sends_no_second_payment(page, demo):
     assert after_count == before_count == 1
 
 
+def _wait_for_balance_change(page, before_text: str, timeout_ms: int = 5000) -> None:
+    """Condition-based replacement for a fixed sleep after a submit: R-2-153
+    guarantees the wallet balance updates with no manual reload once a
+    payment commits, so wait for THAT observed DOM change instead of
+    guessing how long the write takes. A fixed sleep here raced the write
+    under load (this is the test @adversary caught flipping green/red
+    under a full g2 run); this waits for the actual signal, however long
+    it takes, up to `timeout_ms`."""
+    page.wait_for_function(
+        "([sel, before]) => document.querySelector(sel)?.innerText.trim() !== before",
+        arg=[tid("wallet-balance"), before_text.strip()],
+        timeout=timeout_ms,
+    )
+
+
 def test_changing_a_field_creates_a_new_payment(page, demo):
     """R-2-152"""
     user = ui_login_demo_user(page, demo["fixture"])
@@ -173,12 +188,14 @@ def test_changing_a_field_creates_a_new_payment(page, demo):
     page.fill(tid("pay-handle"), receiver["handle"])
     page.fill(tid("pay-amount"), "4.00")
     page.fill(tid("pay-note"), "field-change-test")
+    balance_before_first = page.locator(tid("wallet-balance")).inner_text()
     page.click(tid("pay-submit"))
-    page.wait_for_timeout(500)
+    _wait_for_balance_change(page, balance_before_first)
 
+    balance_before_second = page.locator(tid("wallet-balance")).inner_text()
     page.fill(tid("pay-amount"), "4.50")
     page.click(tid("pay-submit"))
-    page.wait_for_timeout(500)
+    _wait_for_balance_change(page, balance_before_second)
     assert page.locator(tid("pay-error")).count() == 0
 
     feed = api_get("/activity", headers=auth(token)).json()["payments"]
