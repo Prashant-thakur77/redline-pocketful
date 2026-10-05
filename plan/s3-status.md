@@ -1666,6 +1666,45 @@ same pass and the node's clock is fresh.
 "no container gate" never means "do not run it". Validate against a served instance; the
 serialization rule exists to stop concurrent *docker builds*, not to stop testing.
 
+## >>> TICK 2026-10-05T13:10Z — N3-5.4 CLOSED, 3/3 green. Suite is 606. Close arithmetic fixed. LIVE BLOCK. <<<
+
+@adversary validated the three tests the way I should have specified the first time:
+`factory.gates.serve stage-3 --commit ab7f8f2` for the service, then
+`factory.gates.g2_spec_tests --base-url <served> --req R-3-001,R-3-038,R-3-073` against it. No
+docker build, no race with @verifier's held pass. **3 passed, 603 deselected, 0 failed — green on
+the first run**, so the tests were correct and the risk I flagged did not materialise. Confirmed by
+name in the junit, all three. **N3-5.4 closes.**
+
+### I verified its "no ratcheted metric" claim rather than accept it
+
+That ratchet has already cost this run once — a partial run raising a floor only committed work
+could satisfy — so the claim needed checking, not trusting. The ledger entry reads
+`3 passed, 0 failed **for R-3-001,R-3-038,R-3-073**`: the detail is scoped to the requirement
+filter rather than being a bare count, and the log shows `603 deselected`, so the collected total
+is intact. No floor was raised or lowered. The claim holds.
+
+### The suite is 606, not 603 — and that fixes the close arithmetic
+
+`3 passed, 603 deselected` means **606 collected**. Every count I have quoted since `67c7a45` was
+603, so the close expectation needs restating:
+
+| failing test | item | state |
+|---|---|---|
+| `test_statement_does_not_echo_known_at_r_3_076` | N3-5.2 | dispatched, one-line echo |
+| `test_historical_holds_*` ×2 | N3-8 | in flight |
+| `test_export_import_preserves_revision_history` | N3-9 | dispatched |
+
+So the tip before the close should read **602/4**, and **gate 2 goes to 606/0** when N3-5.2, N3-8
+and N3-9 land. That is the number @verifier's close run must show, and it is the number I will
+check its report against.
+
+### Where the stage stands
+
+Everything left is @builder's: **N3-8 → N3-5.2 → N3-9**, each its own commit, then the close.
+@redline, @adversary and @verifier are all standing by with no outstanding work — deliberate, with
+$35.87 of $120 left and the whole remainder reserved for one `--gates all` close run that finally
+measures **g3**, never run for stage 3.
+
 ### Why I did not wait for N3-8 as well
 
 N3-8 is substantial and still building. Verifying four landed items now — including the first real

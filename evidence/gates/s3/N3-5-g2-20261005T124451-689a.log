@@ -1,0 +1,100 @@
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /tmp/redline-wt-ph1x7yc1/stage-3/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s3/N3-5-g2-20261005T124451-689a.junit.xml  (exit 1)
+_still_shows_held():
+        """R-3-112: a hold that was voided LATER must still show as held for an
+        as_of instant taken before the void."""
+        fixture, token_a, _ = two_user_fixture(balance_a=5000, balance_b=0)
+        b_handle = fixture["users"][1]["handle"]
+        hold = open_authorization(token_a, b_handle, amount=1000)
+        mid = datetime.now(timezone.utc) + timedelta(milliseconds=50)
+    
+        voided = api_post(f"/authorizations/{hold['authorization_id']}/void", json={}, headers=auth(token_a))
+        assert voided.status_code == 200, voided.text
+    
+        view = _me_as_of(token_a, mid)
+>       assert view["held"] == 1000, "an as_of before the void must still count the hold"
+E       AssertionError: an as_of before the void must still count the hold
+E       assert 0 == 1000
+
+/tmp/redline-wt-ph1x7yc1/stage-3/tests/test_historical_holds.py:63: AssertionError
+_____ test_historical_overdraft_rejection_reports_the_distinct_error_code ______
+
+    def test_historical_overdraft_rejection_reports_the_distinct_error_code():
+        """R-3-060: a historical (intermediate-instant) overdraft is reported
+        with its own error code, distinct from a plain final-balance
+        insufficient_funds rejection — callers need to tell the two apart."""
+        fixture, token_a, token_b = two_user_fixture(balance_a=1000, balance_b=0)
+        b_handle = fixture["users"][1]["handle"]
+    
+        pay1 = api_post("/payments", json={"to_handle": b_handle, "amount": 100},
+                        headers={**auth(token_a), **idem(unique("k1"))})
+        assert pay1.status_code == 201, pay1.text
+        pay1_id = pay1.json()["payment_id"]
+    
+        pay2 = api_post("/payments", json={"to_handle": b_handle, "amount": 850},
+                        headers={**auth(token_a), **idem(unique("k2"))})
+        assert pay2.status_code == 201, pay2.text
+    
+        corr = api_post(f"/payments/{pay1_id}/corrections",
+                        json={"expected_revision": 1, "amount": 200,
+                              "effective_at": datetime.now(timezone.utc).isoformat(), "reason": "raise"},
+                        headers={**auth(token_a), **idem(unique("k3"))})
+        assert corr.status_code == 409, corr.text
+        body = corr.json()
+>       assert body["error"]["code"] == "historical_overdraft", \
+            f"expected the historical_overdraft code, got {body['error'].get('code')}: {corr.text}"
+E       AssertionError: expected the historical_overdraft code, got insufficient_funds: {"error": {"code": "insufficient_funds", "message": "insufficient funds"}}
+E       assert 'insufficient_funds' == 'historical_overdraft'
+E         
+E         - historical_overdraft
+E         + insufficient_funds
+
+/tmp/redline-wt-ph1x7yc1/stage-3/tests/test_historical_overdraft.py:136: AssertionError
+________________ test_export_import_preserves_revision_history _________________
+
+    def test_export_import_preserves_revision_history():
+        """R-3-100: a payment's corrections, applied before export, must still
+        be visible (same revision numbers, amounts, reasons) after an
+        import — the revision history is part of the state, not derived
+        fresh from the payment's current fields."""
+        a_id, b_id = unique("u"), unique("u")
+        a_handle, b_handle = unique_handle("a"), unique_handle("b")
+        fixture = make_fixture([user(a_id, a_handle, balance=5000), user(b_id, b_handle, balance=0)])
+        reset_ok(fixture)
+        token_a = login_token(fixture["users"][0]["email"])
+    
+        pay = api_post("/payments", json={"to_handle": b_handle, "amount": 100},
+                       headers={**auth(token_a), **idem(unique("k"))})
+        assert pay.status_code == 201, pay.text
+        pay_id = pay.json()["payment_id"]
+        corr = api_post(f"/payments/{pay_id}/corrections",
+                        json={"expected_revision": 1, "amount": 250,
+                              "effective_at": "2026-01-01T00:00:00+00:00", "reason": "pre-export-correction"},
+                        headers={**auth(token_a), **idem(unique("k"))})
+        assert corr.status_code == 201, corr.text
+    
+        before_revisions = api_get(f"/payments/{pay_id}/revisions", headers=auth(token_a)).json()
+    
+        document = api_get("/_test/export").json()
+        imported = api_post("/_test/import", json=document)
+        assert imported.status_code == 204, imported.text
+    
+        token_a_after = login_token(fixture["users"][0]["email"])
+        after_revisions = api_get(f"/payments/{pay_id}/revisions", headers=auth(token_a_after)).json()
+>       assert after_revisions == before_revisions
+E       AssertionError: assert {'revisions':...00:00', ...}]} == {'revisions':...00:00', ...}]}
+E         
+E         Differing items:
+E         {'revisions': [{'revision': 1, 'amount': 100, 'effective_at': '2026-10-05T12:49:36.010727+00:00', 'recorded_at': '2026-10-05T12:49:36.010727+00:00', ...}]} != {'revisions': [{'revision': 1, 'amount': 100, 'effective_at': '2026-10-05T12:49:36.010727+00:00', 'recorded_at': '2026..., 'amount': 250, 'effective_at': '2026-01-01T00:00:00+00:00', 'recorded_at': '2026-10-05T12:49:36.021644+00:00', ...}]}
+E         Use -v to get more diff
+
+/tmp/redline-wt-ph1x7yc1/stage-3/tests/test_upgrade_stage1_stage2.py:55: AssertionError
+=========================== short test summary info ============================
+FAILED ../../../../../tmp/redline-wt-ph1x7yc1/stage-3/tests/test_historical_holds.py::test_as_of_before_hold_opened_shows_zero_held
+FAILED ../../../../../tmp/redline-wt-ph1x7yc1/stage-3/tests/test_historical_holds.py::test_as_of_between_open_and_void_still_shows_held
+FAILED ../../../../../tmp/redline-wt-ph1x7yc1/stage-3/tests/test_historical_overdraft.py::test_historical_overdraft_rejection_reports_the_distinct_error_code
+FAILED ../../../../../tmp/redline-wt-ph1x7yc1/stage-3/tests/test_upgrade_stage1_stage2.py::test_export_import_preserves_revision_history
+4 failed, 597 passed in 286.56s (0:04:46)
+
+
+
+RESULT: FAIL — 597 passed, 4 failed, 0 errors, 0 skipped
