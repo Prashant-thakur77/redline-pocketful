@@ -2263,3 +2263,58 @@ git clean -f -- <path> <path> ...        # never `git clean -fd` with no paths
 with the same cleanup for `stage-2/`'s leftovers (`_restart_server.py`, `_server.log`,
 `tests/_manual_check_n24b.py`). None of it is a gate-2 risk (all `_`-prefixed, outside pytest's
 `test_*.py` pattern); it is stage-4 hygiene only, so it must not cost a gate run to fix.
+
+---
+
+## TICK 2026-10-05 ~16:10 — N3-9A ACCEPTED. Final stage-3 close run dispatched.
+
+**N3-9A is closed.** @redline delivered both parts: `40e6169` (part A, the two `test_runtime.py`
+fixture back-ports) and `9612814` (part B, six new tests in `stage-3/tests/test_g6_survivors.py`).
+Both NEEDS_WORK items from the `b453a49` close are now answered:
+
+| item | seat | state | commit |
+|---|---|---|---|
+| N3-9A | @redline | **GO (planner-accepted, test-only item)** | `9612814` |
+| N3-9B | @adversary | **GO (planner-accepted)** | `fa39d59` |
+| close | @verifier | **dispatched 16:10 at tip `9612814`** | — |
+
+### Two of my six mutant descriptions were wrong, and @redline caught both
+
+It read the per-mutant diff out of `close-g6-20261005T142212-97f3.log` instead of trusting my
+paraphrase, and found that mutant #4 is in `json_equal`'s **boolean** branch (not the numeric one I
+described) and mutant #7 is on the statement window's **lower** bound `from_epoch <` (not the upper
+`to_epoch` bound I described). Tests written to my dispatch as given would have executed neither
+mutated line and both survivors would have survived a second time. Recorded in `plan/lessons.md`:
+paste the mutant diff verbatim, never restate it. This is the second time this run that a seat
+reading the primary artefact beat the planner's summary of it; both times the seat was right.
+
+Both probabilistic tests (#5 drop-lock, #9 import race) were run 4 consecutive times each with no
+flicker before commit, which is the bar I set. Neither was dropped. 616 collected (610 + 6),
+570/570 non-UI green locally.
+
+### The close run
+
+Governor at `--stage 3 --node close`: **g8 PASS — within caps**, both lines. Tip resolved from the
+repository as `9612814`, not from any sha quoted in a message.
+
+Gates to run: **2, 5, 6** with `--scope 7d8405b..9612814`.
+
+- **g2** because six tests that have never run inside a gate were added; it also re-checks the
+  ratchet at the new count.
+- **g5** because the two remaining failures were exactly N3-9A part A; expect **0**.
+- **g6** because that is the one real gap, 40% at `b453a49` with six named survivors now covered.
+- Not 1/3/4/7: PASS at `b453a49` and only files under `stage-*/tests/` changed since.
+
+**The g6 decision is pre-committed and unchanged:** gate 6 samples 12 mutants per run, so a
+resampled score is not guaranteed to clear 80% however good the coverage is. **One run only.** If
+it clears 80%, stage 3 is `closed`. If it does not, stage 3 is recorded **`partial`** with g6 named
+and its survivors listed, and stage 4 starts immediately. I will not spend the remaining run
+chasing a resampled score, and @verifier is not to re-run g6 hoping for a better draw.
+
+### Still outstanding before `stage_copy stage-3 stage-4`
+
+Scratch cleanup, dispatched but not yet confirmed: @adversary's five files and @builder's
+`_run_*.py` / `_restart_server.py` / `_kill_old_s2.py` / `_debug_hold.py` / `_sysload.py` /
+`_server.log` plus `stage-2/`'s leftovers. Route is `git clean -f -- <explicit paths>`, never
+`rm`, and **never** anything under `stage-*/tests/`. `factory.stage_copy` carries untracked files,
+so this must be clean before the copy, but it must not cost a gate run.
