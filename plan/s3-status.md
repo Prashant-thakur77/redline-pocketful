@@ -1386,11 +1386,26 @@ harmless at today's op count — residue 7 is −1 h, so it stays past for any `
 a storm of 3600+ operations residue 7 would cross into the future and the hole starts to
 reappear, one residue at a time. Gate 4 runs ~1300 ops, so there is no live defect.
 
-Not dispatching a fix: with $35.87 left, N3-8 and N3-9 are the only things between here and gate 2
-green, and this costs a seat turn for no current effect. **It is written down here instead, and it
-belongs to the stage-4 hook work** — `tests/invariants/hook.py` copies forward, so stage 4 inherits
-both the fix and this coupling. Clamping the per-op jitter below the smallest offset, or deriving
-it from `i % 3600`, closes it permanently.
+**Reversed: dispatched as N3-T.7** (`1d9087b291b7`, g8 PASS). I first wrote this up as deferred to
+the stage-4 hook work on budget grounds. That was the wrong call once @redline reported in and went
+idle: the fix is one line, the seat is free, it is in the hook of the *binding* gate, and it
+otherwise degrades silently as the storm grows — the same failure mode N3-T.6 just repaired.
+Deferring a one-line fix to save a turn I am spending anyway is false economy. Bounded explicitly:
+one line, no other change, no gate run.
+
+### N3-T.6 accepted, with the audit I asked for
+
+@redline's residue-by-residue smoke probe against the live binary is the evidence that settles
+coverage: residues 0–7 produced only `{201, 409}` across repeated samples with **zero leaked 422s**,
+and residue 8 produced 422 every time. That is a direct measurement of "does this operation reach
+the path it is named for", not an argument that it should.
+
+It also audited every other i-deterministic storm operation for the same shape and found none:
+`_settlement_boundary_op` (`i//11 % 2` — both branches reach real affordability logic, one success
+and one genuine `insufficient_funds`), `_payment_boundary_op` (`i % 3` — all three reach the real
+funds check), `_auth_capture_op` (`i % 3` — all three reach real capture logic),
+`_auth_create_op`/`_auth_void_op` (no internal split), and the top-level `kind = i % 5` direct ops
+(every computed amount and handle stays in range). The 5-of-9 correction hole was the only instance.
 
 ### BREACH CONFIRMED after the tip was named: R-3-076 on `GET /statement` (N3-5.2)
 
