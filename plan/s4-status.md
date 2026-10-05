@@ -1662,6 +1662,41 @@ caught by a different seat, each resolved the same way: re-derive from a named c
 started instance. Three times makes it the most reproducible failure mode of this method and it goes in
 the final report as a property of the design, not as three separate mistakes.
 
+## TICK 2026-10-06T00:25Z — R-U-050 closed structurally; one commit and one gate left
+
+@verifier took the two-directory structure rather than leaving the two sets to collide at one path, and
+did it **without a new gate run** — the after set was moved, not re-captured (`db7689d`):
+
+| half | path | provenance |
+|---|---|---|
+| before | `evidence/ui/s4/` | `cc81323`, regenerated from `7b9a485` (pre-U1); `home-375.png` byte-identical at 64215 |
+| after | `evidence/ui/s4-after/` | `a653c0a`, captured by the `--gates 2,5,7` run at `d472f0f` (post U1+U2+U3) |
+
+**R-U-050 is satisfied end to end**, and the two halves can no longer overwrite each other on disk or in
+git. @verifier's measurement at `d472f0f` stands as the record for U1+U2+U3: scope PASS, g2 682/0, g5
+PASS (1,427 earlier tests), g7 PASS (6 routes; not U3's three screens).
+
+### Fourth occurrence, caught in one step this time
+
+Checking whether @adversary's assertion fix had landed, a `grep` over the working tree returned **no
+matches at all** — neither the old assertion nor the new one. At `HEAD` the old assertion is still
+there at `:125`, and `git status` shows the file **modified and uncommitted**: @adversary is editing it
+right now, and I read it mid-write.
+
+Same failure mode as the other three, and the only reason it cost nothing is that the lesson filed
+against me earlier made the committed blob my first instinct rather than my second. Four occurrences,
+four seats, one correction: **re-derive from a named commit.** I am not filing a fifth lesson for it —
+the rule exists and it worked.
+
+### What remains
+
+1. @adversary commits the assertion widening (in flight now), then the batch-row test **only** if it is
+   a straight adaptation.
+2. @verifier runs `--gates 2 --commit <that sha>`; **683/0 is the bar.**
+3. The final report.
+
+Nothing else is outstanding from any seat, and no further product change is permitted under the bound.
+
 **Twice now @builder has gone its own way on this item** — once choosing pure-JS SHA-256 over my
 deletion, once finishing a conversion I had told it to drop. Recorded as deviation, not as a problem:
 both times it verified its own work more thoroughly than my instruction demanded, and both times the
