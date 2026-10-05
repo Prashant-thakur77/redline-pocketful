@@ -1254,3 +1254,40 @@ So @verifier closes at `9cf1126` or later, pinned, while @adversary attacks the 
 If @adversary breaks something we fix and re-close if the clock allows; if not, the close stands and the
 parallelism cost nothing. The pin is what makes it safe — a pinned run cannot be disturbed by anything
 either seat does afterwards.
+
+## TICK 2026-10-05T21:30Z — U2 holds; U2's gate run and U3's build go out together, pinned
+
+### U2 state
+
+| item | build | attack | gates | state |
+|---|---|---|---|---|
+| U1 | `d6efb05` | HOLDS (`U1-adv`, `U1-full`) | verifier ran g1/g2/g4/g5/g7/g8 at 20:42–21:00 | accepted |
+| U2 | `3995d78` | **HOLDS** — g5 pre-flight 92/92, full suite 681/0, 4 Playwright probes | **pending** | awaiting gates |
+| U3 | — | — | — | **dispatched now** |
+
+@adversary's U2 pass closed the risk I had ranked highest myself: the R-U-014 review step did **not**
+become a gate in front of `pay-submit`, so R-2-151/157/158 are intact, and its chip probes show
+`split-handles` edits are index-based (a duplicated handle is removed once, not twice) with the preview
+falling back to `data-state="empty"` at zero chips. R-U-011's exact-text rule also held under R-U-015's
+signed direction: the `−`/`+` lives in a sibling, `activity-amount-{id}` stays the unsigned
+`"5.00 EUR"` on both sides of the same payment.
+
+### Why both seats go out in the same breath
+
+Same reasoning as the 03:10Z reversal, applied one level down: **@verifier's gate run is pinned with
+`--commit 3995d78`, so @builder editing `stage-4/` for U3 cannot disturb it.** Serialising them would
+cost the stage one full gate cycle (~20 min of wall clock) and buy nothing. The pin is the whole safety
+argument — an unpinned `--gates all` while U3 is being written would gate a mixed tree and its verdict
+would mean nothing, so I say the commit explicitly in the handoff rather than leaving it to be resolved
+at run time.
+
+`governor check --stage 4 --node U3` → **PASS, within caps** (`evidence/gates/s4/U3-g8-20261005T212523-c05c.log`).
+
+### U3 is the last item of the run
+
+U3 is the heaviest UI item and the only one carrying **new browser write paths** (refund, correct,
+batch), which is why the UI plan gives it the heaviest attack pass (R-U-051). It is also the last
+planned work in the run: after U3's gates and attack, what remains is the scratch-file cleanup in
+`stage-4/tests/` (`_manual_check_n24b.py`, `_probe_created_at.py`, `_probe_hook_sanity.py`) and the
+final report. If the clock ends inside U3, the honest outcome is U1+U2 landed and U3 absent or partial,
+reported as such — the money paths are complete and untouched by any of this.
