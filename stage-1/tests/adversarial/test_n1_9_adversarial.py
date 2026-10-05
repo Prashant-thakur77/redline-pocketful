@@ -116,15 +116,26 @@ def test_r_1_205_every_pre_existing_token_still_authenticates_after_import():
 
 def test_r_1_207_balances_after_import_equal_balances_at_export_exactly():
     """R-1-207: import regenerates no monetary record and never replays
-    exported payments against an already-net balance. A wallet whose
-    balance would differ from the sum of its payments (an impossible
-    state to reach through normal API use, but exactly what export
-    captures verbatim) must come back unchanged, not recomputed."""
+    exported payments against an already-net balance. A wallet
+    double-credited by a wrongly-replaying import (a legal opening
+    balance of 500, replayed against the seeded payment a second time
+    to land at 500 + 2*9999) must come back unchanged, not recomputed.
+
+    B's seeded ending balance is `opening + amount` (500 + 9999 = 10499),
+    not an arbitrary value below the payment amount: R-3-018 (stage 3)
+    requires every seeded wallet's *opening* balance -- ending minus the
+    net effect of its own seeded payments -- to be nonnegative, so B
+    cannot be seeded ending at 500 after "receiving" 9999 (that would
+    imply an opening balance of 500 - 9999 = -9499). Seeding the ending
+    balance at opening + amount keeps B's opening at a legal 500 while
+    still making a wrong, replaying import detectable: it would land B
+    at 500 + 9999 + 9999 = 20498, not the correct 10499.
+    """
     uid_a, h_a = unique("u"), unique_handle("bal_a")
     uid_b, h_b = unique("u"), unique_handle("bal_b")
     email_a, email_b = f"{h_a}@example.com", f"{h_b}@example.com"
     reset_ok(make_fixture(
-        [user(uid_a, h_a, balance=1000, email=email_a), user(uid_b, h_b, balance=500, email=email_b)],
+        [user(uid_a, h_a, balance=1000, email=email_a), user(uid_b, h_b, balance=500 + 9999, email=email_b)],
         payments=[{"id": "seed-p1", "from_user_id": uid_a, "to_user_id": uid_b, "amount": 9999,
                    "note": "", "visibility": "public"}],
     ))
