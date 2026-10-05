@@ -10,7 +10,7 @@ balances, not only the status codes.
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from conftest import api_get, api_post, assert_error, auth, idem, n_user_fixture, open_authorization, two_user_fixture, unique
 
@@ -22,10 +22,11 @@ def _make_payment(token_from, to_handle, amount=1000):
     return r.json()
 
 
-def _correct(token, payment_id, expected_revision, amount):
+def _correct(token, payment_id, expected_revision, amount, effective_at=None):
     return api_post(f"/payments/{payment_id}/corrections",
                     json={"expected_revision": expected_revision, "amount": amount,
-                          "effective_at": datetime.now(timezone.utc).isoformat(), "reason": "interleave"},
+                          "effective_at": (effective_at or datetime.now(timezone.utc)).isoformat(),
+                          "reason": "interleave"},
                     headers={**auth(token), **idem(unique("k"))})
 
 
@@ -91,15 +92,26 @@ def test_correction_may_not_reduce_below_already_refunded_amount():
 
 def test_correction_down_to_exactly_the_refunded_amount_succeeds():
     """R-4-033 boundary: correcting down to EXACTLY the already-refunded
-    amount is the accept side -- the floor is inclusive."""
+    amount is the accept side -- the floor is inclusive.
+
+    R-4-036: a correction's effective_at reorders its payment relative to
+    movements that already happened against the pre-correction amount. A
+    now()-dated correction here would land AFTER the refund in replay
+    order, so the corrected (lower) amount would not yet be in effect when
+    the refund debits b, landing b at a negative boundary (409
+    historical_overdraft) even though the final state is fine. Pinning
+    effective_at to before the refund (here, the original payment's
+    instant) keeps the corrected amount in effect when the refund replays,
+    which is the scenario this test is actually about."""
     fixture, token_a, token_b = two_user_fixture(balance_a=10_000, balance_b=0)
     b_handle = fixture["users"][1]["handle"]
+    before_refund = datetime.now(timezone.utc) - timedelta(minutes=1)
     pay = _make_payment(token_a, b_handle, amount=1000)
 
     refund = _refund(token_b, pay["payment_id"], 300)
     assert refund.status_code == 201, refund.text
 
-    r = _correct(token_a, pay["payment_id"], 1, 300)
+    r = _correct(token_a, pay["payment_id"], 1, 300, effective_at=before_refund)
     assert r.status_code == 201, r.text
     assert api_get("/me", headers=auth(token_b)).json()["balance"] == 0
 
@@ -161,3 +173,29 @@ def test_correction_debits_checked_against_available_not_total():
     # (9900 total - 300 = 9600 >= 0) but not against AVAILABLE (100 - 200 < 0)
     r = _correct(tokens[0], pay["payment_id"], 1, 300)
     assert_error(r, 409, "insufficient_funds")
+
+
+def test_correction_decrease_debits_receiver_who_cannot_currently_afford_it():
+    """R-4-037(b): a DECREASE takes money back from the original RECEIVER
+    (s3: "decreasing it debits the original receiver"), so it must be
+    funds-checked against the receiver's current available, exactly like
+    an increase is checked against the sender's. Planner's counterexample:
+    a pays b 1000 (b=1000); b pays it mostly away (b=100); a corrects the
+    payment down to 0, which needs to debit b the full 1000 -- b can only
+    afford 100 of it, so this must be insufficient_funds, not
+    historical_overdraft and not a silent success."""
+    fixture, token_a, token_b = two_user_fixture(balance_a=10_000, balance_b=0)
+    a_handle = fixture["users"][0]["handle"]
+    b_handle = fixture["users"][1]["handle"]
+    pay = _make_payment(token_a, b_handle, amount=1000)
+
+    spend = _make_payment(token_b, a_handle, amount=900)
+    assert spend["payment_id"]
+    assert api_get("/me", headers=auth(token_b)).json()["balance"] == 100
+
+    r = _correct(token_a, pay["payment_id"], 1, 0)
+    assert_error(r, 409, "insufficient_funds")
+
+    # the rejected correction must leave balances exactly as the spend left them
+    assert api_get("/me", headers=auth(token_a)).json()["balance"] == 10_000 - 1000 + 900
+    assert api_get("/me", headers=auth(token_b)).json()["balance"] == 100
