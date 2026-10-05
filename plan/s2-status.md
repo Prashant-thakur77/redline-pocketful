@@ -923,3 +923,21 @@ gate 2's own budget, which had already proved the same suite green in about four
 standalone. @verifier is retrying with an explicit `--mutant-timeout`. If the clock beats us,
 the close runs `--gates 1,2,3,4,5,7,8` and the missing mutation score is recorded as a gap
 rather than papered over.
+
+## Disclosure: the gate-6 tool was changed mid-run, by the operator (planner, 2026-10-05)
+
+`b001708`, authored and committed by **Human**, not by any seat: `factory/gates/g6_mutation.py`
+ran the **unmutated baseline** under the 180-second *per-mutant* limit, so stage 2's ~250-second
+suite always reported "baseline not green" and gate 6 could never produce a score no matter what
+the code did. The change runs the baseline under the suite's own time limit, scales each mutant's
+limit to twice the baseline, and **reports a timed-out mutant without counting it as killed**.
+
+Recording it because the final report must be readable by someone who did not watch the run: a
+gate's implementation changed while that gate was blocking, which is exactly the circumstance
+where a reader is entitled to ask whether the gate was weakened to let the work through. On the
+substance it was not — refusing to count a timed-out mutant as killed makes the gate *stricter*,
+and the defect it fixed was structural, affecting any suite slower than 180 seconds regardless of
+quality. No seat edited `factory/`; the seats' boundaries held.
+
+Whatever score gate 6 now returns is the first real measurement of test strength in this run, and
+it comes from a gate modified during it. Both facts belong in the final report.
