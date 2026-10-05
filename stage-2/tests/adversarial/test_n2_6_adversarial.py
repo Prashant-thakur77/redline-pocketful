@@ -42,7 +42,7 @@ import time
 
 import httpx
 
-from conftest import auth, make_fixture, reset_ok, tid, ui_login, unique, unique_handle, url, user
+from conftest import BASE_URL, auth, make_fixture, reset_ok, tid, ui_login, unique, unique_handle, url, user
 
 
 def _two_user_fixture(balance_a=100_000, balance_b=0):
@@ -214,3 +214,54 @@ def test_embedded_session_token_belongs_to_the_currently_logged_in_user(page):
     embedded_token = page.evaluate("JSON.parse(document.getElementById('pocketful-session').textContent).token")
     whoami = httpx.get(url("/me"), headers={"Authorization": f"Bearer {embedded_token}"}, timeout=10.0).json()
     assert whoami["display_name"] == "UserB", f"the embedded token must belong to the currently logged-in user: {whoami}"
+
+
+def test_display_name_cannot_break_out_of_the_session_script_block(page):
+    """The one sink nothing else in the factory covers: the `/` page
+    embeds its own bearer token in a same-origin `<script
+    type="application/json">` block. `display_name` is the only
+    user-controlled string that reaches the rendered page at all —
+    confirmed here that it cannot terminate or escape that block and
+    smuggle markup/script after it, across every breakout shape that
+    matters for a JSON-in-a-script-element sink: a literal `</script>`
+    close tag in various cases/spacings, an escaped slash, a bare `"`
+    and `\\`, a lone `/`, and a `]]>` CDATA-style terminator. In every
+    case the page must still contain exactly two `</script>` closes
+    (the session block's own and app.js's), and the session block's
+    content must still parse as valid JSON."""
+    import uuid as _uuid
+
+    for payload in ('</script>', '</SCRIPT >', '<\\/script>', '"', '\\', '/', ']]>'):
+        # A short, self-contained random local part, not conftest's shared
+        # unique() counter: derive_handle truncates to 20 chars, and deep
+        # into a large suite that counter can grow long enough that two
+        # calls truncate to the same handle (a real, correctly-handled
+        # collision -- "handle is already taken" -- but a false failure
+        # for THIS test, which isn't attacking handle derivation).
+        email = f"brk{_uuid.uuid4().hex[:12]}@example.com"
+        r = httpx.post(url("/signup"), data={"email": email, "password": "password123", "display_name": payload},
+                        headers={"Accept": "text/html"}, follow_redirects=False, timeout=10.0)
+        assert r.status_code == 302, r.text
+        cookie_val = r.headers.get("set-cookie", "").split(";")[0]
+
+        page.context.add_cookies([{"name": "pocketful_session", "value": cookie_val.split("=", 1)[1],
+                                    "domain": BASE_URL.split("//")[1].split(":")[0], "path": "/"}])
+        page.goto(url("/"), wait_until="load")
+        raw_html = page.content()
+        assert raw_html.count("</script>") == 2, (
+            f"payload {payload!r} changed the number of script closes in the page: {raw_html.count('</script>')}"
+        )
+        parse_result = page.evaluate(
+            "() => { try { JSON.parse(document.getElementById('pocketful-session').textContent); return 'OK'; } "
+            "catch (e) { return 'FAIL: ' + e; } }"
+        )
+        assert parse_result == "OK", f"payload {payload!r} broke the session block's JSON: {parse_result}"
+
+
+def test_unauthenticated_pages_carry_no_session_script_at_all():
+    """`/login` and `/signup` while signed out have no session to
+    reveal and must not embed a `pocketful-session` script block."""
+    for path in ("/login", "/signup"):
+        r = httpx.get(url(path), headers={"Accept": "text/html"}, timeout=10.0)
+        assert r.status_code == 200
+        assert 'id="pocketful-session"' not in r.text, f"{path} must carry no session script while signed out"
