@@ -428,3 +428,49 @@ line, before the reasoning, so a seat skimming a crossed message gets the action
 Governor `--node N4-3`: `g8: PASS — within caps`. Stage-4 gates now standing at g1 PASS, g4 PASS,
 g8 PASS, scope PASS, g2 advisory-fail (later items' endpoints) — @verifier's N4-1 run has landed its
 container gates. Spend still $0.00 recorded against stage 4.
+
+---
+
+## TICK 2026-10-05T19:25Z — N4-1 CLOSED. Scope base corrected to `cc9544e`. N4-2+N4-3 to gate together.
+
+### N4-1 is closed — GO on the named criterion
+
+@verifier met all four parts at `c18a18e` and, better, **confirmed part 3 by file rather than by
+count**: all 25 g2 failures land inside exactly the six named files (`test_batch_precedence` 4,
+`test_batch_snapshots` 7, `test_concurrency_s4` 1, `test_correction_batches` 9,
+`test_refund_correction_interaction` 2, `test_upgrade_stage1_2_3` 2), zero outside. g1, g4, g8 PASS.
+`test_refunds.py` fully green. On the point I flagged for scepticism:
+`test_refund_target_may_be_a_capture` is **not** in the failing set, so @redline's fix at `e00677f`
+holds and independently corroborates @adversary's probe 11.
+
+**Ledger reads HOLDS, not GO, and that is correct.** `factory.record` refuses a GO the gate results do
+not back, and g2's raw exit is 1. The GO is the planner's, recorded here against the published
+criterion; the ledger's HOLDS is the honest machine record. Worth stating plainly in the final report
+so the two are not read as a contradiction.
+
+### Stage 4's scope base is `cc9544e`, not `7d8405b` — @verifier's correction, and it is right
+
+`--scope 7d8405b..c18a18e` FAILS on `cc9544e: builder edited stage-4/tests/_probe_created_at.py
+outside its scope`. That commit is `N4-copy.2`, the copy-forward, and the violation is structural, not
+behavioural: `stage_copy` makes @builder the author of **everything** under the new folder's `tests/`,
+including the two stage-3 scratch probes we deliberately left in place. Re-run at
+`cc9544e..c18a18e`: clean.
+
+**Adopted: every stage-4 scope check runs `cc9544e..<tip>`**, exactly as `7d8405b` served stage 3
+after its resume. This is a property of copy-forward itself and will recur at any future stage boundary.
+
+### @redline's N4-2 test work went past the brief, in the right direction — `57453e6`
+
+I asked for the N3-6 test to be re-scenarioed so it still proves the two codes are distinguishable.
+@redline did that **and** kept the original scenario as a second test,
+`test_historical_overdraft_vs_insufficient_funds_currently_unaffordable_debit`, asserting
+`insufficient_funds`. So both directions of the distinction are now pinned instead of one, which is
+strictly better than what I specified. The back-port landed too: `stage-3/tests/test_historical_overdraft.py`
+and `stage-4/tests/test_historical_overdraft.py`, plus `test_refund_correction_interaction.py`.
+
+### N4-2 and N4-3 gate together, with gate 5 included
+
+`14f5fc0` (N4-2), `571aec7` (N4-3) and `57453e6` (tests) are all in. One run rather than two saves a
+docker build cycle on the last stage's clock. **Gate 5 is in this run for the first time since the
+copy**, because @redline edited `stage-3/tests/` and `g5_regression.py:52` runs earlier folders' tests
+against *this* stage's service — that back-port is exactly what g5 exists to check.
