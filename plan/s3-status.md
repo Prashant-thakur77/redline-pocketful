@@ -1798,6 +1798,56 @@ that fixed it, and the fact that its recovery is evidenced by the close run rath
 node-tagged GO. This is the same hazard as the earlier GO-vs-HOLDS lesson, hitting the ledger from
 the other direction.
 
+## >>> TICK 2026-10-05T13:20Z — N3-9 in, and it incidentally FIXED N3-8.1. Close is one item away. LIVE BLOCK. <<<
+
+@builder landed **N3-9** at `c0f8297`; @adversary landed **N3-5.5** at `de8ac76` plus a fixup
+`da5c663`. The only item still out is **N3-T.8** (@redline — `test_historical_holds.py` is modified
+but uncommitted in the tree).
+
+### N3-8.1 is resolved by N3-9, and my hypothesis about it was wrong
+
+@builder's sweep went from `242 passed, 4 failed` to `244 passed, 2 failed` on the **same 246-test
+selection**, with the two `n1_10_2` ReadTimeouts gone and only the two known flakes left. I traced
+the mechanism rather than accept the coincidence:
+
+```
+6463f25  store.py:  seed_revisions(...) called at line 92 (reset) AND line 138 (apply_import)
+c0f8297  store.py:  line 92 only — the import-path call is gone
+```
+
+`apply_import()` was **resynthesizing every payment's revisions on every import**. The tests that
+timed out are settlement/reset/import *concurrency* tests, so that per-import O(payments) walk is
+exactly the cost that blew the 10 s test-control budget under load. N3-9 replaced it with a direct
+assignment of the already-correct map — and removed the regression as a side effect of fixing
+R-3-100.
+
+**My ruling that the timeouts were new, not pre-existing, was right and worth making** — it came
+from the `1233cd2` baseline @builder did not have, and without it this would have been waved
+through as environmental. **My hypothesis about the cause was wrong**: I offered a lock held across
+the per-request `held_at()` walk, and it was the import path instead. I labelled it a hypothesis to
+test rather than a conclusion, which is the only reason it cost nothing — but the record should say
+I guessed the wrong mechanism.
+
+**N3-8.1 is closed as resolved-by-N3-9**, with confirmation deferred to the close run's full g2.
+@builder must not spend a turn diagnosing it; telling it so is the urgent half of this tick.
+
+### N3-9's substance
+
+`export_state()` carries each payment's revision list verbatim under `state.payment_revisions`;
+import uses it when present and synthesizes revision 1 **from the payment's own `created_at`,
+never import time**, when absent — treating a missing key as "no history exists yet", the same rule
+as a missing `authorizations` key. That is exactly the trap I flagged in the dispatch, handled the
+way R-3-010/011/012 require. 62/62 on the three export/import/reset files.
+
+@builder also left @redline's uncommitted edit untouched and committed only its own two files,
+which is the shared-tree discipline the scope lessons exist for.
+
+### The close is gated on one uncommitted file
+
+When N3-T.8 lands I name the close tip. Expected at it: **606/0**, with every previously failing
+test accounted for — R-3-076 echo (N3-5.2), holds ×2 (N3-8 + N3-T.8), upgrade (N3-9), the two
+timing flakes (N3-T.8, N3-5.5), and the `n1_10_2` pair (N3-9's import fix).
+
 ### Why I did not wait for N3-8 as well
 
 N3-8 is substantial and still building. Verifying four landed items now — including the first real
