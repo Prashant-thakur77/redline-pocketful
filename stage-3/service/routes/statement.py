@@ -26,7 +26,7 @@ import secrets
 from ..errors import not_found, validation_failed
 from ..json_utils import parse_rfc3339
 from ..pipeline import Endpoint, RequestCtx
-from ..revisions import balance_before, latest_revision
+from ..revisions import balance_before, latest_revision, select_known_revision
 from ..store import STORE
 from ..validation import parse_limit, parse_offset
 
@@ -59,6 +59,7 @@ class StatementEndpoint(Endpoint):
 
         from_epoch = None
         to_epoch = None
+        known_at_epoch = None
         if frozen is None:
             if from_raw is not None:
                 try:
@@ -70,10 +71,16 @@ class StatementEndpoint(Endpoint):
                     to_epoch = parse_rfc3339(to_raw)
                 except (ValueError, TypeError):
                     raise validation_failed("to must be an RFC 3339 timestamp with an explicit offset")
+            if known_at_raw is not None:
+                # R-3-075: same validation discipline as as_of (R-3-020).
+                try:
+                    known_at_epoch = parse_rfc3339(known_at_raw)
+                except (ValueError, TypeError):
+                    raise validation_failed("known_at must be an RFC 3339 timestamp with an explicit offset")
 
         return {
             "frozen": frozen, "snapshot_param": snapshot_param,
-            "from_epoch": from_epoch, "to_epoch": to_epoch,
+            "from_epoch": from_epoch, "to_epoch": to_epoch, "known_at_epoch": known_at_epoch,
             "limit": limit, "offset": offset,
         }
 
@@ -81,14 +88,20 @@ class StatementEndpoint(Endpoint):
         user_id = ctx.user["id"]
         from_epoch = fields["from_epoch"]
         to_epoch = fields["to_epoch"] if fields["to_epoch"] is not None else _FAR_FUTURE_EPOCH
+        known_at_epoch = fields["known_at_epoch"]
 
         if from_epoch is not None and from_epoch > to_epoch:
             # R-3-043: from later than to is an empty window by construction,
             # not an error — both balances describe the same instant (`to`)
             # so the R-3-035 invariant still closes over zero entries.
-            balance = balance_before(STORE.opening_balances, STORE.payments, STORE.payment_revisions,
-                                      user_id, to_epoch) if fields["to_epoch"] is not None \
-                else STORE.wallets.get(user_id, 0)
+            if fields["to_epoch"] is not None:
+                balance = balance_before(STORE.opening_balances, STORE.payments, STORE.payment_revisions,
+                                          user_id, to_epoch, known_at_epoch=known_at_epoch)
+            elif known_at_epoch is not None:
+                balance = balance_before(STORE.opening_balances, STORE.payments, STORE.payment_revisions,
+                                          user_id, _FAR_FUTURE_EPOCH, known_at_epoch=known_at_epoch)
+            else:
+                balance = STORE.wallets.get(user_id, 0)
             return {"entries": [], "opening_balance": balance, "closing_balance": balance}
 
         rows = []
@@ -97,7 +110,12 @@ class StatementEndpoint(Endpoint):
             is_to = p["to_user_id"] == user_id
             if not (is_from or is_to):
                 continue
-            rev = latest_revision(STORE.payment_revisions.get(p["id"], []))
+            revisions = STORE.payment_revisions.get(p["id"], [])
+            # R-3-071/077: known_at narrows to the latest revision RECORDED
+            # by then; none recorded yet excludes the payment entirely —
+            # never a zero-delta entry.
+            rev = (select_known_revision(revisions, known_at_epoch) if known_at_epoch is not None
+                   else latest_revision(revisions))
             if rev is None:
                 continue
             effective_epoch = parse_rfc3339(rev["effective_at"])
@@ -109,12 +127,22 @@ class StatementEndpoint(Endpoint):
 
         rows.sort(key=lambda row: (row[0], row[1]["id"]))
 
-        opening_balance = (balance_before(STORE.opening_balances, STORE.payments, STORE.payment_revisions,
-                                           user_id, from_epoch)
-                            if from_epoch is not None else STORE.opening_balances.get(user_id, 0))
-        closing_balance = balance_before(STORE.opening_balances, STORE.payments, STORE.payment_revisions,
-                                          user_id, to_epoch) if fields["to_epoch"] is not None \
-            else STORE.wallets.get(user_id, 0)
+        if from_epoch is not None:
+            opening_balance = balance_before(STORE.opening_balances, STORE.payments, STORE.payment_revisions,
+                                              user_id, from_epoch, known_at_epoch=known_at_epoch)
+        else:
+            # The wallet's opening balance predates every payment by
+            # definition, so it doesn't depend on what's known yet.
+            opening_balance = STORE.opening_balances.get(user_id, 0)
+
+        if fields["to_epoch"] is not None:
+            closing_balance = balance_before(STORE.opening_balances, STORE.payments, STORE.payment_revisions,
+                                              user_id, to_epoch, known_at_epoch=known_at_epoch)
+        elif known_at_epoch is not None:
+            closing_balance = balance_before(STORE.opening_balances, STORE.payments, STORE.payment_revisions,
+                                              user_id, _FAR_FUTURE_EPOCH, known_at_epoch=known_at_epoch)
+        else:
+            closing_balance = STORE.wallets.get(user_id, 0)
 
         entries = []
         running = opening_balance

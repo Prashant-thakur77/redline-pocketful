@@ -72,6 +72,73 @@ def select_revision_as_of(revisions: list[dict], as_of_epoch: float) -> dict | N
     return best
 
 
+def select_known_revision(revisions: list[dict], known_at_epoch: float) -> dict | None:
+    """R-3-071/077: the latest (highest revision number) revision RECORDED
+    at or before `known_at` — selection by `recorded_at`, never
+    `effective_at`. None qualifying (the payment's own revision 1 was
+    itself recorded after `known_at`) means the payment is excluded from
+    the view ENTIRELY, not zeroed — the caller must treat `None` the same
+    way `select_revision_as_of` returning `None` is treated, by skipping
+    the payment outright, never by contributing a zero delta for it."""
+    best = None
+    for rev in revisions:
+        if parse_rfc3339(rev["recorded_at"]) <= known_at_epoch:
+            if best is None or rev["revision"] > best["revision"]:
+                best = rev
+    return best
+
+
+def select_revision(revisions: list[dict], *, as_of_epoch: float | None = None,
+                     known_at_epoch: float | None = None) -> dict | None:
+    """The general selector behind both `/me` and `/statement`'s temporal
+    parameters, combined (R-3-070..078): `known_at` first narrows to the
+    revisions that existed from the caller's point of view (R-3-071) —
+    if none did, the payment is excluded entirely (R-3-077), never
+    zeroed. `as_of` then selects among what's known, by effective time,
+    with the same existence-floor `select_revision_as_of` uses (a
+    correction can't make a payment predate its own revision 1).
+    Omitting a parameter means "no restriction from that axis" (R-3-072):
+    omitting both reproduces plain `latest_revision` behaviour
+    (R-3-041)."""
+    candidates = revisions
+    if known_at_epoch is not None:
+        candidates = [r for r in candidates if parse_rfc3339(r["recorded_at"]) <= known_at_epoch]
+        if not candidates:
+            return None
+
+    if as_of_epoch is None:
+        return max(candidates, key=lambda r: r["revision"]) if candidates else None
+
+    if not revisions or as_of_epoch < parse_rfc3339(revisions[0]["effective_at"]):
+        return None
+    best = None
+    for rev in candidates:
+        if parse_rfc3339(rev["effective_at"]) <= as_of_epoch:
+            if best is None or rev["revision"] > best["revision"]:
+                best = rev
+    return best
+
+
+def balance_for_view(opening_balances: dict, payments: dict, payment_revisions: dict, user_id: str, *,
+                      as_of_epoch: float | None = None, known_at_epoch: float | None = None) -> int:
+    """`/me`'s balance under any combination of `as_of`/`known_at`: the
+    opening balance plus the net effect of every payment this user is
+    party to, each contributing through whichever revision `select_revision`
+    picks for it (or nothing, R-3-077)."""
+    total = opening_balances.get(user_id, 0)
+    for p in payments.values():
+        is_from = p["from_user_id"] == user_id
+        is_to = p["to_user_id"] == user_id
+        if not (is_from or is_to):
+            continue
+        rev = select_revision(payment_revisions.get(p["id"], []),
+                               as_of_epoch=as_of_epoch, known_at_epoch=known_at_epoch)
+        if rev is None:
+            continue
+        total += -rev["amount"] if is_from else rev["amount"]
+    return total
+
+
 def balance_as_of(opening_balances: dict, payments: dict, payment_revisions: dict,
                    user_id: str, as_of_epoch: float) -> int:
     """R-3-016/021..024: the opening balance plus the net effect of every
@@ -105,19 +172,24 @@ def latest_revision(revisions: list[dict]) -> dict | None:
 
 
 def balance_before(opening_balances: dict, payments: dict, payment_revisions: dict,
-                    user_id: str, instant_epoch: float) -> int:
+                    user_id: str, instant_epoch: float, *, known_at_epoch: float | None = None) -> int:
     """A statement's `opening_balance` (strictly before `from`) and
     `closing_balance` (strictly before `to`, R-3-034) — always through
     each payment's current (latest) revision, never an `as_of`-style
     selection (R-3-038), and strictly `<` rather than `<=` since the
-    instant itself is the excluded edge of a half-open window."""
+    instant itself is the excluded edge of a half-open window. An
+    optional `known_at` narrows "latest" to "latest known as of
+    known_at" (R-3-071) — a payment not yet known contributes nothing,
+    not a zeroed entry (R-3-077)."""
     total = opening_balances.get(user_id, 0)
     for p in payments.values():
         is_from = p["from_user_id"] == user_id
         is_to = p["to_user_id"] == user_id
         if not (is_from or is_to):
             continue
-        rev = latest_revision(payment_revisions.get(p["id"], []))
+        revisions = payment_revisions.get(p["id"], [])
+        rev = (select_known_revision(revisions, known_at_epoch) if known_at_epoch is not None
+               else latest_revision(revisions))
         if rev is None or parse_rfc3339(rev["effective_at"]) >= instant_epoch:
             continue
         total += -rev["amount"] if is_from else rev["amount"]
