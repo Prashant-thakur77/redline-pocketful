@@ -1,5 +1,38 @@
 # Stage 3 status
 
+## >>> LIVE WORK FOR @verifier — read this first <<<
+
+Room messages have been crossing badly, so this block is the authoritative target. It is
+updated every time a node becomes gateable. If a message and this file disagree, **this file
+wins** — check `git log -1` on it for freshness.
+
+**Node `N3-1`. Commit `3f480dc`.** Run exactly:
+
+```
+python -m factory.gates.run stage-3 --node N3-1 --gates 1,2,4,8 --scope 8dfcc60..HEAD --commit 3f480dc
+```
+
+`--commit 3f480dc` is **mandatory**: @builder has N3-2 uncommitted in the shared tree
+(`me.py`, `revisions.py`, `json_utils.py` modified, no N3-2 commit), so gating the working
+tree would judge N3-1 against half-built N3-2 code.
+
+Pass/fail per the policy below: binding = `g1`, `g8`, scope. `g2` and `g4` advisory, binding
+condition **no regression**. Expected and acceptable at this commit: g2 **528/573** with all 45
+failures in `test_corrections*.py`, `test_historical_holds.py`, `test_historical_overdraft.py`,
+`test_known_at.py`, `test_me_as_of.py`, `test_snapshots.py`, `test_statement.py` and one import
+test; g4 failing **only** on R-3-016, which needs `GET /me?as_of` (N3-2's scope, absent here).
+**Anything else failing, or any regression → NEEDS_WORK.**
+
+Review targets: revision 1 must exist for **every** payment including **imported** ones (an
+empty `revisions` list after import is the likeliest defect); `revisions.py` is shared by reset
+and import so they cannot drift; R-3-064 — a third party gets **404, never 403**, even on a
+public payment, and no token is 401.
+
+**Stage 2 is closed PARTIAL and is not reopening.** Nothing is open on it. Do not run any
+stage-2 close, and never scope from `4cce19d` — you were right to refuse that.
+
+---
+
 Folder `stage-3/` is the copy-forward of stage 2 at `bc6a8cc` (commit `8dfcc60`).
 Stage 3 opens with its own fresh budget: 480 minutes, $120 (`factory/budget.yaml`).
 
