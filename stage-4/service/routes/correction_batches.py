@@ -43,7 +43,7 @@ from ..errors import (forbidden, historical_overdraft, incomplete_settlement, in
                        validation_failed)
 from ..holds import available_for
 from ..idempotency import IDEMPOTENCY
-from ..json_utils import now_rfc3339, parse_json_object, parse_rfc3339
+from ..json_utils import epoch_to_rfc3339, parse_json_object, parse_rfc3339
 from ..pipeline import Endpoint, RequestCtx
 from ..revisions import latest_revision, would_cause_historical_overdraft
 from ..store import STORE
@@ -229,7 +229,15 @@ class CorrectionBatchEndpoint(Endpoint):
                                                  (payer_id, payee_id)):
                 raise historical_overdraft()
 
-        recorded_at = now_rfc3339()
+        # R-4-053: one shared recorded_at, strictly LATER than every
+        # touched payment's own previous recorded_at -- never derived
+        # from the clock alone, since a batch landing in the same tick
+        # as a just-recorded single correction would otherwise tie
+        # (R-3-004 requires a strict increase per payment).
+        now_epoch = time.time()
+        prior_epochs = [parse_rfc3339(plan["current"]["recorded_at"]) for plan in plans]
+        recorded_epoch = max([now_epoch] + prior_epochs) + 0.000001
+        recorded_at = epoch_to_rfc3339(recorded_epoch)
         correction_batch_id = secrets.token_urlsafe(16)
         revisions_out = []
         for plan in plans:
