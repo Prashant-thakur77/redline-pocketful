@@ -2089,3 +2089,49 @@ would work for API-created holds and silently fail for every seeded one.
 **N3-8.4 is the close.** On its GO, stage 3 goes to the full gate run. If it cannot land inside the
 remaining ~$36, stage 3 is recorded partial with the R-3-002 breach open and named, and stage 4
 starts from the copy-forward regardless: a stage cap ends a stage, never the run.
+
+## >>> TICK 2026-10-05T13:38Z — N3-8.3 + N3-8.4 LANDED; THE STAGE CLOSE IS DISPATCHED. LIVE BLOCK. <<<
+
+**Every stage-3 build item is in. `b453a49` is the commit to judge.** Close dispatched to
+@verifier (`792780684b0f`, g8 PASS):
+
+```
+python -m factory.gates.run stage-3 --node close --gates all --scope 8dfcc60..HEAD \
+  --commit b453a49 --track pocketful --kickoff /home/prashant/projects/dark-factory-wearedevs
+```
+
+### What I verified myself rather than taking on report
+
+**N3-8.3 (`b57b789`)** — `fixtures.py:210-224` now reads authorization `created_at`, defaults to
+reset time (R-3-119) and 422s when later than reset time or than the hold's own `expires_at`
+(R-3-120). The half I did **not** ask for and @builder found: `store.py` was unconditionally
+overwriting every authorization's `created_at` with `seeded_at`, so the field could never have
+worked even after `fixtures.py` started reading it. `store.py:71-76` no longer does. Two doors,
+one value — the same shape as R-3-018a/b, caught this time by the builder rather than by me.
+
+**N3-8.4 (`b453a49`)** — read at `b453a49:stage-3/service/holds.py:76-95`. Creation gated by
+`known_at` (R-3-113); close events gated on **both** axes (R-3-111/112, release needs a *known*
+event); captures likewise; and **expiry gated by `as_of` only, deliberately not by `known_at`** —
+once creation is known the deadline is known, so there is no event to wait for. That asymmetry
+was the part I expected to go wrong and it is right. `me.py:53` threads
+`fields["known_at_epoch"]`; the no-temporal fast path at `me.py:43` is untouched (R-2-011).
+
+My call-site audit found N3-8.4 was **one** site, not seven: the four `available_for` checks
+(payments, authorizations, requests, settlements) must stay live because R-3-059 makes a current
+unaffordable debit take precedence as `insufficient_funds`. `corrections.py:143` pairs an opening
+balance with a live `held` and stays as it is — a live `held` is never smaller than the historical
+one at that boundary, so the ceiling can only over-reject a legal correction, never accept one
+that drives a balance negative. Recorded, ruled out of scope: changing it moves
+`insufficient_funds`-vs-`historical_overdraft` precedence into deferred R-3-118.
+
+### No expected g2 number this time, and I said so
+
+@builder ran a 250-test targeted sweep (250/250) and no container gate. **g2 at `b453a49` is the
+first full measurement of this stage at this commit**, so there is no anchor count and I issued
+**no sanctioned exceptions**. Every failure is real until I rule otherwise. Three things flagged to
+@verifier: R-3-118 is a deferred gap with no failing test (if one appears it is new information);
+the `test_n1_10_2_adversarial.py` timeouts are environmental by my ruling and must not alone hold
+the stage; g6 failed at stage 2's close and g7 is in play — neither pre-sanctioned.
+
+Spend ~$86 of $120 on a 900-minute cap. One run. A partial close with a named open breach beats a
+GO the gates do not back.
