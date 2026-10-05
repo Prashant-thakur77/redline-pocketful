@@ -87,9 +87,10 @@ rules reads as "descope it before it starts".
 
 | id | state | commit | evidence |
 |---|---|---|---|
-| N4-copy.2 | **dispatched 17:10 to @builder** — scratch cleanup then `stage_copy stage-3 stage-4` | — | — |
-| N4-T.2 | **dispatched 17:10 to @redline** — writes only after @builder names the copy sha | — | — |
-| N4-1 … N4-8, N4-C5, N4-C6 | planned | — | — |
+| N4-copy.2 | **GO (planner-accepted)** — `stage-4/` clean, no scratch at its root, stage-3 scratch cleared | `cc9544e` | `ls stage-4/` = Dockerfile, RUN.md, main.py, service, tests |
+| N4-T.2 | **GO (planner-accepted)** — 676 tests, cross-checked below | `a38f266` | 7 commits, all inside `stage-4/tests/` |
+| N4-1 | **dispatched 17:32 to @builder** — refunds | — | — |
+| N4-2 … N4-8, N4-C5, N4-C6 | planned | — | — |
 
 States: planned → queued → dispatched → built → attacked → GO | NEEDS_WORK | blocked.
 
@@ -125,3 +126,56 @@ Full R-4-001 … R-4-083 pasted into the dispatch. Two hard constraints:
 g6 cost stage 3 its close on a 12-mutant sample. For stage 4 the mutation gate is measured **once**
 at close and its score is reported, not chased. Any mutation-coverage work happens as part of
 N4-T.2's original test writing, not as a repair pass afterwards.
+
+---
+
+## TICK 2026-10-05T17:32Z — N4-copy.2 and N4-T.2 ACCEPTED. N4-1 dispatched.
+
+### N4-copy.2 — `cc9544e`, accepted
+`stage-4/` holds `Dockerfile`, `RUN.md`, `main.py`, `service/`, `tests/`; **no `_`-prefixed file at
+its root**, and `stage-3/`'s 22 scratch files are gone. The two `stage-3/tests/_probe_*.py` were
+correctly left alone and rode into `stage-4/tests/` as intended.
+
+### N4-T.2 — `a38f266`, accepted after the cross-check, not on the count
+
+Per the lesson that a test seat's READY is not closeable on volume and scope, I checked the things
+that have actually broken before rather than re-reading 60 tests:
+
+1. **`pytest stage-4/tests --collect-only` → 676**, matching the claim (616 carried + 60).
+2. **`git diff --name-only cc9544e..a38f266`** → only `stage-4/tests` and `stage-4/tests/invariants`.
+   **`--diff-filter=D` → empty**: no deleted test, so no permanent scope casualty.
+3. **The capability flags, which are the exact shape of the stage-3 silent-skip defect.**
+   `supports_refunds` / `supports_batches` (`hook.py:1002,1031`) gate `populate`, so my first
+   concern was a hook that reports green having checked nothing once refunds exist. It does not:
+   when the flag is False, `hook.py:1225-1240` *asserts on the new side* that the endpoint must
+   exist, so a missing implementation fails loudly instead of skipping — the anti-silent-downgrade
+   discipline applied exactly as the lesson asks. When the flag is True, line 1014 asserts `201`.
+   Both branches fail loudly. Accepted.
+4. **The PLANNER DECISION ids, read against the tests that cite them.** R-4-022 (`test_refunds.py:275-313`)
+   encodes 404→403→`invalid_refund_target` over `refund_exceeds_payment` over funds, and the
+   three-way test is correctly constructed — it drains the refunder's wallet *and* asks an absurd
+   amount so all three codes apply and only the right one may win. R-4-060 (`test_batch_precedence.py:36-80`)
+   is split into two tests, union-completeness and item-error-beats-completeness, so getting either
+   half backwards still fails one. R-4-061 (`:83-95`) deliberately avoids depending on *which*
+   position a duplicate pair is attributed to, which is the one thing my decision left open — good
+   judgement, and no ruling from me is needed.
+5. **`_item`'s `now() - 5 minutes`** is a now()-derived instant, but a past offset of minutes not
+   compared against another measured instant: causally safe by the lesson's own test. Not a flake.
+
+Redline also repaired a pre-existing hook defect inside its own boundary
+(`known_correction_payment_ids` was a bare id list, so the revision check guessed one viewer token
+for three payments and 404'd on the two it was not a party to). That is the right fix and the right
+seat.
+
+### One coupling @builder must not break
+
+`supports_refunds` / `supports_batches` detect a missing endpoint by matching the literal string
+**`no such endpoint`** from `stage-4/service/server.py:190` and `:250`. If that routing-404 message
+is reworded while refunds are being built, the probe flips meaning and `populate` fails on a string,
+not on the product. Stated in N4-1's dispatch: the message text is now load-bearing.
+
+### Note for the final report
+
+`factory.report --summary` prints `stage 4: blocked` from the stale `N4-T` gate-8 artefact described
+above. Stage 4 is **open**, not blocked; `--node N4-1` reports `g8: PASS — within caps`. Stage-4
+spend is $0.00 so far.
