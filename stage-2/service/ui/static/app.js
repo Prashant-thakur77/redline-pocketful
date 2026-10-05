@@ -293,12 +293,17 @@
           form.dataset.state = "idle";
           clearSlot(cfg.prefix);
           // R-2-150: form values are never cleared on success.
-          refreshAll(); // R-2-153: reflects the action with no manual reload
         } else {
           form.dataset.state = "error";
           var message = (result.body && result.body.error && result.body.error.message) || "Something went wrong.";
           showSlot(cfg.prefix, "error", message);
         }
+        // R-2-153/155: refreshes after EVERY definitive outcome, not just
+        // success — a refusal (e.g. another client spent the balance
+        // first) means the wallet moved too, and `-error` showing while
+        // the numbers stay frozen at their pre-attempt values is exactly
+        // adversary's BREACH. No manual reload either way.
+        refreshAll();
       }).catch(function () {
         // R-2-157/158: the browser never saw a response — this is NOT a
         // refusal, so it must never render as `-error`. The key and the
@@ -312,6 +317,9 @@
           form.dataset.state = "error";
           showSlot(cfg.prefix, "error", "Something went wrong. Please try again.");
         }
+        // The write may have committed even though the response was
+        // lost — refresh so the numbers reflect reality either way.
+        refreshAll();
       });
     });
   }
@@ -545,17 +553,20 @@
         if (result.status >= 200 && result.status < 300) {
           form.dataset.state = "idle";
           clearSlot("split");
-          refreshWallet();
-          refreshActivity();
-          refreshRequestsList();
         } else {
           form.dataset.state = "error";
           var message = (result.body && result.body.error && result.body.error.message) || "Something went wrong.";
           showSlot("split", "error", message);
         }
+        refreshWallet();
+        refreshActivity();
+        refreshRequestsList();
       }).catch(function () {
         form.dataset.state = "error";
         showSlot("split", "error", "Something went wrong. Please try again.");
+        refreshWallet();
+        refreshActivity();
+        refreshRequestsList();
       });
     });
   }
