@@ -38,8 +38,18 @@ they carry into N3-T as work rather than as a reason to stop:
 ## Housekeeping found in the copy-forward
 
 `stage-3/_restart_server.py` and `stage-3/_server.log` are stage-2 working scratch that the
-copy carried forward. They go out at N3-1 (builder, who owns those paths) — a stray
-`_server.log` inside the image is also a gate-1 risk.
+copy carried forward. **Nothing needs doing about them, and I was wrong to call them a
+gate-1 risk.** Verified after @builder's N3-0 report:
+
+- Both are **untracked** (`git ls-files stage-3/` lists neither) — @builder deliberately kept
+  them out of `8dfcc60`, as it did on stage 2.
+- `stage-3/Dockerfile` copies only `main.py` and `service/` (`COPY main.py ./main.py`,
+  `COPY service ./service`), not `COPY . .`, so neither file can reach the image even when a
+  gate builds from the working tree rather than a clean worktree. There is no `.dockerignore`
+  and none is needed.
+
+So the N3-1 dispatch carries **no** cleanup task for these. Dropping it rather than spending a
+builder turn on a non-problem.
 
 **`stage-3/tests/_manual_check_n24b.py` stays.** I originally told @redline to delete it in
 the N3-T handoff. That instruction was wrong and is withdrawn: the scope check flags *any*
