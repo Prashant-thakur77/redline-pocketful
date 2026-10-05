@@ -11,6 +11,7 @@ import random
 import re
 import shutil
 import tempfile
+import time
 import uuid
 from dataclasses import dataclass
 from pathlib import Path
@@ -125,8 +126,9 @@ def apply(root: Path, mutant: Mutant) -> str:
     return original
 
 
-def tested(work: Path, gate: Gate, args, tag: str, extra=("-x",)) -> bool | None:
-    """True if the suite passes on `work`, False if it fails, None if the service never starts."""
+def tested(work: Path, gate: Gate, args, tag: str, extra=("-x",), timeout: float | None = None) -> bool | str | None:
+    """True if the suite passes on `work`, False if it fails, None if the service never starts,
+    "timeout" if the suite did not finish (never counted as a kill)."""
     service = Service(work, gate, args.health_path, tag=tag)
     try:
         service.build()
@@ -135,7 +137,8 @@ def tested(work: Path, gate: Gate, args, tag: str, extra=("-x",)) -> bool | None
         service.stop()
         return None
     try:
-        return green(run_pytest([work / "tests"], url, gate, timeout=args.mutant_timeout, extra=list(extra)))
+        counts = run_pytest([work / "tests"], url, gate, timeout=timeout or args.mutant_timeout, extra=list(extra))
+        return "timeout" if counts.get("timed_out") else green(counts)
     finally:
         service.stop()
         run(["docker", "rmi", "-f", tag], 120)
@@ -150,25 +153,34 @@ def check(gate: Gate, args) -> int:
     rng = random.Random(args.seed)
     rng.shuffle(pool)
     picked = pool[:args.mutants]
-    killed, survived, stillborn = [], [], []
+    killed, survived, stillborn, slow = [], [], [], []
     run_id = uuid.uuid4().hex[:8]
     with tempfile.TemporaryDirectory(prefix="redline-mut-") as tmp:
         work = Path(tmp) / gate.stage_dir.name
         shutil.copytree(gate.stage_dir, work, ignore=shutil.ignore_patterns(".git", "node_modules"))
-        baseline = tested(work, gate, args, f"redline-mut-{run_id}-base", extra=())
+        started = time.monotonic()
+        baseline = tested(work, gate, args, f"redline-mut-{run_id}-base", extra=(), timeout=args.suite_timeout)
         if baseline is not True:
-            return gate.finish(False, "baseline not green: the unmutated code must pass its own tests "
+            why = "did not finish" if baseline == "timeout" else "is not green"
+            return gate.finish(False, f"baseline {why}: the unmutated code must pass its own tests "
                                      "before mutants can be judged")
+        # a mutant gets twice the baseline's time (suites grow by stage), never less than the floor
+        mutant_timeout = max(args.mutant_timeout, 2 * (time.monotonic() - started) + 60)
+        gate.log(f"baseline green in {time.monotonic() - started:.0f}s; mutant time limit {mutant_timeout:.0f}s")
         for index, mutant in enumerate(picked, 1):
             label = f"#{index} {mutant.file}:{mutant.line} [{mutant.name}]"
             original = apply(work, mutant)
             try:
-                outcome = tested(work, gate, args, f"redline-mut-{run_id}-{index}")
+                outcome = tested(work, gate, args, f"redline-mut-{run_id}-{index}", timeout=mutant_timeout)
             finally:
                 (work / mutant.file).write_text(original)
             if outcome is None:
                 stillborn.append(label)
                 gate.log(f"{label}: stillborn (does not build or start)")
+                continue
+            if outcome == "timeout":
+                slow.append(label)
+                gate.log(f"{label}: timed out (not counted as killed)")
                 continue
             (survived if outcome else killed).append(label)
             gate.log(f"{label}: {'SURVIVED' if outcome else 'killed'}",
@@ -176,7 +188,7 @@ def check(gate: Gate, args) -> int:
     valid = len(killed) + len(survived)
     score = len(killed) / valid if valid else 0.0
     detail = (f"killed {len(killed)}/{valid} valid mutants ({score:.0%}, need {args.threshold:.0%}); "
-              f"{len(stillborn)} stillborn; {len(pool)} candidates")
+              f"{len(stillborn)} stillborn; {len(slow)} timed out; {len(pool)} candidates")
     if survived:
         detail += f"; survivors: {', '.join(survived[:3])}"
     passed = valid >= args.min_valid and score >= args.threshold
@@ -189,7 +201,8 @@ def main(argv=None) -> int:
     parser.add_argument("--mutants", type=int, default=10, help="how many to sample")
     parser.add_argument("--threshold", type=float, default=0.8)
     parser.add_argument("--min-valid", type=int, default=5)
-    parser.add_argument("--mutant-timeout", type=float, default=180)
+    parser.add_argument("--mutant-timeout", type=float, default=180, help="floor; scales with the baseline")
+    parser.add_argument("--suite-timeout", type=float, default=2400, help="limit for the unmutated run")
     parser.add_argument("--seed", type=int, default=11)
     args = parser.parse_args(argv)
     gate = Gate("g6", args)
