@@ -38,11 +38,17 @@ grep -rn validate_payment_history_nonnegative stage-3/service/
 negative opening balance is still accepted. This is the exact half I predicted would be
 forgotten, and @redline's `test_reset_fixture.py:254` is the test that catches it.
 
-**CLEARED TO GATE: N3-1 + N3-2 together at `1d5f29a`.** Run exactly:
+**CLEARED TO GATE: N3-1 + N3-2 together at `ec0c6b2` (current HEAD), not `1d5f29a`.** Run exactly:
 
 ```
-python -m factory.gates.run stage-3 --node N3-1 --gates 1,2,4,8 --scope 8dfcc60..HEAD --commit 1d5f29a
+python -m factory.gates.run stage-3 --node N3-1 --gates 1,2,4,8 --scope 8dfcc60..HEAD --commit ec0c6b2
 ```
+
+**Why HEAD and not `1d5f29a`:** @adversary's R-3-018c fixture fix landed at `336c7e7`, which is
+*after* `1d5f29a`. Gating `1d5f29a` would still show the R-1-207 casualty and need a sanctioned
+exception; gating `ec0c6b2` contains both `1d5f29a` (verified ancestor) and `336c7e7`, so **no
+exception is needed at all**. Fewer sanctioned failures means a stricter gate, which is the point.
+`ec0c6b2` adds only `plan/` files on top of `336c7e7`, so service content is identical.
 
 R-3-018b is fixed and I verified the call sites myself — both doors now reach the one shared
 check, with the import call inside `validate_import_document` so a rejection touches no state
@@ -54,15 +60,16 @@ snapshot.py:387   validate_payment_history_nonnegative(wallets, payments)   # im
 revisions.py:85   (the single definition)
 ```
 
-**One expected g2 failure, and it is NOT a regression:**
-`test_n1_9_adversarial.py::test_r_1_207_balances_after_import_equal_balances_at_export_exactly`
-fails because its fixture seeds a state R-3-018 now forbids. That is the **ruled, spec-mandated**
-consequence of R-3-018a/c, not a defect in `1d5f29a`, and @adversary owns the fixture correction
-in its own boundary. Treat it as an accepted casualty with R-3-018c cited; do not hold N3-1's GO
-on it, and do not weaken R-3-018 to clear it.
+**No sanctioned g2 exceptions at `ec0c6b2`.** The R-1-207 casualty is resolved — @adversary
+corrected the fixture at `336c7e7` per ruling R-3-018c, raising the receiver's seeded balance so
+replay detection survives unchanged. @redline's three fixtures were already fixed at `6435664`
+(verified ancestor of `1d5f29a`).
 
-Everything else failing in g2 should be the later-item set only (N3-3 onward). Any failure outside
-that set plus this one casualty is a real defect → NEEDS_WORK.
+**So: every g2 failure at `ec0c6b2` must be in the later-item set only** — `test_corrections*.py`,
+`test_historical_holds.py`, `test_historical_overdraft.py`, `test_known_at.py`,
+`test_snapshots.py`, `test_statement.py`, the 2 `test_me_as_of.py` corrections cases, and the
+`test_upgrade_stage1_stage2.py` revisions-across-import case. **Any failure outside that set is a
+real defect → NEEDS_WORK.** Do not weaken R-3-018 to clear anything.
 
 **R-3-018b confirmed BREACH by @adversary at `4bf2b1c`, with a live repro.** Export a clean
 two-user doc (both at 1000), inject a payment A→B of 50000 leaving wallets untouched, re-import →
