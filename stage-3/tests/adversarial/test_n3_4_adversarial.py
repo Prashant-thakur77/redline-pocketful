@@ -34,8 +34,12 @@ def test_replay_after_newer_revision_returns_original_revision_200_r_3_057():
     b_handle = fixture["users"][1]["handle"]
     pay_id = _make_payment(token_a, b_handle, amount=500)
     key1 = unique("k1")
+    # Pinned so the "replay" call below sends byte-for-byte the same body
+    # as the first call — datetime.now() inside _correct's default would
+    # otherwise make the two calls genuinely different requests.
+    effective_at = datetime.now(timezone.utc).isoformat()
 
-    first = _correct(token_a, pay_id, expected_revision=1, amount=700, key=key1)
+    first = _correct(token_a, pay_id, expected_revision=1, amount=700, effective_at=effective_at, key=key1)
     assert first.status_code == 201, first.text
     assert first.json()["revision"] == 2
 
@@ -46,7 +50,7 @@ def test_replay_after_newer_revision_returns_original_revision_200_r_3_057():
 
     # Replaying the FIRST key, with its original body, must still return
     # that original (revision 2) response, not an error and not revision 3.
-    replay = _correct(token_a, pay_id, expected_revision=1, amount=700, key=key1)
+    replay = _correct(token_a, pay_id, expected_revision=1, amount=700, effective_at=effective_at, key=key1)
     assert replay.status_code == 200, replay.text
     assert replay.json() == first.json(), (
         f"replay must return the original revision verbatim: got {replay.json()}, expected {first.json()}"
