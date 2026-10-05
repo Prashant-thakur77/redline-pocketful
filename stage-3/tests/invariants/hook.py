@@ -204,14 +204,36 @@ def _auth_void_op(base_url, ctx, i, key):
     return r.status_code
 
 
+# R-3-T.6: effective_at by i%9 residue. 8 of 9 land in the past (spread from
+# 40h ago down to 1h ago, all AFTER the seeded correction targets' own
+# created_at of "now - 2 days", so every one of these reaches the real
+# money/historical-overdraft path rather than a pre-existence rejection) and
+# exactly one (residue 8) is deliberately future, to keep R-3-053 exercised
+# under load without letting it eat the majority of the slice the way a
+# uniform -4..+4 day spread silently did (5 of 9 died at validation and
+# never reached correction logic at all). Per-residue path, enumerated:
+#   0: -40h  -> past, reaches money/overdraft path
+#   1: -30h  -> past, reaches money/overdraft path
+#   2: -20h  -> past, reaches money/overdraft path
+#   3: -12h  -> past, reaches money/overdraft path
+#   4: -6h   -> past, reaches money/overdraft path
+#   5: -3h   -> past, reaches money/overdraft path
+#   6: -2h   -> past, reaches money/overdraft path
+#   7: -1h   -> past, reaches money/overdraft path
+#   8: +24h  -> future, 422 validation_failed at R-3-053 (the one deliberate case)
+_CORRECTION_OFFSET_HOURS = (-40, -30, -20, -12, -6, -3, -2, -1, 24)
+
+
 def _correction_op(base_url, ctx, i, key):
     """R-3-050..069: a payment correction, i-deterministic in every field so
     a repeated `i` is a genuine idempotent retry. `expected_revision` cycles
     so some calls land on the true current revision (success) and most are
     deliberately stale (409 stale_revision) under storm concurrency.
-    `effective_at` is sometimes pushed before the payment's own creation to
-    exercise historical-overdraft/ordering paths (R-3-059, R-3-060), not just
-    corrections that land after everything else."""
+    `effective_at` walks a fixed, enumerated set of past offsets (see
+    _CORRECTION_OFFSET_HOURS) to exercise historical-overdraft/ordering
+    paths (R-3-059, R-3-060, R-3-118), with exactly one of nine residues
+    deliberately future to keep R-3-053 exercised without dominating the
+    slice."""
     targets = ctx["correction_targets"]
     if not targets:
         return 404
@@ -221,8 +243,8 @@ def _correction_op(base_url, ctx, i, key):
         return 404
     expected_revision = 1 + ((i // max(1, len(targets))) % 3)
     amount = i % 50  # include 0: a zero-amount correction is a legal distinct case
-    offset_days = (i % 9) - 4  # ranges negative (historical) through positive (future-dated)
-    effective_at = (ctx["now"] + timedelta(days=offset_days, seconds=i)).isoformat()
+    offset_hours = _CORRECTION_OFFSET_HOURS[i % 9]
+    effective_at = (ctx["now"] + timedelta(hours=offset_hours, seconds=i)).isoformat()
     body = {"expected_revision": expected_revision, "amount": amount,
             "effective_at": effective_at, "reason": f"storm-correction-{i}"}
     r = _post(base_url, f"/payments/{target['id']}/corrections", json=body,
