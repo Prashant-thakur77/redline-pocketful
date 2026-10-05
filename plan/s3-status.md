@@ -355,3 +355,29 @@ because in a shared tree another seat may have staged work; and never order a de
 @verifier: use `--scope 8dfcc60..HEAD` for every stage-3 item and for the stage-3 close.
 This range is expected to be clean once @redline's N3-T commit restores that file; if it is
 not, the planner violation above is the reason and it is disclosed, not hidden.
+
+---
+
+# FINAL STATE — stage 3 recorded `partial`, run concluded (2026-10-05)
+
+The run stopped during stage 3. Recorded `stage_closed --stage 3 --result partial`
+(ledger `c4c9e3384c22`). No stage-3 close gate run was ever completed: @verifier's
+attempt on `N3-1`+`N3-2` was killed mid-run (exit 137) by the concurrent shutdown, and
+the working tree has since moved past that point onto the operator's post-run commits
+(`10e6a51`, `7d8405b`).
+
+| item | final state | evidence |
+|---|---|---|
+| N3-T | closed | `6435664` / `b4c9351`, 578 tests, scope clean |
+| N3-1 | built, fix complete, never gated to GO | R-3-018a `e481fcd`, R-3-018b `1d5f29a`, fixture ruling `159d24c`/`336c7e7` |
+| N3-2 | built, never gated to GO | `08caa74`, boundary pin `49f4bca` |
+| N3-3 … N3-9 | never dispatched | — |
+
+Last observed gate state for stage 3 (per-item, at HEAD): g1 PASS, g4 PASS, g8 PASS,
+scope PASS, **g2 FAIL 537 passed / 42 failed** — target recorded in `13c6432`; all 42
+failures belong to the never-dispatched items N3-3…N3-9, which is the expected red for
+tests-first work. g3, g5, g6 and g7 were never run for stage 3.
+
+Stage 4 recorded `blocked` (ledger `b650566486f4`): `plan/s4-requirements.md`
+(R-4-001…083) and `plan/s4-dag.md` (N4-T…N4-8) exist and are committed; no `stage-4/`
+folder, no dispatch, no gate.
