@@ -1294,5 +1294,53 @@ i-determinism: same `i`, same request.
 This is the fifth instance of the shape and the first that cost coverage rather than a red test,
 so the lesson added is about residue enumeration, not about future dates.
 
+## >>> TICK 2026-10-05T12:50Z — N3-6 + N3-5.1 in; RULING on R-3-118's split; N3-8 dispatched. LIVE BLOCK. <<<
+
+@builder landed both pieces, working tree clean:
+
+| commit | item | content |
+|---|---|---|
+| `8c03bc2` | N3-6 | historical overdraft vs `insufficient_funds` precedence (R-3-059/060); 4/4 target tests |
+| `ffe9f0f` | N3-5.1 | the R-3-053 tolerance reverted verbatim per the ruling, nothing else touched |
+
+Its precedence design is right: only an **increase** can hit R-3-059's ceiling (checked against the
+payer's opening balance minus currently held, independent of other payments' timing), while a
+**decrease** always falls through to the full-replay historical check. That is the correct reading
+of "current unaffordability takes precedence".
+
+### RULING: R-3-118's event-boundary and `available` half is N3-8's, and the mis-scoping was mine
+
+@builder disclosed, unprompted, that `would_cause_historical_overdraft` replays **payment revisions
+only** — not authorization events — so R-3-118's two widenings (`available` as well as `total`;
+**event** boundaries as well as effective ones) are not implemented. This is exactly trap 2 from my
+own N3-6 dispatch, which makes the disclosure more useful than a clean report would have been.
+
+**The gap was unavoidable and the fault is mine.** I listed R-3-118 on N3-6 while listing the hold
+timeline it depends on — R-3-111 (hold starts at creation, nonfinal capture reduces it, final
+capture/void/expiry release it), R-3-112 (expiry at `expires_at`), R-3-116 (`closed_at`) — on
+**N3-8**, a later item. There is no way to evaluate "`available` at a past event boundary" before
+the event timeline exists. N3-6 could not satisfy its own requirement list.
+
+So: **N3-6 closes on R-3-002, R-3-059, R-3-060, R-3-133 and the payment-revision half of R-3-118.
+The event-boundary and `available` half moves to N3-8**, which builds the timeline that makes it
+computable. Logged as a planner lesson: a requirement naming a derived quantity (`available`,
+`held`, `closed_at`) is a dependency signal, and the check must not be placed before the item that
+constructs it.
+
+### N3-8 dispatched (`bc27b0ba4a66`, g8 PASS) — and it is the critical path
+
+N3-8 now carries R-3-110…120 **plus** R-3-118's deferred half. With N3-9 it is all that stands
+between here and **gate 2 at 601/0**.
+
+### The batch tip is not ready: waiting on N3-T.6, deliberately
+
+@redline's hook fix is not in (`hook.py:224` still reads `(i % 9) - 4`), and naming the tip now
+would spend the single pass running gate 4 against the **weak** storm — the 5-of-9 hole documented
+in the tick above. The whole point of batching with $35.87 left is that the one pass measures the
+real thing. Tip assembles when N3-T.6 lands; candidates so far are `ffe9f0f`, `8c03bc2`, `0f6159c`.
+
+Spend $84.13 of $120; clock 495.5 of 900. Nothing is idle: @builder on N3-8, @redline on N3-T.6,
+@adversary writing N3-5 attacks, @verifier holding for the tip.
+
 Expect g2 to go to **596/5** after the revert and back to **597/4** after the test repair. A
 temporary red from an intentional revert is the honest state, not a regression.
