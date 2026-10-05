@@ -59,9 +59,10 @@ class CorrectionEndpoint(Endpoint):
         try:
             fields = self.validate_fields(ctx)
 
-            # R-3-065/066: a settlement-member or capture-produced payment
-            # can never be corrected, at any revision.
-            if payment.get("settlement_id") is not None or payment.get("authorization_id") is not None:
+            # R-3-065/066, R-4-032: a settlement-member, capture-produced
+            # or refund payment can never be corrected, at any revision.
+            if (payment.get("settlement_id") is not None or payment.get("authorization_id") is not None
+                    or payment.get("refund_of") is not None):
                 raise linked_payment_immutable()
 
             with STORE.write_lock():

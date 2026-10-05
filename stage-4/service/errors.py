@@ -95,6 +95,14 @@ def historical_overdraft(message: str = "correction would make a balance negativ
     return ApiError(409, "historical_overdraft", message)
 
 
+def invalid_refund_target(message: str = "a refund cannot itself be refunded") -> ApiError:
+    return ApiError(422, "invalid_refund_target", message)
+
+
+def refund_exceeds_payment(message: str = "refund amount exceeds the payment's refundable balance") -> ApiError:
+    return ApiError(422, "refund_exceeds_payment", message)
+
+
 def internal_error(message: str = "unexpected server error") -> ApiError:
     """R-1-080a: a genuine uncaught exception is a server defect, not the
     caller's fault — it must answer loudly, not hide behind a 4xx."""

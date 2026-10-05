@@ -33,6 +33,11 @@ def serialize_payment(payment: dict) -> dict:
         "created_at": payment["created_at"],
         "settlement_id": payment["settlement_id"],
         "authorization_id": payment.get("authorization_id"),
+        # R-4-020: every payment that is not a refund exposes refund_of:
+        # null -- .get() defaults it for every payment that predates
+        # refunds (seeded, imported, or created before this stage),
+        # never requiring each creation site to set it explicitly.
+        "refund_of": payment.get("refund_of"),
     }
 
 
