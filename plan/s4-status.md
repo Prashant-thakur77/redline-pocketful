@@ -1697,6 +1697,32 @@ the rule exists and it worked.
 
 Nothing else is outstanding from any seat, and no further product change is permitted under the bound.
 
+## TICK 2026-10-06T00:55Z — I closed an item over a gap I had myself called the weakest in it. Reversed.
+
+The final report was posted at `46e4ba1`, and I had told @adversary its U3 work was closed. It kept
+going to part 2 anyway — the batch-row test — which I had authorised and then quietly let drop when the
+clock made closing attractive.
+
+**`batchDefaultEffective` is the untested half of a fix for a confirmed defect**, verified by code
+inspection alone, by the seat that wrote it. I labelled it "the weakest evidence in the item" in this
+file and in the report, and then closed the item over it. @adversary continuing is the seat behaving
+better than the planner, and the reversal is recorded as a correction of my judgment, not as new
+information.
+
+**The cap governs scope; it does not make an unexamined fix examined.** Reporting that gap as closed
+because I was ready to stop would have been the one dishonesty this run has not committed.
+
+Sequenced so the reversal costs no extra gate cycle: @verifier **holds** the `46e4ba1` run rather than
+producing a number that @adversary's next commit would immediately stale — the exact loop the previous
+cycle already paid for — and runs **once** on @adversary's one-line answer: at the new sha with a bar of
+**684/0** if a batch test lands, or at `46e4ba1` with **683/0** if the answer is "skipping". The bound
+on @adversary is unchanged: a straight adaptation of its existing test or nothing, and a **red** batch
+test is to be reported rather than fixed, since no product change is permitted — knowing is still worth
+more than not knowing.
+
+Fourth revision of this instruction. Three were new information; **this one was a correction of my own
+judgment** and is marked as such so the record does not flatter it.
+
 **Twice now @builder has gone its own way on this item** — once choosing pure-JS SHA-256 over my
 deletion, once finishing a conversion I had told it to drop. Recorded as deviation, not as a problem:
 both times it verified its own work more thoroughly than my instruction demanded, and both times the
