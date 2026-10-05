@@ -2318,3 +2318,59 @@ Scratch cleanup, dispatched but not yet confirmed: @adversary's five files and @
 `_server.log` plus `stage-2/`'s leftovers. Route is `git clean -f -- <explicit paths>`, never
 `rm`, and **never** anything under `stage-*/tests/`. `factory.stage_copy` carries untracked files,
 so this must be clean before the copy, but it must not cost a gate run.
+
+---
+
+## TICK 2026-10-05T17:10Z — STAGE 3 CLOSED AS `partial`. FINAL. Stage 4 is open.
+
+Recorded: `stage_closed --stage 3 --result partial` at `580c6af`, ledger `49cb5b455b1e`. **Stage 3
+is finished and no item in it is reopenable.** Any further verdict on a stage-3 sha should be
+withdrawn, not sent. Live record is now `plan/s4-status.md`.
+
+@verifier's final run at `30d9f9e` (one draw of g6, exactly as instructed, not re-run):
+
+| gate | result |
+|---|---|
+| scope | PASS (`7d8405b..30d9f9e`) |
+| g2 | PASS — 616 passed, 0 failed, 0 errors, 0 skipped (610 + the 6 N3-9A tests) |
+| g5 | PASS — 811 earlier tests pass, stage-2 upgrade ok, **zero failures**; N3-9A confirmed |
+| g6 | **FAIL — 70% (7 of 10 valid mutants), need 80%** |
+
+Carried from the `b453a49` run on unchanged service code: g1, g3, g4, g7, g8 all PASS.
+
+Three survivors, diffs read out of the log rather than paraphrased — and this time I am recording
+them verbatim, which is the lesson from N3-9A:
+
+- `idempotency.py:140 [drop lock]` — `with self._lock:` → `if True:`
+- `revisions.py:158 [add-assign to sub]` — `total += -rev["amount"] if is_from else rev["amount"]`, sign flipped
+- `idempotency.py:159 [ne to eq]` — `if entry.state != "complete":` → `== "complete"`
+
+Three of the six previous survivors (`requests_read.py:63`, `idempotency.py:44`,
+`statement.py:123`) were killed on this draw, so N3-9A's tests did work — the sample simply drew
+three different sites, two of which no ordinary test can kill.
+
+### The honest reading, which is what goes in the final report
+
+**A surviving mutant says the suite would not notice the change; it does not say the product is
+wrong.** `idempotency.py:140` and `:159` only alter behaviour under a specific interleaving, and
+gate 6 does not run the storm, so no test gate 6 executes can observe them — they are close to
+unkillable by construction under a 12-mutant sample with no concurrency harness. `revisions.py:158`
+is a genuine test-strength gap: @redline wrote an asymmetric case for it (10000/−500/+1200→10700 vs
+a mutated 9300) and it still survived, which means the test does not reach that accumulator on the
+path the mutant changes. Worth knowing, not worth another pass.
+
+Every gate that measures money is green: g4's 1,000-op storm with 30% replays, g2's 616, g5's 811.
+No money defect is implied by any of the three, and I am not spending the last stage's clock on a
+resampled score. Stage 3 is partial on a test-strength metric, with the product's conservation,
+nonnegativity and at-most-once invariants all independently verified.
+
+### Stage 3's content, for the record
+
+Landed: N3-T, N3-1 (revisions), N3-2 (`as_of`), N3-3 (`/statement`), N3-4 (corrections), N3-5
+(`known_at`), N3-6 (historical overdraft), N3-7 (snapshot tokens), N3-8 + N3-8.3 + N3-8.4
+(historical holds), N3-9 (stage-1/2 import), N3-9A/N3-9B (test repairs).
+
+Never dispatched: **N3-10** (statement and correction UI — no such screen exists; g7 passes on the
+carried stage-2 screens) and **N3-11** (a dedicated correction-storm item — g4's storm covers the
+hook's mix and passes). Both re-homed into stage 4 as N4-C5 and N4-C6, and they are the *only* two
+re-homed items: the four I expected to lose at 12:30 all landed. See `plan/s4-status.md`.
