@@ -729,3 +729,72 @@ handoff message with its id, and "no test exercises it" is a reason to flag it h
 in a stage with hidden checks, a missing visible test is the strongest hint that an unseen check exists.
 
 N4-5 re-dispatched with the scenario above. Governor `--node N4-5`: `g8: PASS — within caps`.
+
+---
+
+## TICK 2026-10-06T01:30Z — BREACH confirmed independently, fixed, and verified. One half remains.
+
+### @adversary found the same gap, with a better demonstration
+
+While I was constructing my counterexample, @adversary built one and **executed** it: A opening 150,
+A→B 100 at T1, A→C 40 at T2, D pays A 200 so current total survives the batch; then a batch raising both
+to 110 and 50. Each item alone lands exactly on `0` at T2 when checked against the sibling's unchanged
+amount; together, T2 is `150 − 110 − 50 = −10`. The batch returned `201` and then
+**`GET /me?as_of=<T2>` returned `{"total": -10}`** — a plain read serving a negative balance.
+
+That is strictly stronger than my version, which showed only the missing rejection. @adversary showed
+the *observable consequence*: R-3-002 violated on an ordinary read, which is the single worst outcome
+this track defines. Two independent constructions of one gap, and it is now a permanent test —
+`test_n4_3_adversarial.py::test_batch_historical_overdraft_check_misses_cross_item_combination_r_3_002`.
+Adversarial tests are inside gate 2's collection (167 of the 679 collected), so no seat can accept work
+over it.
+
+### @builder's fix at `05565a3` is correct, and I verified the mechanism
+
+New `would_candidates_cause_historical_overdraft(…, candidates: dict, affected_user_ids)` in
+`revisions.py:199`: it replays each affected user's history with **every** candidate applied together,
+falling back to each other payment's current latest revision, and **batches simultaneous movements at
+one instant before testing nonnegativity** — which is R-3's "balances at a boundary include the combined
+effect of all movements at that instant", a detail neither counterexample forced it to get right.
+
+The signature is the point. I had told @builder that a function taking one candidate cannot answer a
+combined question and to ask rather than guess the shape; it built the plural form directly. That covers
+both shapes — @adversary's two increases from one payer at different instants, and my two same-instant
+decreases against one receiver.
+
+### The remaining half: `available`, not just `total`
+
+The combined walk tracks **total only**. `grep -c held stage-4/service/revisions.py` → **0**. But
+R-4-049's fourth stage is "historical **total and available** funds at every effective/event boundary",
+and R-3-118 says the same for single corrections. So the available half is unimplemented in the
+historical direction — and this is pre-existing, not introduced by N4-3.1: the single-correction path
+has never checked it either, which is a defect in stage 3's closed content.
+
+Reachable, and the current-funds stage does **not** catch it, because a released hold leaves present
+available healthy while a past window was not:
+
+| step | effect |
+|---|---|
+| B opening 0 | — |
+| T1 | A pays B 100 → total 100 |
+| T2 | B opens a hold of 90 → available 10 |
+| T3 | B voids the hold → available 100 |
+| T4 | C pays B 1000 → total 1100, available 1100 |
+| batch | correct the T1 payment to 50, effective T1 (debits B 50) |
+
+Current stage: `net[B] = −50` against available 1050 → passes. Historical **total**: 50 at T1, 1050 at
+T4 — never negative. Historical **available**: between T2 and T3, `50 − 90 = −40` → `historical_overdraft`
+is required and is not raised.
+
+`holds.py` already has the tooling — `held_at(store, user_id, as_of_epoch, known_at_epoch)` at `:98` and
+`remaining_at` at `:54` — so this is a matter of subtracting `held_at` at each boundary inside the walk,
+not new machinery.
+
+**Ranked honestly:** below confirming the landed fix. It needs a hold in the corrected history to bite,
+the stage-3 single-correction path shares the gap, and the clock is late. Dispatched as the remainder of
+N4-5; if the clock ends first it is recorded as a known gap with this scenario, not chased.
+
+### @redline's duplicate test request is withdrawn
+
+I asked @redline for a combined-historical-overdraft test. @adversary's permanent test already covers it
+and sits in gate 2's collection, so the duplicate buys nothing. Withdrawn before it was started.
