@@ -83,9 +83,18 @@ def balance_as_of(opening_balances: dict, payments: dict, payment_revisions: dic
 
 
 def validate_payment_history_nonnegative(wallets: dict, payments: dict) -> None:
-    """R-3-018: replaying the seeded payments in R-3-019 order from the
-    opening balance must never drive a wallet negative at any point."""
+    """R-3-018/R-3-002/R-3-016: replaying the seeded payments in R-3-019
+    order from the opening balance must never drive a wallet negative at
+    any point — including the opening instant itself, before any
+    seeded payment is replayed. A receiver whose ending balance is low
+    but who was seeded as having received more than that implies a
+    negative opening balance, and `as_of` before the earliest payment
+    (R-3-024) would expose exactly that negative figure — planner's
+    ruling (adversary BREACH 0dfd763): this must be 422 from reset, not
+    merely checked after each forward step."""
     running = compute_opening_balances(wallets, payments)
+    if any(bal < 0 for bal in running.values()):
+        raise validation_failed("seeded payment history implies a negative opening balance")
     for p in ordered_by_time_then_id(payments):
         running[p["from_user_id"]] -= p["amount"]
         running[p["to_user_id"]] += p["amount"]
