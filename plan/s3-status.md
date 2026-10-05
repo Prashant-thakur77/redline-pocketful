@@ -1777,6 +1777,27 @@ well reach it, and if they do, that is the honest cost of this ordering.
 @builder flagged the timeouts without diagnosing them, correctly treating it as outside N3-8's
 scope. The diagnosis belongs with N3-8.1.
 
+### Ruling on @builder's sequencing question: leave the combined commit alone
+
+@builder asked whether N3-8 and N3-5.2 landing in one commit (`6463f25`) breaks verdict accounting,
+offering to note the split. **No — leave it.** It found the R-3-076 gap itself while building
+`held_at()`, before my dispatch arrived, which is why they merged. Both files are inside its own
+boundary so the scope check is unaffected, and the close run measures the tests either way. Making
+it tidier would cost a turn and change nothing.
+
+There **is** one real consequence, and it is a reporting one I will handle rather than spend a pass
+on. The R-3-076 BREACH was recorded against node **N3-5** (`db8886561348`), and `metrics` resolves a
+rejection's recovery as the next **GO on the same node**. The close runs under `--node close`, so its
+gate results cannot back a GO on N3-5, and the BREACH would otherwise show as never recovered in the
+final report even though `6463f25` fixes it.
+
+Options were: spend a tagged verifier pass on N3-5 purely to produce a recoverable GO, or state the
+recovery explicitly in the final report. **Taking the second** — at $84.13 of $120 a pass bought for
+bookkeeping is a pass not spent on the close. The final report will name this BREACH, the commit
+that fixed it, and the fact that its recovery is evidenced by the close run rather than by a
+node-tagged GO. This is the same hazard as the earlier GO-vs-HOLDS lesson, hitting the ledger from
+the other direction.
+
 ### Why I did not wait for N3-8 as well
 
 N3-8 is substantial and still building. Verifying four landed items now — including the first real
