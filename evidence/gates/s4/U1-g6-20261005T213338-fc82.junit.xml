@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="28" time="150.389" timestamp="2026-10-06T03:34:53.631974+05:30" hostname="prashant-Dell-G15-5530"><testcase classname="adversarial.test_n1_10_2_adversarial" name="test_reset_landing_while_waiters_are_parked_on_an_in_flight_claim" time="66.923" /><testcase classname="adversarial.test_n1_10_2_adversarial" name="test_import_landing_while_waiters_are_parked_on_an_in_flight_claim" time="68.128" /><testcase classname="adversarial.test_n1_10_adversarial" name="test_r_1_108_timing_heaviest_write_many_losers_same_key" time="1.652" /><testcase classname="adversarial.test_n1_10_adversarial" name="test_r_1_108_timing_maximum_global_lock_contention" time="6.038" /><testcase classname="adversarial.test_n1_10_adversarial" name="test_r_1_244_reset_under_load_no_torn_state_and_idempotency_cleared" time="0.440" /><testcase classname="adversarial.test_n1_10_adversarial" name="test_r_1_005_50_simultaneous_connections_no_refusals_or_5xx" time="0.129" /><testcase classname="adversarial.test_n1_10_adversarial" name="test_r_1_208_export_internally_consistent_under_concurrent_storm" time="0.447" /><testcase classname="adversarial.test_n1_10_adversarial" name="test_r_1_015_moderate_fixture_reset_export_import_under_10s" time="2.955" /><testcase classname="adversarial.test_n1_1_adversarial" name="test_head_method_is_not_a_5xx_r_1_005" time="0.006" /><testcase classname="adversarial.test_n1_1_adversarial" name="test_options_method_is_not_a_5xx_r_1_005" time="0.006" /><testcase classname="adversarial.test_n1_1_adversarial" name="test_malformed_content_length_gets_a_response_not_a_dropped_connection" time="0.002" /><testcase classname="adversarial.test_n1_2_adversarial" name="test_login_timing_does_not_distinguish_unknown_email_from_wrong_password" time="1.065" /><testcase classname="adversarial.test_n1_3_adversarial" name="test_concurrent_signups_same_email_exactly_one_201" time="0.044" /><testcase classname="adversarial.test_n1_3_adversarial" name="test_concurrent_signups_colliding_derived_handle_exactly_one_201" time="0.042" /><testcase classname="adversarial.test_n1_5_adversarial" name="test_concurrent_identical_payment_exactly_one_201" time="0.113" /><testcase classname="adversarial.test_n1_5_adversarial" name="test_concurrent_overdraft_race_never_goes_negative" time="0.153" /><testcase classname="adversarial.test_n1_5_adversarial" name="test_concurrent_conflicting_body_same_key_resolves_to_one_winner_and_clean_409s" time="0.122" /><testcase classname="adversarial.test_n1_5_adversarial" name="test_idempotency_bool_vs_number_conflict_over_http" time="0.096" /><testcase classname="adversarial.test_n1_5_adversarial" name="test_concurrent_failed_claim_is_released_not_cached" time="0.224" /><testcase classname="adversarial.test_n1_5_adversarial" name="test_concurrent_drain_to_exactly_zero_never_observes_negative_balance" time="0.266" /><testcase classname="adversarial.test_n1_5_adversarial" name="test_self_payment_precedence_over_insufficient_funds" time="0.091" /><testcase classname="adversarial.test_n1_5_adversarial" name="test_self_payment_precedence_over_bad_amount" time="0.088" /><testcase classname="adversarial.test_n1_5_adversarial" name="test_note_explicit_null_is_422_not_default" time="0.111" /><testcase classname="adversarial.test_n1_5_adversarial" name="test_visibility_explicit_null_is_422_not_default" time="0.082" /><testcase classname="adversarial.test_n1_5_adversarial" name="test_amount_boundary_max_and_over" time="0.160" /><testcase classname="adversarial.test_n1_5_adversarial" name="test_idempotency_key_reused_after_insufficient_funds_is_fresh" time="0.104" /><testcase classname="adversarial.test_n1_5_adversarial" name="test_activity_private_payment_hidden_from_third_party" time="0.172" /><testcase classname="adversarial.test_n1_6_adversarial" name="test_unrelated_third_party_pay_is_403_not_404" time="0.119"><failure message="AssertionError: expected 403 got 404: {&quot;error&quot;: {&quot;code&quot;: &quot;not_found&quot;, &quot;message&quot;: &quot;no such request&quot;}}&#10;assert 404 == 403&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">def test_unrelated_third_party_pay_is_403_not_404():
+        """R-1-158: 'a caller who is not the request's payer (including a
+        third party) is 403 forbidden' — this explicitly overrides R-1-078's
+        general hide-as-nonexistent rule for this endpoint. The code's
+        `PayRequestEndpoint.check_resource_permission` currently treats a
+        caller who is neither the requester nor the payer as if the request
+        didn't exist (404), which matches R-1-078's *general* pattern but
+        contradicts R-1-158's specific, explicit carve-out: "including a
+        third party" only makes sense if a genuine outsider gets 403, not
+        404 — a non-payer is a non-payer whether or not they're also a
+        stranger to the request.
+        """
+        users = _three_users()
+        req_id = _create_request(users["requester"]["token"], users["payer"]["handle"], 100)
+    
+        r = _pay_request(req_id, users["third"]["token"], unique("thirdpay"))
+&gt;       assert_error(r, 403, "forbidden")
+
+/tmp/redline-mut-hpkfvmuz/stage-4/tests/adversarial/test_n1_6_adversarial.py:70: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+resp = &lt;Response [404 Not Found]&gt;, status = 403, code = 'forbidden'
+
+    def assert_error(resp: httpx.Response, status: int, code: str):
+&gt;       assert resp.status_code == status, f"expected {status} got {resp.status_code}: {resp.text}"
+E       AssertionError: expected 403 got 404: {"error": {"code": "not_found", "message": "no such request"}}
+E       assert 404 == 403
+E        +  where 404 = &lt;Response [404 Not Found]&gt;.status_code
+
+/tmp/redline-mut-hpkfvmuz/stage-4/tests/conftest.py:233: AssertionError</failure></testcase></testsuite></testsuites>

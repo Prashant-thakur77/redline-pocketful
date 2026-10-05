@@ -1,7 +1,12 @@
-# Final report — DRAFT, pending stage 4's close
+# Final report — DRAFT, pending two last numbers
 
-Not yet posted. Stage 4's close run is in flight; every figure below that is not marked
-`[PENDING]` is final. All monetary and gate figures come from
+Not yet posted. **The run has ended**: stage 4's stage cap tripped at 22:06
+(`minutes 915.6 > cap 900`, `evidence/gates/s4/U3.1-g8-20261005T220617-be76.log`) and stage 4 is
+recorded `partial` (ledger `cda9c1a6fd53`). Stage 4 is the last stage, so no further scope is
+dispatched. Two figures are still outstanding and both are in flight: **U2's pinned `--gates all`
+verdict** and **U3.1's single gate-2 run**. Everything else below is final.
+
+All monetary and gate figures come from
 `python -m factory.report --summary --repo <repo> --ledger <repo>/evidence/ledger.jsonl`,
 never hand-computed. (Note: the tool needs those flags explicitly unless run from the repo
 root — run from elsewhere it silently reports only the current stage.)
@@ -15,7 +20,13 @@ Ledger hash chain: `python -m factory.ledger evidence/ledger.jsonl` → **ok** (
 | 1 | **closed** | g1–g6, g8 PASS; **scope FAIL** | 32 | $282.75 |
 | 2 | **partial** | g1–g5, g7 PASS; **g6 FAIL, g8 FAIL**, scope FAIL | 17 | $309.84 |
 | 3 | **partial** | g1–g5, g7, g8, scope PASS; **g6 FAIL (70%)** | 11 | $84.13 |
-| 4 | `[PENDING g6]` | scope, g1, g2 (681/0), **g3 — claimed stage 4, suites 1/2/3/4 all pass**, g4, g7, g8 PASS; g5 ruled test-side then fixed; **g6 in progress** | 1 | $0.00 recorded |
+| 4 | **partial** | **at the recorded close:** scope, g1, g2 (681/0), **g3 — claimed stage 4, suites 1/2/3/4 all pass**, g4, g5, g6, g7, g8 all PASS. **At the tip after the post-close UI scope:** g2 **FAIL** (U3's breach, repair in flight as U3.1) and g8 **FAIL** (the stage cap) | 2 | $0.00 recorded |
+
+Stage 4 is the only stage whose **tip is worse than its recorded close**, and both causes are named
+above rather than averaged away: the post-close UI work (U1–U3, new scope the operator added after the
+close) introduced one defect, and the stage then ran out of clock. The close itself stands at
+`5c99bb4`/`9cf1126` with every gate green, including g6 — stage 4 is the one stage that passed
+mutation.
 
 ### Stage 4 close detail (g6 still drawing at the time of writing)
 
@@ -128,6 +139,65 @@ Attack coverage of the last money change: `b6715d7` was probed with six probes i
 **false-rejection near-miss** (a smaller hold that keeps available ≥ 0 must still return `201`, or the
 check is merely refusing anything with a hold in its history) and a mechanistic defence of my
 `held_at` single-axis ruling. HOLDS. Zero open adversary findings at close.
+
+## The post-close browser scope (U1–U3), and a third BREACH that was mine
+
+After stage 4's close was recorded, the operator added browser-product scope: `plan/s4-ui-requirements.md`
+(R-U-001 … R-U-052), planned as three items in `plan/s4-ui-dag.md`. This is **new scope, not a reversal**
+of the earlier cancellation of N4-7/N4-C5 — the specification still contains zero `data-testid`,
+`browser`, `screen` or `route` occurrences in `stage-3.md`/`stage-4.md`; the operator required the
+screens anyway, which is theirs to require. Both statements stand.
+
+| item | content | result |
+|---|---|---|
+| U1 | design system, shell, wallet figures, 375 px tab bar, empty states | landed `d6efb05`; @adversary HOLDS; @verifier ran g1/g2/g4/g5/g7/g8 |
+| U2 | primary Pay/Request toggle, review step, signed activity lines with day grouping, split chips | landed `3995d78`; @adversary HOLDS (g5 pre-flight 92/92, suite 681/0, four Playwright probes); **@verifier's pinned `--gates all` `[PENDING]`** |
+| U3 | statement screen, payment detail + revision timeline, refund, correct, operator batch table | landed `7f94146`, **BREACHED**; repair U3.1 in flight; **`[PENDING]` gate 2** |
+
+**The U3 BREACH, and the root cause is mine.** `app.js`'s key derivation called
+`crypto.subtle.digest(...)`. `window.crypto.subtle` exists **only in a secure context** — `https:`, or
+the browser's special case for `localhost`/`127.0.0.1` — so on a plain-HTTP container IP, which is
+exactly what `factory.gates.serve` hands out and exactly what an untrusted deployment is, it is
+`undefined`. Clicking `refund-submit`, `correct-submit` or `batch-submit` threw a synchronous
+`TypeError` **inside the click handler, before any `fetch()`**: no request sent, no error slot shown,
+nothing visible to the user at all. @adversary confirmed it live on all three buttons at
+`192.168.160.2:8080` with `isSecureContext === false`, and the builder's own check had run on
+`127.0.0.1` — the single origin where the bug is invisible.
+
+I caused it. My U3 dispatch prescribed `ui-rf-{payment_id}-{sha256(amount)[:16]}` — **the mechanism**
+— when R-U-042 only ever needed **the behaviour**: a key stable while the form is unchanged, new when a
+field changes. The mechanism that already satisfies it sat in the same file (`app.js:400-420`,
+`randomKey()` held in closure, regenerated on `input`), green through every gate since stage 2, hashing
+nothing. Three checks bounded the damage: `crypto.subtle` appears in `stage-4/` only (the frozen stages
+are clean), the existing pay/request/authorize forms hash nothing, and R-2-159 explicitly requires no
+key stability across reloads — so the hash bought nothing and cost three write paths. R-U-042 is
+amended to state the behaviour and name the proven mechanism; the lesson is filed against the planner
+seat, the sixth such entry.
+
+**This is the clearest instance in the run of a defect a green suite could not see** — and unlike the
+other two, it was not found by a gate at all. It needed an attacker who changed the *origin*. Gate 7
+drives the same screens and passed, because it, too, reaches them in ways that do not exercise a
+non-secure-context origin for these three buttons.
+
+## What was not done, stated as plainly as what was
+
+The stage cap ended the run mid-item. Outstanding, and nobody was dispatched to it:
+
+1. **U3's attack pass is incomplete.** @adversary never reached the double-submit, stale-page and
+   retry-after-lost-response attacks on refund/correct/batch (R-U-051) — the breach made all three
+   unreachable, so those attacks could not even be constructed. The three JSON-representation diffs
+   (`GET /statement`, `GET /payments/{id}`, `GET /correction-batches`) and the g5 pre-flight (92/92)
+   were clean.
+2. **U3 never received a full gate cycle.** R-U-052 asks for all gates after each item; U3 gets one
+   gate-2 run instead, by my ruling, because the cap is expired. **U3's screens are therefore the least
+   verified code in the repository** and should be read as such.
+3. **`UI_ROUTES` was never extended** to `/statement`, `/payments/{id}` and `/correction-batches`, so
+   gate 7 has never measured U3's three screens for overflow, control size or axe contrast at 375/768/1280.
+   This was queued deliberately (dispatching it before U3 existed would have failed g7 on three 404s)
+   and the clock closed before it could fire.
+4. **Three committed scratch probes remain** in `stage-4/tests/` (`_manual_check_n24b.py`,
+   `_probe_created_at.py`, `_probe_hook_sanity.py`). Not collected as tests, so no gate is affected;
+   untidy, and they were @redline's to remove.
 
 ## Known gaps, stated plainly
 
