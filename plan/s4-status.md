@@ -950,3 +950,29 @@ attacking hardest are the ones I flagged to @builder and then had to partially r
 released-hold scenario (`available` negative in a window that present funds no longer reveal) and the
 `held_at` axis question — I ruled the one-axis call correct for affordability, and if that ruling is
 wrong, this is where it shows.
+
+### N4-5 verified at the call sites, plus one fragility recorded rather than actioned
+
+@builder's report crossed my verification. I checked the thing its summary made me want to check: it
+threaded `store` through as an **optional** parameter, and the available half is guarded by
+`if store is not None`. An optional argument whose absence silently disables a money check is the exact
+shape of @redline's own lesson about checks guarded by the truthiness of the thing they verify — and the
+docstring documents the skip as a feature: *"omit it to check `total` only."*
+
+So I enumerated every call site rather than trusting "both call sites now pass it":
+
+```
+corrections.py:151          … (payer_id, payee_id), store=STORE)      ✓
+correction_batches.py:236   … affected_user_ids, store=STORE)         ✓
+revisions.py:287            wrapper forwards store=store             ✓
+```
+
+Two call sites, both pass it, and the single-correction wrapper forwards it. **No defect today** — the
+available check is live on both paths, which is what the requirement needs.
+
+**Recorded as a fragility, not dispatched as work.** Making the parameter required would be a one-line,
+behaviour-preserving change that converts a silent weakening into an immediate `TypeError`, and a
+stage-5 copy-forward or any new call site that forgets `store=` would otherwise get a quietly weaker
+money check with no signal. But the close run is in flight, and changing a money path to improve a
+property that is currently satisfied is not a trade I will make at this point in the stage. It goes in
+the final report as a known fragility with the one-line fix named.
