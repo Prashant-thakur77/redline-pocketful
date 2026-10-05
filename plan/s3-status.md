@@ -1965,6 +1965,61 @@ exactly as N consecutive passes is evidence of a stable fix. The repeated-run ch
 flake-vs-defect discriminator, not just a green-confirmation ritual — and after seven construction
 defects this stage, that distinction is the one that has cost the most to get wrong.
 
+## >>> TICK 2026-10-05T13:25Z — BREACH: `GET /me` RETURNS `available: -50`. TOP PRIORITY. LIVE BLOCK. <<<
+
+@adversary found **a negative balance on a plain read** — the worst outcome available in this task,
+and a direct violation of the dispatch's second invariant ("No balance is ever negative, not even
+transiently") and of R-3-002. It reported immediately without finishing its pass, exactly as
+instructed, which is why this is in hand rather than discovered by the close.
+
+**It is not the deferred R-3-118 gap, and @adversary drew that distinction itself.** R-3-118 is
+about a correction being wrongly *accepted*; this is a bare `GET` returning a value the
+specification forbids outright. My deferral of R-3-118 is untouched by this.
+
+**Confirmed by independent code read** (its claim, my verification):
+
+```
+holds.py:54    def remaining_at(authorization, as_of_epoch)   -> no known_at parameter
+holds.py:82    def held_at(store, user_id, as_of_epoch)        -> no known_at parameter
+me.py:49       view_epoch = fields["as_of_epoch"] if ... else time.time()
+me.py:53       held = held_at(STORE, user["id"], view_epoch)   -> known_at never passed
+```
+
+`held` is therefore **blind to `known_at`**: a hold opened *after* a given `known_at` still counts
+against that view. That breaks R-3-110's "all four money fields describe that same view" directly,
+and the escalation to a negative value follows:
+
+> pay 100 (total 4900) → capture `known_at_x` → correct that payment down to 10 (live total rises
+> to 4990, recorded *after* `known_at_x`) → open a hold for 4950 against the higher live balance →
+> `GET /me?known_at=known_at_x` → `total: 4900` (correct, pre-correction view), `held: 4950` (live,
+> ignoring `known_at`), **`available: −50`**.
+
+A historical `total` combined with a *live* `held`. That is precisely trap 3 from my N3-8 dispatch —
+"a historical `total` combined with a current `held` is self-consistent-looking and wrong" — and I
+flagged it in prose without noticing that the function signatures made it unavoidable: a function
+that takes one time parameter cannot express a two-axis view. **Checking the signature against the
+requirement would have caught it before a line was written**, the same lesson as R-3-119/120 one
+tick ago: read what the code *can* express, not only what it does.
+
+### N3-8.4 dispatched (`bd9bc79a70ac`), above N3-8.3, and the two go together
+
+BREACH recorded against N3-8 (`a95688bf0e96`). Fix shape, @adversary's and I agree with it:
+`remaining_at`/`held_at` need a `known_at_epoch`, an authorization whose own `created_at` is after
+`known_at` contributes **0** — mirroring how `select_revision` gates payments by `recorded_at` — and
+`me.py` must thread `fields["known_at_epoch"]` through alongside `view_epoch`.
+
+**Order matters: N3-8.3 first, then N3-8.4.** The `known_at` gate reads the authorization's own
+`created_at`, and N3-8.3 is what makes that field authoritative for seeded holds. Fixing N3-8.4
+first would work for API-created holds and silently fail for every seeded one — which is the only
+kind a historical test can construct.
+
+### @adversary asked whether to continue its pass: yes, now
+
+It stopped after angle 1 to let me reprioritize. **Continue now, before the fix lands** — the
+remaining angles (derived-vs-recorded expiry, conservation with holds) live in the *same* functions
+that are about to be rewritten. Finding every defect in that code now means one fix pass instead of
+three round trips, and at **$84.13 of $120** round trips are the expensive thing, not attacks.
+
 ### Why I did not wait for N3-8 as well
 
 N3-8 is substantial and still building. Verifying four landed items now — including the first real
