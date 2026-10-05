@@ -1,4 +1,4 @@
-"""GET /statement — R-3-030..044, R-3-079.
+"""GET /statement — R-3-030..044, R-3-079..092.
 
 Statements ignore activity-feed visibility entirely (R-3-037): a payment
 is in scope iff the caller sent or received it, full stop. They also
@@ -6,18 +6,24 @@ always use each payment's current (latest) revision (R-3-038/040/041),
 never the as_of-style backdating selection `/me` uses — `balance_before`/
 `latest_revision` in `revisions.py` are the shared primitives for that.
 
-Paging is over a frozen snapshot of the full window's entries (R-3-036):
-the first call (no `snapshot` param) computes the whole window once,
-freezes its entry list and opening/closing balances under a fresh token,
-and slices from offset 0; a later call passing that token back slices the
-same frozen list from the offset encoded in the token, so limit/offset
-convenience never re-derives opening/closing from a partial slice.
+R-3-092 (planner ruling): `snapshot` is a FREEZE, never a cursor. One
+opaque id names one frozen result (entry list + opening/closing balance),
+stored in `STORE.statement_snapshots`; every response addressed through
+it echoes that same id back unchanged (R-3-090). Paging within a frozen
+result is done with the ordinary `offset`/`limit` query parameters
+(R-3-082/086), exactly as on every other list endpoint — the token never
+encodes a position. A token is issued unconditionally, even for a
+zero-entry or single-page result (R-3-080): there is always a frozen
+result to name. An unknown, foreign or pre-reset token is 404 (R-3-084),
+checked before `limit`/`offset` are even parsed (R-3-091) so a token's
+existence is never revealed by a differing error code; `from`/`to`/
+`known_at` together with a `snapshot` is 422 (R-3-083).
 """
 from __future__ import annotations
 
 import secrets
 
-from ..errors import validation_failed
+from ..errors import not_found, validation_failed
 from ..json_utils import parse_rfc3339
 from ..pipeline import Endpoint, RequestCtx
 from ..revisions import balance_before, latest_revision
@@ -29,26 +35,46 @@ _FAR_FUTURE_EPOCH = 253402300799.0  # 9999-12-31T23:59:59+00:00
 
 class StatementEndpoint(Endpoint):
     def validate_fields(self, ctx: RequestCtx) -> dict:
+        snapshot_param = ctx.query.get("snapshot")
         from_raw = ctx.query.get("from")
         to_raw = ctx.query.get("to")
+        known_at_raw = ctx.query.get("known_at")
+
+        frozen = None
+        if snapshot_param is not None:
+            # R-3-083: a snapshot pins an already-frozen result; it cannot
+            # be combined with a request to compute a different window.
+            if from_raw is not None or to_raw is not None or known_at_raw is not None:
+                raise validation_failed("snapshot cannot be combined with from, to or known_at")
+            # R-3-084/091: an unknown/foreign/pre-reset token is 404, checked
+            # before limit/offset so a token's existence is never leaked by
+            # which error code comes back.
+            candidate = STORE.statement_snapshots.get(snapshot_param)
+            if candidate is None or candidate["user_id"] != ctx.user["id"]:
+                raise not_found("no such snapshot")
+            frozen = candidate
+
+        limit = parse_limit(ctx.query.get("limit"))
+        offset = parse_offset(ctx.query.get("offset"))
+
         from_epoch = None
         to_epoch = None
-        if from_raw is not None:
-            try:
-                from_epoch = parse_rfc3339(from_raw)
-            except (ValueError, TypeError):
-                raise validation_failed("from must be an RFC 3339 timestamp with an explicit offset")
-        if to_raw is not None:
-            try:
-                to_epoch = parse_rfc3339(to_raw)
-            except (ValueError, TypeError):
-                raise validation_failed("to must be an RFC 3339 timestamp with an explicit offset")
+        if frozen is None:
+            if from_raw is not None:
+                try:
+                    from_epoch = parse_rfc3339(from_raw)
+                except (ValueError, TypeError):
+                    raise validation_failed("from must be an RFC 3339 timestamp with an explicit offset")
+            if to_raw is not None:
+                try:
+                    to_epoch = parse_rfc3339(to_raw)
+                except (ValueError, TypeError):
+                    raise validation_failed("to must be an RFC 3339 timestamp with an explicit offset")
+
         return {
-            "from_epoch": from_epoch,
-            "to_epoch": to_epoch,
-            "limit": parse_limit(ctx.query.get("limit")),
-            "offset": parse_offset(ctx.query.get("offset")),
-            "snapshot": ctx.query.get("snapshot"),
+            "frozen": frozen, "snapshot_param": snapshot_param,
+            "from_epoch": from_epoch, "to_epoch": to_epoch,
+            "limit": limit, "offset": offset,
         }
 
     def _compute_window(self, ctx: RequestCtx, fields: dict) -> dict:
@@ -111,41 +137,29 @@ class StatementEndpoint(Endpoint):
         return {"entries": entries, "opening_balance": opening_balance, "closing_balance": closing_balance}
 
     def apply(self, ctx: RequestCtx, resource, fields: dict):
-        snapshot_param = fields["snapshot"]
-        limit, offset = fields["limit"], fields["offset"]
-
-        frozen = None
-        start_offset = offset
-        if snapshot_param is not None:
-            snapshot_id, _, offset_part = snapshot_param.partition(".")
-            candidate = STORE.statement_snapshots.get(snapshot_id)
-            if candidate is not None and candidate["user_id"] == ctx.user["id"]:
-                frozen = candidate
-                try:
-                    start_offset = int(offset_part)
-                except ValueError:
-                    start_offset = offset
-
-        if frozen is None:
+        if fields["frozen"] is not None:
+            snapshot_id = fields["snapshot_param"]
+            frozen = fields["frozen"]
+        else:
+            # R-3-080: a token is issued unconditionally, even for a
+            # zero-entry or single-page result.
             snapshot_id = secrets.token_urlsafe(16)
             frozen = {"user_id": ctx.user["id"], **self._compute_window(ctx, fields)}
             STORE.statement_snapshots[snapshot_id] = frozen
-            start_offset = offset
 
+        limit, offset = fields["limit"], fields["offset"]
         all_entries = frozen["entries"]
-        page = all_entries[start_offset:start_offset + limit]
-        has_more = start_offset + limit < len(all_entries)
-        # R-3-032/080: "snapshot" is always present, even on the last page —
-        # a token must still exist to replay a frozen page that happens to
-        # have no further pages after it.
-        next_token = f"{snapshot_id}.{start_offset + limit}"
+        page = all_entries[offset:offset + limit]
+        has_more = offset + limit < len(all_entries)
 
         body = {
             "entries": page,
             "opening_balance": frozen["opening_balance"],
             "closing_balance": frozen["closing_balance"],
             "has_more": has_more,
-            "snapshot": next_token,
+            # R-3-090: a snapshot-paged response echoes the same token it
+            # was given; it never changes between pages.
+            "snapshot": snapshot_id,
         }
         return 200, body
 
