@@ -126,16 +126,12 @@ class Store:
         # here beyond assigning what was parsed.
         self.authorizations = fields["authorizations"]
         self.authorization_ttl_seconds = fields["authorization_ttl_seconds"]
-        # R-3-003: a stage-1/stage-2 export carries no revision history at
-        # all, so every imported payment gets a synthesized revision 1 from
-        # its own created_at — the same "every payment that EXISTS gets a
-        # revision 1" rule seeded payments get, applied to the import path
-        # named explicitly as a trap. (No payment can yet have more than one
-        # revision — corrections don't exist until N3-2 — so this can't
-        # yet collapse a real correction history; once corrections exist,
-        # a stage-3-origin export must carry revisions verbatim instead of
-        # resynthesizing them here.)
-        self.payment_revisions = seed_revisions(fields["payments"])
+        # R-3-100/101/102: `validate_import_document` already built the
+        # right revision map -- verbatim from the export for a stage-3
+        # payment that carried one, synthesized revision 1 (from the
+        # payment's own created_at, never import time) for a stage-1/2
+        # payment that never had one. Nothing to resynthesize here.
+        self.payment_revisions = fields["payment_revisions"]
         self.opening_balances = compute_opening_balances(fields["wallets"], fields["payments"])
         self.statement_snapshots = {}
         IDEMPOTENCY.restore(fields["idempotency_records"])

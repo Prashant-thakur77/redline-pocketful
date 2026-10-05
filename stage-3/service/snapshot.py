@@ -13,7 +13,8 @@ from .errors import validation_failed
 from .fixtures import VALID_AUTHORIZATION_STATUSES, VALID_REQUEST_STATUSES, _require_id, _require_str
 from .idempotency import IDEMPOTENCY
 from .invariants import check_holds_within_balance, check_nonnegative_balances
-from .revisions import validate_payment_history_nonnegative
+from .json_utils import parse_rfc3339
+from .revisions import make_revision_1, validate_payment_history_nonnegative
 from .validation import HANDLE_RE, parse_amount, validate_note, validate_visibility
 
 TRACK = "pocketful"
@@ -48,6 +49,11 @@ def export_state(store) -> dict:
             # read time (R-2-030), never recomputed or frozen here.
             "authorizations": list(store.authorizations.values()),
             "authorization_ttl_seconds": store.authorization_ttl_seconds,
+            # R-3-100/102: a stage-3-origin export carries each payment's
+            # full revision history verbatim -- a correction made before
+            # export must still be visible after import, not collapsed
+            # back to a synthesized revision 1 from the current fields.
+            "payment_revisions": {pid: list(revs) for pid, revs in store.payment_revisions.items()},
         },
     }
 
@@ -63,6 +69,30 @@ def _require_int(obj: dict, key: str, context: str) -> int:
     if isinstance(value, bool) or not isinstance(value, int):
         raise validation_failed(f"{context}.{key} must be an integer")
     return value
+
+
+def _validate_revision_record(raw, context: str) -> dict:
+    if not isinstance(raw, dict):
+        raise validation_failed(f"{context} must be an object")
+    revision = _require_int(raw, "revision", context)
+    if revision < 1:
+        raise validation_failed(f"{context}.revision must be a positive integer")
+    amount = parse_amount(_require(raw, "amount", context), min_value=0, max_value=_MAX_AMOUNT)
+    effective_at = _require_str(raw, "effective_at", context)
+    try:
+        parse_rfc3339(effective_at)
+    except (ValueError, TypeError):
+        raise validation_failed(f"{context}.effective_at must be an RFC 3339 timestamp")
+    recorded_at = _require_str(raw, "recorded_at", context)
+    try:
+        parse_rfc3339(recorded_at)
+    except (ValueError, TypeError):
+        raise validation_failed(f"{context}.recorded_at must be an RFC 3339 timestamp")
+    reason = raw.get("reason", "")
+    if not isinstance(reason, str):
+        raise validation_failed(f"{context}.reason must be a string")
+    return {"revision": revision, "amount": amount, "effective_at": effective_at,
+            "recorded_at": recorded_at, "reason": reason}
 
 
 def _require_optional_str(obj: dict, key: str, context: str) -> str | None:
@@ -370,6 +400,33 @@ def validate_import_document(body: dict) -> dict:
         for raw in state.get("authorizations") or []:
             validated = _validate_authorization(raw, users, set(authorizations))
             authorizations[validated["id"]] = validated
+
+        # R-3-100/101/102: a stage-3-origin export carries each payment's
+        # revision history verbatim under "payment_revisions"; a stage-1/2
+        # export has no such key at all (absent means "no history exists
+        # yet", the same absent-means-empty rule R-2-170 already applies
+        # to "authorizations") -- every payment without an explicit entry
+        # gets a synthesized revision 1 from its own created_at, never
+        # from the import's own wall-clock "now" (that would make a
+        # backdated correction impossible to express and would corrupt
+        # every later historical read, R-3-010/011).
+        payment_revisions: dict[str, list[dict]] = {}
+        raw_revisions_map = state.get("payment_revisions")
+        if raw_revisions_map is not None:
+            if not isinstance(raw_revisions_map, dict):
+                raise validation_failed("payment_revisions must be an object")
+            for pid, raw_list in raw_revisions_map.items():
+                if pid not in payments:
+                    raise validation_failed("payment_revisions references an unknown payment")
+                if not isinstance(raw_list, list) or not raw_list:
+                    raise validation_failed(f"payment_revisions[{pid}] must be a non-empty list")
+                payment_revisions[pid] = [
+                    _validate_revision_record(raw, f"payment_revisions[{pid}][{i}]")
+                    for i, raw in enumerate(raw_list)
+                ]
+        for pid, p in payments.items():
+            if pid not in payment_revisions:
+                payment_revisions[pid] = [make_revision_1(p["amount"], p["created_at"])]
     except (KeyError, TypeError, AttributeError, ValueError) as exc:
         raise validation_failed(f"state is malformed: {exc}")
 
@@ -393,4 +450,5 @@ def validate_import_document(body: dict) -> dict:
         "settlement_operator_ids": settlement_operator_ids, "settlements": settlements,
         "tokens": tokens, "next_seq": next_seq, "idempotency_records": idempotency_records,
         "authorizations": authorizations, "authorization_ttl_seconds": authorization_ttl_seconds,
+        "payment_revisions": payment_revisions,
     }
