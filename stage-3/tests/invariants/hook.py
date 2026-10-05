@@ -244,7 +244,7 @@ def _correction_op(base_url, ctx, i, key):
     expected_revision = 1 + ((i // max(1, len(targets))) % 3)
     amount = i % 50  # include 0: a zero-amount correction is a legal distinct case
     offset_hours = _CORRECTION_OFFSET_HOURS[i % 9]
-    effective_at = (ctx["now"] + timedelta(hours=offset_hours, seconds=i)).isoformat()
+    effective_at = (ctx["now"] + timedelta(hours=offset_hours, seconds=i % 600)).isoformat()
     body = {"expected_revision": expected_revision, "amount": amount,
             "effective_at": effective_at, "reason": f"storm-correction-{i}"}
     r = _post(base_url, f"/payments/{target['id']}/corrections", json=body,
