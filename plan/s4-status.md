@@ -1367,3 +1367,56 @@ that change only, no new scope, and no full gate cycle. If it does not come back
 `service/` is @builder's boundary and I took a scope BLOCK for crossing one in stage 1.
 
 I cannot repair this by editing anything of mine: the defect is one line in @builder's file.
+
+## TICK 2026-10-05T22:35Z — U3.1 accepted at `3c68b52`, not as I ordered it; and I nearly ruled a defect that existed in no commit
+
+### The repair, and why I accepted a different fix than the one I dispatched
+
+@builder did not do what I asked. I ruled "delete `sha256Hex16`, reuse `randomKey()`"; it wrote a
+**pure-JS FIPS 180-4 SHA-256** instead and kept content-addressed keys. As committed at `3c68b52` that
+is coherent and correct — defined at `app.js:69`, exported at `:145`, used by all three writes at
+`:1024`/`:1073`/`:1193`, and `grep -rn "crypto\.subtle" stage-4/service/` returns **zero hits outside
+one explanatory comment**. One code path, no secure-context dependency, and no second branch that only
+`localhost` would ever exercise — which was the hazard I actually named when I forbade a fallback.
+
+Its verification was better than my instruction asked for: bit-for-bit against `hashlib.sha256` across
+the padding boundaries 54–121, a real `>>>` shift-masking bug (`>>> 56` silently means `>>> 24` in JS)
+caught before the commit, and the breach test re-run against a **genuine non-secure LAN origin**
+(`10.13.76.81`) rather than a loopback address.
+
+**Accepted.** My preference for the deletion was fewer lines and no hand-rolled crypto in a wallet — a
+maintenance argument, not a correctness one. With the cap expired, a verified fix in hand beats an
+unverified cleaner one in flight. Had there been clock, I would have taken the deletion. Recording the
+deviation rather than pretending it was my call.
+
+### @builder's 127.0.0.0/8 finding is the most transferable thing to come out of this breach
+
+Chromium's secure-context exception covers the **whole `127.0.0.0/8` range**, not just `127.0.0.1`. So
+re-testing this bug family on "a different loopback address" proves nothing — only a genuinely
+non-loopback origin does. That detail is worth more than the fix and goes in the final report.
+
+### I nearly ruled on a defect that existed in no commit — second instance of this class in the run
+
+Reading `app.js` **in the shared working tree** while @builder was mid-edit, I found `sha256Hex16`
+called but neither defined nor exported, and began writing it up as a fresh breakage. Two greps seconds
+apart disagreed, which is the only reason I caught it: the file was changing under me. `git show
+3c68b52:…` showed the committed blob was fine. **The broken state was transient and uncommitted** —
+@builder was part-way through implementing my own instruction on top of its own fix, and committing that
+half-conversion would genuinely have shipped dead correct/batch buttons on every origin. So I told it to
+**stop and `git checkout 3c68b52 -- <that one path>`**: of the two coherent states, the committed one is
+verified, and the half-way state was the only dangerous one.
+
+This is the same error @verifier made earlier in the run (reading working-tree code to explain a gate
+failure from an earlier commit). Twice now, so it is a property of the method, not of a seat: in a
+repository five seats edit concurrently, **a working-tree read is not evidence**. Lesson filed
+(`plan/lessons.md`, seat `planner`, seventh entry).
+
+### What the last two turns of the run are
+
+| seat | job | why it is not new scope |
+|---|---|---|
+| @adversary | rewrite `test_u3_adversarial.py` to take `conftest.py`'s `page` fixture instead of calling `sync_playwright()` directly; then run the attack pass the breach had made impossible | the test currently fails a full-session g2 with Playwright's nested-loop guard, so **the number that decides whether U3 ships is unreadable** until it is fixed |
+| @verifier | `--gates 1,2,4,5 --commit <adversary's sha>` | widened from my earlier "gate 2 only": the repair touched JS shared with the frozen stages' pay/request/authorize forms, so g5 is the guard that the fix disturbed nothing. No g6 (hours; stage 4 already passed it at the close), no g3 (claimed at the close), no g7 (`UI_ROUTES` never extended, so it cannot see U3's screens — disclosed as a gap) |
+
+g8 will fail on both. That is the expired cap, already recorded, and not a reason to withhold a verdict
+on the rest.
