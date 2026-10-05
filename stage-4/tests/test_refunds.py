@@ -110,7 +110,7 @@ def test_refund_target_may_be_a_capture():
     assert cap.status_code == 201, cap.text
     payment_id = cap.json().get("payment_id") or cap.json()["payment_ids"][0]
 
-    r = _refund(tokens[0], payment_id, 50)
+    r = _refund(tokens[1], payment_id, 50)
     assert r.status_code == 201, r.text
 
 

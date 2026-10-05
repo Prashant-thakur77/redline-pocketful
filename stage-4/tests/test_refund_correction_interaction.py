@@ -64,9 +64,10 @@ def test_refund_cannot_itself_be_corrected():
     refund = _refund(token_b, pay["payment_id"], 200)
     assert refund.status_code == 201, refund.text
 
-    # the refund flows b->a, so a (the refund's receiver) would be the one
-    # attempting to correct it
-    r = _correct(token_a, refund.json()["payment_id"], 1, 50)
+    # corrections require the payment's SENDER (R-3-051), not its receiver --
+    # the refund flows b->a, so b is the sender and is the one who would
+    # attempt to correct it
+    r = _correct(token_b, refund.json()["payment_id"], 1, 50)
     assert_error(r, 422, "linked_payment_immutable")
 
 
