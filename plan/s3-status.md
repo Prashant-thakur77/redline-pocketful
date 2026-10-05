@@ -15,6 +15,20 @@ below; the fix is now re-dispatched to @builder and three test fixtures to @redl
 N3-2 at `08caa74` is otherwise good: **g4 PASSES** — the R-3-016 storm invariant that was
 binding for that item — plus scope, g1 and g8 PASS.
 
+**@redline's side is done (N3-T.2, `6435664`).** All three flagged fixtures corrected by raising
+the receiver's seeded balance, nothing else changed; it swept the suite and found a **fourth**
+instance I had missed (`test_upgrade_stage1_stage2.py::test_import_document_with_no_revisions_key_still_yields_revision_1`);
+`demo_fixture.py` verified clean. Three new tests in `test_reset_fixture.py`: the reject side
+with a state-unchanged check (`:211`), the accept-at-exactly-zero boundary (`:237`), and the
+import-side equivalent (`:254`) built from a **real export** with only the receiver's wallet
+balance mutated rather than a hand-authored document. 578 tests, scope clean.
+
+The import-side test reds correctly until R-3-018b is built — that is the one remaining piece of
+@builder's strict-check commit, and it is the half I expect to be forgotten.
+
+**Still waiting on @builder: one commit on `08caa74` carrying the R-3-018a opening-instant check
+and the R-3-018b import-side check.** Gate N3-1 and N3-2 together against that sha.
+
 **The BREACH (R-3-018, and it poisons R-3-016/R-3-002):**
 `validate_payment_history_nonnegative` in `stage-3/service/revisions.py` computes the opening
 balance with `compute_opening_balances(...)` and then only checks negativity **after** replaying
