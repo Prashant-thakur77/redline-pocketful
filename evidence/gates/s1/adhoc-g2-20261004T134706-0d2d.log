@@ -1,0 +1,74 @@
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /home/prashant/projects/band-work/result/stage-1/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s1/adhoc-g2-20261004T134706-0d2d.junit.xml  (exit 1)
+ission_before_malformed_body
+FAILED stage-1/tests/test_errors_precedence.py::test_precedence_resource_state_before_funds
+FAILED stage-1/tests/test_errors_precedence.py::test_4xx_never_leaks_invisible_resource
+FAILED stage-1/tests/test_export_import.py::test_export_shape_unauthenticated
+FAILED stage-1/tests/test_export_import.py::test_import_unauthenticated_and_full_replace
+FAILED stage-1/tests/test_export_import.py::test_import_accepts_unmodified_export_regardless_of_origin
+FAILED stage-1/tests/test_export_import.py::test_import_is_replacement_not_merge_idempotent
+FAILED stage-1/tests/test_export_import.py::test_import_malformed_and_invalid_body
+FAILED stage-1/tests/test_export_import.py::test_export_import_preserves_accounts_tokens_balances_requests
+FAILED stage-1/tests/test_export_import.py::test_export_is_atomic_readonly_snapshot
+FAILED stage-1/tests/test_export_import.py::test_export_import_preserves_settlement_operator_and_membership
+FAILED stage-1/tests/test_idempotency.py::test_five_paths_require_idempotency_key
+FAILED stage-1/tests/test_idempotency.py::test_same_key_different_path_is_independent
+FAILED stage-1/tests/test_idempotency.py::test_absent_vs_default_present_is_different_body
+FAILED stage-1/tests/test_idempotency.py::test_key_reused_after_4xx_failure_is_first_use
+FAILED stage-1/tests/test_idempotency.py::test_replay_after_resource_changed_still_returns_original
+FAILED stage-1/tests/test_payments_activity.py::test_requests_never_in_activity_feed
+FAILED stage-1/tests/test_payments_activity.py::test_split_itself_not_a_feed_item
+FAILED stage-1/tests/test_payments_activity.py::test_settlement_member_payment_follows_feed_visibility_rule
+FAILED stage-1/tests/test_requests.py::test_create_request_shape - AssertionE...
+FAILED stage-1/tests/test_requests.py::test_request_ignores_payer_balance - A...
+FAILED stage-1/tests/test_requests.py::test_request_becomes_payable_once_funds_arrive
+FAILED stage-1/tests/test_requests.py::test_request_no_visibility_and_not_in_activity
+FAILED stage-1/tests/test_requests.py::test_request_field_errors - AssertionE...
+FAILED stage-1/tests/test_requests.py::test_request_lifecycle_terminal_states
+FAILED stage-1/tests/test_requests.py::test_pay_request_payer_only_shape - Ke...
+FAILED stage-1/tests/test_requests.py::test_pay_request_visibility_is_payers_choice
+FAILED stage-1/tests/test_requests.py::test_pay_body_distinguishes_empty_from_explicit_default
+FAILED stage-1/tests/test_requests.py::test_pay_not_pending_insufficient_funds_forbidden_not_found
+FAILED stage-1/tests/test_requests.py::test_replaying_successful_pay_never_409s
+FAILED stage-1/tests/test_requests.py::test_decline_request - KeyError: 'requ...
+FAILED stage-1/tests/test_requests.py::test_cancel_request - KeyError: 'reque...
+FAILED stage-1/tests/test_requests.py::test_decline_and_cancel_move_no_money
+FAILED stage-1/tests/test_requests.py::test_get_requests_visible_only_to_participants
+FAILED stage-1/tests/test_requests.py::test_get_requests_direction_filter - K...
+FAILED stage-1/tests/test_requests.py::test_get_requests_status_filter_and_unknown_value_422
+FAILED stage-1/tests/test_requests.py::test_get_requests_pagination_defaults_and_has_more
+FAILED stage-1/tests/test_reset_fixture.py::test_seeded_user_starts_with_given_balance_and_can_transact
+FAILED stage-1/tests/test_reset_fixture.py::test_reset_accepts_full_fixture_shape
+FAILED stage-1/tests/test_reset_fixture.py::test_seeded_pending_request_is_payable_non_pending_is_not
+FAILED stage-1/tests/test_settlements.py::test_settlement_requires_operator_and_key
+FAILED stage-1/tests/test_settlements.py::test_operator_grants_only_settlement_execution
+FAILED stage-1/tests/test_settlements.py::test_settlement_body_shape_and_defaults
+FAILED stage-1/tests/test_settlements.py::test_settlement_batch_shape_errors
+FAILED stage-1/tests/test_settlements.py::test_settlement_per_entry_errors - ...
+FAILED stage-1/tests/test_settlements.py::test_affordable_net_zero_batch_succeeds_even_if_single_leg_would_not
+FAILED stage-1/tests/test_settlements.py::test_unaffordable_net_batch_rejected_and_changes_nothing
+FAILED stage-1/tests/test_settlements.py::test_settlement_atomic_all_or_nothing
+FAILED stage-1/tests/test_settlements.py::test_failed_settlement_claims_no_key_and_creates_nothing
+FAILED stage-1/tests/test_settlements.py::test_successful_settlement_response_shape
+FAILED stage-1/tests/test_settlements.py::test_replaying_settlement_moves_no_additional_money
+FAILED stage-1/tests/test_settlements.py::test_settlement_ignores_unknown_fields
+FAILED stage-1/tests/test_settlements.py::test_operator_self_transfer_entries_permitted
+FAILED stage-1/tests/test_splits.py::test_split_creates_requests_for_everyone_but_caller
+FAILED stage-1/tests/test_splits.py::test_split_response_shape - AssertionErr...
+FAILED stage-1/tests/test_splits.py::test_shares_sum_exactly_to_amount - Asse...
+FAILED stage-1/tests/test_splits.py::test_share_arithmetic_matches_spec_examples[1000-3-expected0]
+FAILED stage-1/tests/test_splits.py::test_share_arithmetic_matches_spec_examples[1-3-expected1]
+FAILED stage-1/tests/test_splits.py::test_share_arithmetic_matches_spec_examples[10-3-expected2]
+FAILED stage-1/tests/test_splits.py::test_share_arithmetic_matches_spec_examples[999-3-expected3]
+FAILED stage-1/tests/test_splits.py::test_share_arithmetic_matches_spec_examples[5-5-expected4]
+FAILED stage-1/tests/test_splits.py::test_reordering_participants_changes_who_gets_extra_unit
+FAILED stage-1/tests/test_splits.py::test_zero_share_is_legal_and_still_creates_request
+FAILED stage-1/tests/test_splits.py::test_split_only_caller_participant - Ass...
+FAILED stage-1/tests/test_splits.py::test_split_checks_no_balance_and_moves_no_money
+FAILED stage-1/tests/test_splits.py::test_split_errors - AssertionError: expe...
+FAILED stage-1/tests/test_splits.py::test_split_participant_handles_type_errors
+FAILED stage-1/tests/test_splits.py::test_each_split_independent_balances_sum_preserved
+74 failed, 129 passed in 18.61s
+
+
+
+RESULT: FAIL — 129 passed, 74 failed, 0 errors, 0 skipped

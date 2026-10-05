@@ -1,0 +1,2292 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="47" skipped="0" tests="447" time="1538.860" timestamp="2026-10-05T01:29:58.471051+05:30" hostname="prashant-Dell-G15-5530"><testcase classname="stage-2.tests.adversarial.test_n1_10_2_adversarial" name="test_reset_landing_while_waiters_are_parked_on_an_in_flight_claim" time="67.267" /><testcase classname="stage-2.tests.adversarial.test_n1_10_2_adversarial" name="test_import_landing_while_waiters_are_parked_on_an_in_flight_claim" time="67.366" /><testcase classname="stage-2.tests.adversarial.test_n1_10_adversarial" name="test_r_1_108_timing_heaviest_write_many_losers_same_key" time="1.615" /><testcase classname="stage-2.tests.adversarial.test_n1_10_adversarial" name="test_r_1_108_timing_maximum_global_lock_contention" time="5.826" /><testcase classname="stage-2.tests.adversarial.test_n1_10_adversarial" name="test_r_1_244_reset_under_load_no_torn_state_and_idempotency_cleared" time="0.395" /><testcase classname="stage-2.tests.adversarial.test_n1_10_adversarial" name="test_r_1_005_50_simultaneous_connections_no_refusals_or_5xx" time="0.111" /><testcase classname="stage-2.tests.adversarial.test_n1_10_adversarial" name="test_r_1_208_export_internally_consistent_under_concurrent_storm" time="0.468" /><testcase classname="stage-2.tests.adversarial.test_n1_10_adversarial" name="test_r_1_015_moderate_fixture_reset_export_import_under_10s" time="2.913" /><testcase classname="stage-2.tests.adversarial.test_n1_1_adversarial" name="test_head_method_is_not_a_5xx_r_1_005" time="0.004" /><testcase classname="stage-2.tests.adversarial.test_n1_1_adversarial" name="test_options_method_is_not_a_5xx_r_1_005" time="0.004" /><testcase classname="stage-2.tests.adversarial.test_n1_1_adversarial" name="test_malformed_content_length_gets_a_response_not_a_dropped_connection" time="0.001" /><testcase classname="stage-2.tests.adversarial.test_n1_2_adversarial" name="test_login_timing_does_not_distinguish_unknown_email_from_wrong_password" time="1.093" /><testcase classname="stage-2.tests.adversarial.test_n1_3_adversarial" name="test_concurrent_signups_same_email_exactly_one_201" time="0.039" /><testcase classname="stage-2.tests.adversarial.test_n1_3_adversarial" name="test_concurrent_signups_colliding_derived_handle_exactly_one_201" time="0.050" /><testcase classname="stage-2.tests.adversarial.test_n1_5_adversarial" name="test_concurrent_identical_payment_exactly_one_201" time="0.109" /><testcase classname="stage-2.tests.adversarial.test_n1_5_adversarial" name="test_concurrent_overdraft_race_never_goes_negative" time="0.150" /><testcase classname="stage-2.tests.adversarial.test_n1_5_adversarial" name="test_concurrent_conflicting_body_same_key_resolves_to_one_winner_and_clean_409s" time="0.121" /><testcase classname="stage-2.tests.adversarial.test_n1_5_adversarial" name="test_idempotency_bool_vs_number_conflict_over_http" time="0.090" /><testcase classname="stage-2.tests.adversarial.test_n1_5_adversarial" name="test_concurrent_failed_claim_is_released_not_cached" time="0.219" /><testcase classname="stage-2.tests.adversarial.test_n1_5_adversarial" name="test_concurrent_drain_to_exactly_zero_never_observes_negative_balance" time="0.240" /><testcase classname="stage-2.tests.adversarial.test_n1_5_adversarial" name="test_self_payment_precedence_over_insufficient_funds" time="0.082" /><testcase classname="stage-2.tests.adversarial.test_n1_5_adversarial" name="test_self_payment_precedence_over_bad_amount" time="0.092" /><testcase classname="stage-2.tests.adversarial.test_n1_5_adversarial" name="test_note_explicit_null_is_422_not_default" time="0.096" /><testcase classname="stage-2.tests.adversarial.test_n1_5_adversarial" name="test_visibility_explicit_null_is_422_not_default" time="0.081" /><testcase classname="stage-2.tests.adversarial.test_n1_5_adversarial" name="test_amount_boundary_max_and_over" time="0.166" /><testcase classname="stage-2.tests.adversarial.test_n1_5_adversarial" name="test_idempotency_key_reused_after_insufficient_funds_is_fresh" time="0.089" /><testcase classname="stage-2.tests.adversarial.test_n1_5_adversarial" name="test_activity_private_payment_hidden_from_third_party" time="0.118" /><testcase classname="stage-2.tests.adversarial.test_n1_6_adversarial" name="test_unrelated_third_party_pay_is_403_not_404" time="0.131" /><testcase classname="stage-2.tests.adversarial.test_n1_6_adversarial" name="test_unrelated_third_party_decline_is_403_not_404" time="0.144" /><testcase classname="stage-2.tests.adversarial.test_n1_6_adversarial" name="test_unrelated_third_party_cancel_is_403_not_404" time="0.114" /><testcase classname="stage-2.tests.adversarial.test_n1_6_adversarial" name="test_r_1_241_concurrent_pays_different_keys_exactly_one_winner" time="0.191" /><testcase classname="stage-2.tests.adversarial.test_n1_6_adversarial" name="test_decline_racing_pay_exactly_one_winner" time="0.142" /><testcase classname="stage-2.tests.adversarial.test_n1_6_adversarial" name="test_cancel_racing_pay_exactly_one_winner" time="0.128" /><testcase classname="stage-2.tests.adversarial.test_n1_6_adversarial" name="test_r_1_159_replay_during_concurrent_unrelated_decline" time="0.183" /><testcase classname="stage-2.tests.adversarial.test_n1_6_adversarial" name="test_cross_transition_precedence_decline_vs_cancel_race" time="0.126" /><testcase classname="stage-2.tests.adversarial.test_n1_6_adversarial" name="test_declining_a_cancelled_request_is_409_not_200" time="0.152" /><testcase classname="stage-2.tests.adversarial.test_n1_6_adversarial" name="test_cancelling_a_declined_request_is_409_not_200" time="0.151" /><testcase classname="stage-2.tests.adversarial.test_n1_6_adversarial" name="test_r_1_162_decline_and_cancel_move_no_money_under_concurrent_payments" time="0.273" /><testcase classname="stage-2.tests.adversarial.test_n1_7_adversarial" name="test_share_arithmetic_matches_spec_examples[1000-3-expected0]" time="0.120" /><testcase classname="stage-2.tests.adversarial.test_n1_7_adversarial" name="test_share_arithmetic_matches_spec_examples[1-3-expected1]" time="0.110" /><testcase classname="stage-2.tests.adversarial.test_n1_7_adversarial" name="test_share_arithmetic_matches_spec_examples[10-3-expected2]" time="0.126" /><testcase classname="stage-2.tests.adversarial.test_n1_7_adversarial" name="test_share_arithmetic_matches_spec_examples[999-3-expected3]" time="0.122" /><testcase classname="stage-2.tests.adversarial.test_n1_7_adversarial" name="test_share_arithmetic_matches_spec_examples[5-5-expected4]" time="0.191" /><testcase classname="stage-2.tests.adversarial.test_n1_7_adversarial" name="test_reordering_participants_changes_who_gets_the_extra_unit" time="0.123" /><testcase classname="stage-2.tests.adversarial.test_n1_7_adversarial" name="test_zero_share_is_legal_and_still_creates_a_request" time="0.137" /><testcase classname="stage-2.tests.adversarial.test_n1_7_adversarial" name="test_caller_only_split_creates_zero_requests" time="0.043" /><testcase classname="stage-2.tests.adversarial.test_n1_7_adversarial" name="test_split_moves_no_money" time="0.176" /><testcase classname="stage-2.tests.adversarial.test_n1_7_adversarial" name="test_duplicate_participant_handle_is_422" time="0.103" /><testcase classname="stage-2.tests.adversarial.test_n1_7_adversarial" name="test_empty_participant_handles_is_422" time="0.070" /><testcase classname="stage-2.tests.adversarial.test_n1_7_adversarial" name="test_unknown_handle_in_split_is_404" time="0.078" /><testcase classname="stage-2.tests.adversarial.test_n1_7_adversarial" name="test_r_1_180_conservation_holds_after_many_splits_paid_in_full" time="0.356" /><testcase classname="stage-2.tests.adversarial.test_n1_8_adversarial" name="test_r_1_227_pass_through_zero_balance_intermediary_either_order" time="0.314" /><testcase classname="stage-2.tests.adversarial.test_n1_8_adversarial" name="test_r_1_227_negative_net_rejected_and_changes_nothing_regardless_of_order" time="0.156" /><testcase classname="stage-2.tests.adversarial.test_n1_8_adversarial" name="test_r_1_226_entry_order_precedence_first_entry_error_wins" time="0.102" /><testcase classname="stage-2.tests.adversarial.test_n1_8_adversarial" name="test_r_1_226_entry_errors_precede_insufficient_funds" time="0.049" /><testcase classname="stage-2.tests.adversarial.test_n1_8_adversarial" name="test_r_1_229_failed_settlement_claims_no_idempotency_key" time="0.097" /><testcase classname="stage-2.tests.adversarial.test_n1_8_adversarial" name="test_r_1_231_shared_timestamp_across_all_members" time="0.147" /><testcase classname="stage-2.tests.adversarial.test_n1_8_adversarial" name="test_r_1_222_operator_permission_does_not_widen_visibility" time="0.132" /><testcase classname="stage-2.tests.adversarial.test_n1_8_adversarial" name="test_r_1_228_concurrent_settlement_atomicity_under_sustained_reads" time="0.777" /><testcase classname="stage-2.tests.adversarial.test_n1_8_adversarial" name="test_r_1_236_operators_own_handle_on_one_side_is_not_self_payment" time="0.105" /><testcase classname="stage-2.tests.adversarial.test_n1_8_adversarial" name="test_non_operator_cannot_settle" time="0.079" /><testcase classname="stage-2.tests.adversarial.test_n1_9_adversarial" name="test_import_rejects_a_negative_wallet_balance_r_1_002" time="0.091" /><testcase classname="stage-2.tests.adversarial.test_n1_9_adversarial" name="test_r_1_206_idempotency_replay_survives_export_import_round_trip" time="0.123" /><testcase classname="stage-2.tests.adversarial.test_n1_9_adversarial" name="test_r_1_205_every_pre_existing_token_still_authenticates_after_import" time="0.117" /><testcase classname="stage-2.tests.adversarial.test_n1_9_adversarial" name="test_r_1_207_balances_after_import_equal_balances_at_export_exactly" time="0.201" /><testcase classname="stage-2.tests.adversarial.test_n1_9_adversarial" name="test_r_1_204_malformed_import_bodies_change_nothing" time="0.096" /><testcase classname="stage-2.tests.adversarial.test_n1_9_adversarial" name="test_export_is_atomic_snapshot_under_concurrent_writes" time="0.272" /><testcase classname="stage-2.tests.adversarial.test_n1_9_adversarial" name="test_r_1_203_importing_the_same_document_twice_does_not_duplicate_anything" time="0.118" /><testcase classname="stage-2.tests.adversarial.test_n1_9_adversarial" name="test_r_1_209_reset_after_import_clears_everything_the_import_brought" time="0.150" /><testcase classname="stage-2.tests.adversarial.test_n2_1_adversarial" name="test_available_blocks_a_payment_that_total_would_allow" time="0.077" /><testcase classname="stage-2.tests.adversarial.test_n2_1_adversarial" name="test_available_blocks_a_request_pay_that_total_would_allow" time="0.134" /><testcase classname="stage-2.tests.adversarial.test_n2_1_adversarial" name="test_available_blocks_settlement_net_debit_that_total_would_allow" time="0.074" /><testcase classname="stage-2.tests.adversarial.test_n2_1_adversarial" name="test_held_sums_multiple_open_authorizations_not_just_one" time="0.059" /><testcase classname="stage-2.tests.adversarial.test_n2_1_adversarial" name="test_held_sums_multiple_open_authorizations_when_affordable" time="0.070" /><testcase classname="stage-2.tests.adversarial.test_n2_1_adversarial" name="test_expired_seeded_authorization_holds_nothing_immediately" time="0.083" /><testcase classname="stage-2.tests.adversarial.test_n2_1_adversarial" name="test_authorization_expiring_exactly_at_now_boundary_is_expired" time="0.070" /><testcase classname="stage-2.tests.adversarial.test_n2_1_adversarial" name="test_get_authorizations_hides_from_unrelated_third_party" time="0.068" /><testcase classname="stage-2.tests.adversarial.test_n2_1_adversarial" name="test_held_never_counts_incoming_authorization" time="0.072" /><testcase classname="stage-2.tests.adversarial.test_n2_1_adversarial" name="test_captured_amount_out_of_range_rejected_by_reset" time="0.048" /><testcase classname="stage-2.tests.adversarial.test_n2_1_adversarial" name="test_authorization_self_reference_rejected_by_reset" time="0.019" /><testcase classname="stage-2.tests.adversarial.test_n2_1_adversarial" name="test_authorization_unknown_user_rejected_by_reset" time="0.019" /><testcase classname="stage-2.tests.adversarial.test_n2_1_adversarial" name="test_authorization_invalid_status_rejected_by_reset" time="0.032" /><testcase classname="stage-2.tests.adversarial.test_n2_1_adversarial" name="test_non_positive_ttl_rejected_by_reset" time="0.021" /><testcase classname="stage-2.tests.adversarial.test_n2_1_adversarial" name="test_closed_authorization_does_not_block_despite_amount" time="0.057" /><testcase classname="stage-2.tests.adversarial.test_n2_1_adversarial" name="test_concurrent_payments_against_available_never_go_negative_with_open_hold" time="0.088" /><testcase classname="stage-2.tests.test_auth" name="test_signup_creates_usable_account" time="0.030" /><testcase classname="stage-2.tests.test_auth" name="test_signup_derived_handle_from_email_local_part" time="0.044" /><testcase classname="stage-2.tests.test_auth" name="test_signup_ignores_supplied_handle_field" time="0.032" /><testcase classname="stage-2.tests.test_auth" name="test_login_with_correct_password" time="0.052" /><testcase classname="stage-2.tests.test_auth" name="test_signup_duplicate_email_409" time="0.032" /><testcase classname="stage-2.tests.test_auth" name="test_signup_short_password_422" time="0.007" /><testcase classname="stage-2.tests.test_auth" name="test_signup_invalid_email_422" time="0.027" /><testcase classname="stage-2.tests.test_auth" name="test_login_wrong_password_401" time="0.050" /><testcase classname="stage-2.tests.test_auth" name="test_login_unknown_email_401_same_as_wrong_password" time="0.023" /><testcase classname="stage-2.tests.test_auth" name="test_signup_handle_collision_with_existing_account_409" time="0.030" /><testcase classname="stage-2.tests.test_auth" name="test_signup_precedence_validation_before_email_before_handle" time="0.040" /><testcase classname="stage-2.tests.test_auth" name="test_protected_endpoint_requires_bearer_token" time="0.011" /><testcase classname="stage-2.tests.test_auth" name="test_public_endpoints_need_no_auth" time="0.042" /><testcase classname="stage-2.tests.test_auth" name="test_tokens_never_expire_and_multiple_concurrent_tokens_valid" time="0.083" /><testcase classname="stage-2.tests.test_auth" name="test_password_not_stored_in_plaintext_via_export" time="0.034" /><testcase classname="stage-2.tests.test_auth" name="test_token_prefix_suffix_case_variants_rejected" time="0.062" /><testcase classname="stage-2.tests.test_auth" name="test_missing_authorization_header" time="0.008" /><testcase classname="stage-2.tests.test_auth" name="test_authorization_header_not_bearer_form" time="0.008" /><testcase classname="stage-2.tests.test_auth" name="test_authorization_header_unknown_token" time="0.007" /><testcase classname="stage-2.tests.test_auth" name="test_signup_handle_collision_via_different_special_chars_409" time="0.035" /><testcase classname="stage-2.tests.test_auth" name="test_login_unknown_email_and_wrong_password_identical_response" time="0.096" /><testcase classname="stage-2.tests.test_authorizations" name="test_authorization_requires_key_and_shape" time="0.083" /><testcase classname="stage-2.tests.test_authorizations" name="test_authorization_expires_at_is_created_at_plus_ttl" time="0.092" /><testcase classname="stage-2.tests.test_authorizations" name="test_authorization_places_hold_not_transfer" time="0.100" /><testcase classname="stage-2.tests.test_authorizations" name="test_authorization_insufficient_available_409" time="0.089" /><testcase classname="stage-2.tests.test_authorizations" name="test_authorization_field_errors" time="0.146" /><testcase classname="stage-2.tests.test_authorizations" name="test_open_authorization_not_in_activity_feed" time="0.102" /><testcase classname="stage-2.tests.test_authorizations" name="test_capture_requires_key_and_only_receiver" time="0.154" /><testcase classname="stage-2.tests.test_authorizations" name="test_capture_defaults_amount_to_remainder_final_to_true" time="0.083" /><testcase classname="stage-2.tests.test_authorizations" name="test_capture_replay_requires_identical_body" time="0.101" /><testcase classname="stage-2.tests.test_authorizations" name="test_capture_body_equality_is_type_strict_on_final" time="0.111" /><testcase classname="stage-2.tests.test_authorizations" name="test_capture_response_shape_and_feed_visibility" time="0.106" /><testcase classname="stage-2.tests.test_authorizations" name="test_capture_moves_money_and_reduces_hold_atomically" time="0.104" /><testcase classname="stage-2.tests.test_authorizations" name="test_final_capture_releases_remainder_and_closes" time="0.078"><failure message="AssertionError: {&quot;error&quot;: {&quot;code&quot;: &quot;insufficient_funds&quot;, &quot;message&quot;: &quot;insufficient funds&quot;}}&#10;assert 409 == 201&#10; +  where 409 = &lt;Response [409 Conflict]&gt;.status_code">def test_final_capture_releases_remainder_and_closes():
+        """R-2-056"""
+        fixture, ids, handles, tokens = n_user_fixture(2, balance=1000)
+&gt;       auth_obj = open_authorization(tokens[0], handles[1], amount=2000)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+/tmp/redline-wt-0qytlqx_/stage-2/tests/test_authorizations.py:238: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+payer_token = 'QezYjsG8F1x9gSGMXJEO8-O7RiRYpEPgE5vaOz69oc4'
+receiver_handle = 'p16f867ffa20921', amount = 2000, kw = {}
+
+    def open_authorization(payer_token: str, receiver_handle: str, amount: int = 1000, **kw) -&gt; dict:
+        """Create an authorization as `payer_token`'s owner, to `receiver_handle`.
+        Shared across every stage-2 test file that needs one, so a drifting copy
+        cannot be left behind in only some of them (the N1-T.5 lesson)."""
+        r = api_post("/authorizations", json={"to_handle": receiver_handle, "amount": amount, **kw},
+                     headers={**auth(payer_token), **idem(unique("k"))})
+&gt;       assert r.status_code == 201, r.text
+E       AssertionError: {"error": {"code": "insufficient_funds", "message": "insufficient funds"}}
+E       assert 409 == 201
+E        +  where 409 = &lt;Response [409 Conflict]&gt;.status_code
+
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:247: AssertionError</failure></testcase><testcase classname="stage-2.tests.test_authorizations" name="test_second_capture_after_final_409" time="0.091" /><testcase classname="stage-2.tests.test_authorizations" name="test_partial_capture_stays_open_allows_further_captures" time="0.119" /><testcase classname="stage-2.tests.test_authorizations" name="test_capturing_exact_remainder_closes_even_with_final_false" time="0.105" /><testcase classname="stage-2.tests.test_authorizations" name="test_capture_exceeds_remainder_not_original_amount" time="0.125" /><testcase classname="stage-2.tests.test_authorizations" name="test_capture_default_amount_never_triggers_exceeds" time="0.114" /><testcase classname="stage-2.tests.test_authorizations" name="test_captured_amount_cumulative_payment_ids_in_order_remaining_zero_when_closed" time="0.126" /><testcase classname="stage-2.tests.test_authorizations" name="test_capture_errors_and_precedence" time="0.175" /><testcase classname="stage-2.tests.test_authorizations" name="test_capture_voided_is_not_open" time="0.100" /><testcase classname="stage-2.tests.test_authorizations" name="test_capture_never_fails_for_funds_even_at_zero_available" time="0.104" /><testcase classname="stage-2.tests.test_authorizations" name="test_void_requires_payer_no_key" time="0.127" /><testcase classname="stage-2.tests.test_authorizations" name="test_void_response_and_release" time="0.092" /><testcase classname="stage-2.tests.test_authorizations" name="test_void_already_voided_is_200_idempotent" time="0.098" /><testcase classname="stage-2.tests.test_authorizations" name="test_void_captured_or_expired_is_409_not_open" time="0.110" /><testcase classname="stage-2.tests.test_authorizations" name="test_void_moves_no_money" time="0.104" /><testcase classname="stage-2.tests.test_authorizations" name="test_void_on_partial_capture_releases_only_remainder_preserves_captures" time="0.111" /><testcase classname="stage-2.tests.test_authorizations" name="test_unknown_authorization_404_for_capture_and_void" time="0.096" /><testcase classname="stage-2.tests.test_authorizations" name="test_list_visible_only_to_participants_newest_first" time="0.149" /><testcase classname="stage-2.tests.test_authorizations" name="test_direction_filter" time="0.124" /><testcase classname="stage-2.tests.test_authorizations" name="test_status_filter" time="0.118" /><testcase classname="stage-2.tests.test_authorizations" name="test_pagination_limit_offset_has_more" time="0.168" /><testcase classname="stage-2.tests.test_authorizations" name="test_api_json_when_no_html_accept" time="0.104" /><testcase classname="stage-2.tests.test_concurrency" name="test_50_concurrent_requests_no_5xx_and_fast" time="0.275" /><testcase classname="stage-2.tests.test_concurrency" name="test_reset_completes_within_10s" time="0.156" /><testcase classname="stage-2.tests.test_concurrency" name="test_payment_atomic_concurrent_with_reads_never_torn" time="0.799" /><testcase classname="stage-2.tests.test_concurrency" name="test_1000_concurrent_ops_with_replays_invariants_hold" time="0.929" /><testcase classname="stage-2.tests.test_concurrency" name="test_two_concurrent_pays_same_request_different_keys" time="0.130" /><testcase classname="stage-2.tests.test_concurrency" name="test_two_concurrent_payments_exceeding_balance_at_most_one_succeeds" time="0.148" /><testcase classname="stage-2.tests.test_concurrency" name="test_concurrent_settlements_and_payments_conserve_total" time="0.440" /><testcase classname="stage-2.tests.test_concurrency" name="test_reset_concurrent_with_traffic_no_5xx_and_clean_cutover" time="0.177" /><testcase classname="stage-2.tests.test_concurrency2" name="test_two_concurrent_full_captures_different_keys_exactly_one_wins" time="0.123" /><testcase classname="stage-2.tests.test_concurrency2" name="test_capture_racing_void_exactly_one_winner_hold_released_once" time="0.131" /><testcase classname="stage-2.tests.test_concurrency2" name="test_payment_racing_authorization_cannot_both_exceed_available" time="0.142" /><testcase classname="stage-2.tests.test_concurrency2" name="test_storm_mix_holds_r2_001_through_005" time="0.491" /><testcase classname="stage-2.tests.test_errors_precedence" name="test_error_body_shape_every_4xx_and_5xx_family" time="0.008" /><testcase classname="stage-2.tests.test_errors_precedence" name="test_malformed_request_unparseable_body" time="0.090" /><testcase classname="stage-2.tests.test_errors_precedence" name="test_malformed_request_non_object_top_level" time="0.081" /><testcase classname="stage-2.tests.test_errors_precedence" name="test_missing_idempotency_key" time="0.106" /><testcase classname="stage-2.tests.test_errors_precedence" name="test_unauthenticated_variants" time="0.018" /><testcase classname="stage-2.tests.test_errors_precedence" name="test_forbidden_non_operator_settlement" time="0.091" /><testcase classname="stage-2.tests.test_errors_precedence" name="test_not_found_unknown_resource" time="0.088" /><testcase classname="stage-2.tests.test_errors_precedence" name="test_idempotency_key_reuse_different_body" time="0.088" /><testcase classname="stage-2.tests.test_errors_precedence" name="test_validation_failed_missing_required_field" time="0.078" /><testcase classname="stage-2.tests.test_errors_precedence" name="test_validation_failed_correct_type_bad_value" time="0.080" /><testcase classname="stage-2.tests.test_errors_precedence" name="test_special_field_rules_take_precedence_over_wrong_type" time="0.101" /><testcase classname="stage-2.tests.test_errors_precedence" name="test_optional_field_omitted_is_never_an_error" time="0.093" /><testcase classname="stage-2.tests.test_errors_precedence" name="test_required_field_omitted_is_422" time="0.076" /><testcase classname="stage-2.tests.test_errors_precedence" name="test_integer_query_param_strict_decimal_form" time="0.153" /><testcase classname="stage-2.tests.test_errors_precedence" name="test_limit_range_422" time="0.127" /><testcase classname="stage-2.tests.test_errors_precedence" name="test_offset_range_422" time="0.109" /><testcase classname="stage-2.tests.test_errors_precedence" name="test_precedence_auth_before_everything" time="0.010" /><testcase classname="stage-2.tests.test_errors_precedence" name="test_precedence_permission_before_malformed_body" time="0.100" /><testcase classname="stage-2.tests.test_errors_precedence" name="test_precedence_malformed_body_before_missing_key" time="0.085" /><testcase classname="stage-2.tests.test_errors_precedence" name="test_precedence_missing_key_before_key_too_long" time="0.112" /><testcase classname="stage-2.tests.test_errors_precedence" name="test_precedence_idempotency_resolution_before_field_validation" time="0.090" /><testcase classname="stage-2.tests.test_errors_precedence" name="test_precedence_field_validation_before_lookup" time="0.079" /><testcase classname="stage-2.tests.test_errors_precedence" name="test_precedence_lookup_before_resource_permission" time="0.100" /><testcase classname="stage-2.tests.test_errors_precedence" name="test_precedence_resource_state_before_funds" time="0.120" /><testcase classname="stage-2.tests.test_errors_precedence" name="test_body_field_validation_order" time="0.121" /><testcase classname="stage-2.tests.test_errors_precedence" name="test_handle_syntax_vs_not_found_vs_malformed" time="0.100" /><testcase classname="stage-2.tests.test_errors_precedence" name="test_non_party_403_vs_unknown_404_on_pay_decline_cancel" time="0.183" /><testcase classname="stage-2.tests.test_errors_precedence" name="test_precedence_pair_missing_key_and_bad_amount" time="0.081" /><testcase classname="stage-2.tests.test_errors_precedence" name="test_precedence_pair_unauthenticated_and_malformed_body" time="0.005" /><testcase classname="stage-2.tests.test_errors_precedence" name="test_precedence_pair_claimed_key_and_invalid_body" time="0.126" /><testcase classname="stage-2.tests.test_errors_precedence" name="test_field_validation_order_amount_before_note_length" time="0.099" /><testcase classname="stage-2.tests.test_errors_precedence" name="test_field_validation_order_amount_before_self_payment" time="0.082" /><testcase classname="stage-2.tests.test_errors_precedence" name="test_field_validation_order_amount_before_self_request" time="0.079" /><testcase classname="stage-2.tests.test_errors_precedence" name="test_to_handle_syntax_variants_422[UPPERCASE]" time="0.098" /><testcase classname="stage-2.tests.test_errors_precedence" name="test_to_handle_syntax_variants_422[aaaaaaaaaaaaaaaaaaaaa]" time="0.089" /><testcase classname="stage-2.tests.test_errors_precedence" name="test_to_handle_syntax_variants_422[has-hyphen]" time="0.085" /><testcase classname="stage-2.tests.test_errors_precedence" name="test_to_handle_syntax_variants_422[]" time="0.094" /><testcase classname="stage-2.tests.test_errors_precedence" name="test_to_handle_well_formed_no_owner_404" time="0.086" /><testcase classname="stage-2.tests.test_errors_precedence" name="test_to_handle_non_string_400" time="0.125" /><testcase classname="stage-2.tests.test_errors_precedence" name="test_malformed_inputs_never_5xx" time="0.134" /><testcase classname="stage-2.tests.test_errors_precedence" name="test_every_error_message_is_non_empty_across_many_codes" time="0.151" /><testcase classname="stage-2.tests.test_expiry" name="test_expiry_flips_on_a_read_with_no_intervening_write" time="1.614" /><testcase classname="stage-2.tests.test_expiry" name="test_expired_never_matches_status_open_filter" time="1.622" /><testcase classname="stage-2.tests.test_expiry" name="test_get_me_releases_remainder_on_read_with_no_write" time="1.613" /><testcase classname="stage-2.tests.test_expiry" name="test_expiry_of_partial_capture_releases_only_remainder" time="2.612" /><testcase classname="stage-2.tests.test_expiry" name="test_capture_at_exactly_expires_at_is_409_expired" time="1.610" /><testcase classname="stage-2.tests.test_expiry" name="test_newly_created_authorization_may_have_sub_hour_lifetime" time="0.095" /><testcase classname="stage-2.tests.test_expiry" name="test_void_on_an_expired_authorization_is_409_not_open" time="1.603" /><testcase classname="stage-2.tests.test_export_import" name="test_export_shape_unauthenticated" time="0.037" /><testcase classname="stage-2.tests.test_export_import" name="test_import_unauthenticated_and_full_replace" time="0.088" /><testcase classname="stage-2.tests.test_export_import" name="test_import_accepts_unmodified_export_regardless_of_origin" time="0.039" /><testcase classname="stage-2.tests.test_export_import" name="test_import_is_replacement_not_merge_idempotent" time="0.126" /><testcase classname="stage-2.tests.test_export_import" name="test_import_malformed_and_invalid_body" time="0.103" /><testcase classname="stage-2.tests.test_export_import" name="test_export_import_preserves_accounts_tokens_balances_requests" time="0.151" /><testcase classname="stage-2.tests.test_export_import" name="test_export_import_preserves_idempotent_retry_identity" time="0.130" /><testcase classname="stage-2.tests.test_export_import" name="test_export_is_atomic_readonly_snapshot" time="0.125" /><testcase classname="stage-2.tests.test_export_import" name="test_import_regenerates_nothing_balances_exact" time="0.138" /><testcase classname="stage-2.tests.test_export_import" name="test_reset_clears_imported_state" time="0.120" /><testcase classname="stage-2.tests.test_export_import" name="test_fresh_fixture_reset_does_not_satisfy_import_semantics" time="0.098" /><testcase classname="stage-2.tests.test_export_import" name="test_export_import_preserves_settlement_operator_and_membership" time="0.176" /><testcase classname="stage-2.tests.test_fixture_authorizations" name="test_ttl_defaults_to_600_when_omitted" time="0.070" /><testcase classname="stage-2.tests.test_fixture_authorizations" name="test_ttl_non_positive_or_non_integer_rejected_from_reset" time="0.074" /><testcase classname="stage-2.tests.test_fixture_authorizations" name="test_authorizations_array_omitted_means_empty_stage1_fixture_valid" time="0.070" /><testcase classname="stage-2.tests.test_fixture_authorizations" name="test_seeded_authorization_has_absolute_expires_at" time="0.059" /><testcase classname="stage-2.tests.test_fixture_authorizations" name="test_seeded_balance_is_total_available_is_derived" time="0.060" /><testcase classname="stage-2.tests.test_fixture_authorizations" name="test_seeded_open_holds_exceeding_balance_rejected" time="0.045" /><testcase classname="stage-2.tests.test_fixture_authorizations" name="test_seeded_bad_status_rejected" time="0.032" /><testcase classname="stage-2.tests.test_fixture_authorizations" name="test_seeded_open_but_past_expiry_holds_nothing_reads_expired" time="0.062" /><testcase classname="stage-2.tests.test_fixture_authorizations" name="test_seeded_authorization_unknown_user_rejected" time="0.021" /><testcase classname="stage-2.tests.test_fixture_authorizations" name="test_seeded_authorization_self_reference_rejected" time="0.019" /><testcase classname="stage-2.tests.test_fixture_authorizations" name="test_seeded_captured_amount_defaults" time="0.055" /><testcase classname="stage-2.tests.test_fixture_authorizations" name="test_seeded_captured_amount_out_of_range_rejected" time="0.068" /><testcase classname="stage-2.tests.test_http_framing" name="test_over_long_request_line_400" time="0.001" /><testcase classname="stage-2.tests.test_http_framing" name="test_over_long_header_block_400" time="0.001" /><testcase classname="stage-2.tests.test_http_framing" name="test_options_allow_header_lists_actual_methods" time="0.015" /><testcase classname="stage-2.tests.test_http_framing" name="test_head_on_unrouted_path_404_no_body" time="0.014" /><testcase classname="stage-2.tests.test_idempotency" name="test_five_paths_require_idempotency_key" time="0.115" /><testcase classname="stage-2.tests.test_idempotency" name="test_other_endpoints_do_not_require_idempotency_key" time="0.121" /><testcase classname="stage-2.tests.test_idempotency" name="test_idempotency_scoped_per_user" time="0.198" /><testcase classname="stage-2.tests.test_idempotency" name="test_same_key_different_path_is_independent" time="0.086" /><testcase classname="stage-2.tests.test_idempotency" name="test_first_use_returns_201" time="0.087" /><testcase classname="stage-2.tests.test_idempotency" name="test_replay_returns_200_identical_body" time="0.111" /><testcase classname="stage-2.tests.test_idempotency" name="test_same_key_different_body_409" time="0.125" /><testcase classname="stage-2.tests.test_idempotency" name="test_same_body_different_key_order_and_whitespace_is_same_body" time="0.130" /><testcase classname="stage-2.tests.test_idempotency" name="test_absent_vs_default_present_is_different_body" time="0.104" /><testcase classname="stage-2.tests.test_idempotency" name="test_key_reused_after_422_failure_is_first_use" time="0.111" /><testcase classname="stage-2.tests.test_idempotency" name="test_key_reused_after_409_failure_is_first_use" time="0.092" /><testcase classname="stage-2.tests.test_idempotency" name="test_concurrent_identical_requests_exactly_one_takes_effect" time="0.123" /><testcase classname="stage-2.tests.test_idempotency" name="test_replay_after_resource_changed_still_returns_original" time="0.136" /><testcase classname="stage-2.tests.test_idempotency" name="test_idempotency_resolved_before_field_validation" time="0.094" /><testcase classname="stage-2.tests.test_idempotency" name="test_idempotency_key_too_long_422" time="0.099" /><testcase classname="stage-2.tests.test_idempotency" name="test_idempotency_key_max_length_accepted" time="0.082" /><testcase classname="stage-2.tests.test_idempotency" name="test_idempotency_key_empty_is_missing" time="0.093" /><testcase classname="stage-2.tests.test_idempotency" name="test_body_equality_number_vs_boolean_are_different" time="0.118" /><testcase classname="stage-2.tests.test_idempotency" name="test_body_equality_unknown_fields_count_toward_equality" time="0.102" /><testcase classname="stage-2.tests.test_idempotency" name="test_body_equality_array_order_matters" time="0.073" /><testcase classname="stage-2.tests.test_idempotency" name="test_replay_returns_stored_body_verbatim" time="0.100" /><testcase classname="stage-2.tests.test_idempotency" name="test_r_1_108_concurrent_losers_get_winner_body_payments" time="0.175" /><testcase classname="stage-2.tests.test_idempotency" name="test_r_1_108_concurrent_losers_get_winner_body_settlements" time="0.215" /><testcase classname="stage-2.tests.test_payments_activity" name="test_get_me_shape" time="0.106" /><testcase classname="stage-2.tests.test_payments_activity" name="test_payment_moves_money_atomically" time="0.134" /><testcase classname="stage-2.tests.test_payments_activity" name="test_payment_object_shape" time="0.105" /><testcase classname="stage-2.tests.test_payments_activity" name="test_payment_defaults_note_and_visibility" time="0.083" /><testcase classname="stage-2.tests.test_payments_activity" name="test_insufficient_funds_409_no_change" time="0.091" /><testcase classname="stage-2.tests.test_payments_activity" name="test_amount_range_rejected" time="0.110" /><testcase classname="stage-2.tests.test_payments_activity" name="test_amount_boundaries_accepted" time="0.096" /><testcase classname="stage-2.tests.test_payments_activity" name="test_payment_funds_boundary_exact_balance_succeeds_one_over_fails" time="0.172" /><testcase classname="stage-2.tests.test_payments_activity" name="test_self_payment_422" time="0.086" /><testcase classname="stage-2.tests.test_payments_activity" name="test_note_too_long_422" time="0.084" /><testcase classname="stage-2.tests.test_payments_activity" name="test_note_at_max_length_accepted" time="0.082" /><testcase classname="stage-2.tests.test_payments_activity" name="test_note_counted_in_code_points_emoji" time="0.088" /><testcase classname="stage-2.tests.test_payments_activity" name="test_visibility_invalid_value_422" time="0.079" /><testcase classname="stage-2.tests.test_payments_activity" name="test_to_handle_no_owner_404" time="0.082" /><testcase classname="stage-2.tests.test_payments_activity" name="test_note_verbatim_round_trip_unicode" time="0.107" /><testcase classname="stage-2.tests.test_payments_activity" name="test_balance_stays_within_safe_integer_range" time="0.079" /><testcase classname="stage-2.tests.test_payments_activity" name="test_activity_feed_shape_and_order" time="0.127" /><testcase classname="stage-2.tests.test_payments_activity" name="test_activity_visibility_rule" time="0.154" /><testcase classname="stage-2.tests.test_payments_activity" name="test_requests_never_in_activity_feed" time="0.108" /><testcase classname="stage-2.tests.test_payments_activity" name="test_split_itself_not_a_feed_item" time="0.092" /><testcase classname="stage-2.tests.test_payments_activity" name="test_activity_remains_correct_under_concurrent_writes" time="0.102" /><testcase classname="stage-2.tests.test_payments_activity" name="test_activity_limit_offset_and_has_more" time="0.134" /><testcase classname="stage-2.tests.test_payments_activity" name="test_activity_limit_and_offset_invalid_422" time="0.123" /><testcase classname="stage-2.tests.test_payments_activity" name="test_settlement_member_payment_follows_feed_visibility_rule" time="0.121" /><testcase classname="stage-2.tests.test_requests" name="test_create_request_shape" time="0.095" /><testcase classname="stage-2.tests.test_requests" name="test_request_ignores_payer_balance" time="0.110" /><testcase classname="stage-2.tests.test_requests" name="test_request_becomes_payable_once_funds_arrive" time="0.140" /><testcase classname="stage-2.tests.test_requests" name="test_request_no_visibility_and_not_in_activity" time="0.118" /><testcase classname="stage-2.tests.test_requests" name="test_request_field_errors" time="0.109" /><testcase classname="stage-2.tests.test_requests" name="test_request_lifecycle_terminal_states" time="0.108" /><testcase classname="stage-2.tests.test_requests" name="test_pay_request_payer_only_shape" time="0.083" /><testcase classname="stage-2.tests.test_requests" name="test_pay_request_visibility_is_payers_choice" time="0.117" /><testcase classname="stage-2.tests.test_requests" name="test_pay_body_distinguishes_empty_from_explicit_default" time="0.136" /><testcase classname="stage-2.tests.test_requests" name="test_pay_not_pending_insufficient_funds_forbidden_not_found" time="0.160" /><testcase classname="stage-2.tests.test_requests" name="test_replaying_successful_pay_never_409s" time="0.145" /><testcase classname="stage-2.tests.test_requests" name="test_decline_request" time="0.140" /><testcase classname="stage-2.tests.test_requests" name="test_cancel_request" time="0.153" /><testcase classname="stage-2.tests.test_requests" name="test_decline_and_cancel_move_no_money" time="0.124" /><testcase classname="stage-2.tests.test_requests" name="test_get_requests_visible_only_to_participants" time="0.116" /><testcase classname="stage-2.tests.test_requests" name="test_get_requests_newest_first" time="0.138" /><testcase classname="stage-2.tests.test_requests" name="test_get_requests_direction_filter" time="0.120" /><testcase classname="stage-2.tests.test_requests" name="test_get_requests_status_filter_and_unknown_value_422" time="0.124" /><testcase classname="stage-2.tests.test_requests" name="test_get_requests_pagination_defaults_and_has_more" time="0.170" /><testcase classname="stage-2.tests.test_requests" name="test_malformed_body_on_decline_and_cancel[decline-True-declined]" time="0.180" /><testcase classname="stage-2.tests.test_requests" name="test_malformed_body_on_decline_and_cancel[cancel-False-cancelled]" time="0.170" /><testcase classname="stage-2.tests.test_reset_fixture" name="test_currency_and_minor_units_declared" time="0.063" /><testcase classname="stage-2.tests.test_reset_fixture" name="test_minor_units_valid_values[2-EUR]" time="0.020" /><testcase classname="stage-2.tests.test_reset_fixture" name="test_minor_units_valid_values[0-JPY]" time="0.030" /><testcase classname="stage-2.tests.test_reset_fixture" name="test_minor_units_valid_values[3-BHD]" time="0.019" /><testcase classname="stage-2.tests.test_reset_fixture" name="test_minor_units_out_of_range_rejected" time="0.004" /><testcase classname="stage-2.tests.test_reset_fixture" name="test_amount_accepts_integral_numeric_forms" time="0.069" /><testcase classname="stage-2.tests.test_reset_fixture" name="test_amount_boolean_or_string_rejected_422" time="0.071" /><testcase classname="stage-2.tests.test_reset_fixture" name="test_amount_non_integral_rejected_422" time="0.067" /><testcase classname="stage-2.tests.test_reset_fixture" name="test_handle_uniqueness_and_syntax_enforced_on_reset" time="0.019" /><testcase classname="stage-2.tests.test_reset_fixture" name="test_handle_bad_syntax_rejected_on_reset" time="0.004" /><testcase classname="stage-2.tests.test_reset_fixture" name="test_handle_empty_string_rejected_on_reset" time="0.005" /><testcase classname="stage-2.tests.test_reset_fixture" name="test_user_id_non_string_rejected_on_reset" time="0.005" /><testcase classname="stage-2.tests.test_reset_fixture" name="test_handles_identify_users_no_directory_endpoint" time="0.006" /><testcase classname="stage-2.tests.test_reset_fixture" name="test_seeded_user_starts_with_given_balance_and_can_transact" time="0.090" /><testcase classname="stage-2.tests.test_reset_fixture" name="test_reset_replaces_all_state" time="0.118" /><testcase classname="stage-2.tests.test_reset_fixture" name="test_reset_requires_no_auth_and_is_repeatable" time="0.056" /><testcase classname="stage-2.tests.test_reset_fixture" name="test_seeded_balance_is_post_payment_not_replayed" time="0.084" /><testcase classname="stage-2.tests.test_reset_fixture" name="test_negative_balance_rejected_and_prior_state_intact" time="0.087" /><testcase classname="stage-2.tests.test_reset_fixture" name="test_reset_non_json_body_400" time="0.009" /><testcase classname="stage-2.tests.test_reset_fixture" name="test_reset_non_object_top_level_400" time="0.026" /><testcase classname="stage-2.tests.test_reset_fixture" name="test_reset_missing_required_user_field_422" time="0.007" /><testcase classname="stage-2.tests.test_reset_fixture" name="test_reset_duplicate_user_id_422" time="0.031" /><testcase classname="stage-2.tests.test_reset_fixture" name="test_reset_payment_unknown_user_422" time="0.024" /><testcase classname="stage-2.tests.test_reset_fixture" name="test_reset_request_unknown_user_422" time="0.032" /><testcase classname="stage-2.tests.test_reset_fixture" name="test_reset_bad_seeded_status_422" time="0.042" /><testcase classname="stage-2.tests.test_reset_fixture" name="test_reset_accepts_full_fixture_shape" time="0.079" /><testcase classname="stage-2.tests.test_reset_fixture" name="test_reset_omits_optional_collections" time="0.066" /><testcase classname="stage-2.tests.test_reset_fixture" name="test_reset_ignores_unknown_top_level_fields" time="0.026" /><testcase classname="stage-2.tests.test_reset_fixture" name="test_seeded_pending_request_is_payable_non_pending_is_not" time="0.109" /><testcase classname="stage-2.tests.test_reset_fixture" name="test_seeded_paid_request_exposes_null_payment_id_and_no_synthesized_payment" time="0.131" /><testcase classname="stage-2.tests.test_reset_fixture" name="test_no_admin_balance_endpoint" time="0.069" /><testcase classname="stage-2.tests.test_runtime" name="test_dockerfile_and_run_md_present" time="0.001" /><testcase classname="stage-2.tests.test_runtime" name="test_no_compose_or_sidecar_needed" time="0.000" /><testcase classname="stage-2.tests.test_runtime" name="test_service_reachable_on_configured_port" time="0.009" /><testcase classname="stage-2.tests.test_runtime" name="test_dockerfile_has_no_runtime_network_fetch" time="0.001" /><testcase classname="stage-2.tests.test_runtime" name="test_no_persistent_volume_required" time="0.086" /><testcase classname="stage-2.tests.test_runtime" name="test_health_ok" time="0.005" /><testcase classname="stage-2.tests.test_runtime" name="test_health_no_auth_required" time="0.009" /><testcase classname="stage-2.tests.test_runtime" name="test_json_content_type_on_success" time="0.009" /><testcase classname="stage-2.tests.test_runtime" name="test_json_content_type_on_error" time="0.011" /><testcase classname="stage-2.tests.test_runtime" name="test_timestamps_are_rfc3339_with_offset" time="0.072" /><testcase classname="stage-2.tests.test_runtime" name="test_unknown_request_body_fields_ignored" time="0.083" /><testcase classname="stage-2.tests.test_runtime" name="test_unknown_query_params_ignored" time="0.058" /><testcase classname="stage-2.tests.test_runtime" name="test_assigned_ids_are_opaque_and_bounded" time="0.078" /><testcase classname="stage-2.tests.test_runtime" name="test_seeded_ids_used_verbatim" time="0.075" /><testcase classname="stage-2.tests.test_settlements" name="test_settlement_requires_operator_and_key" time="0.183" /><testcase classname="stage-2.tests.test_settlements" name="test_operator_grants_only_settlement_execution" time="0.146" /><testcase classname="stage-2.tests.test_settlements" name="test_settlement_body_shape_and_defaults" time="0.154" /><testcase classname="stage-2.tests.test_settlements" name="test_settlement_batch_shape_errors" time="0.178" /><testcase classname="stage-2.tests.test_settlements" name="test_settlement_per_entry_errors" time="0.154" /><testcase classname="stage-2.tests.test_settlements" name="test_settlement_entry_missing_from_handle_422" time="0.129" /><testcase classname="stage-2.tests.test_settlements" name="test_settlement_entry_missing_to_handle_422" time="0.111" /><testcase classname="stage-2.tests.test_settlements" name="test_settlement_entry_missing_amount_422" time="0.123" /><testcase classname="stage-2.tests.test_settlements" name="test_settlement_entry_from_handle_non_string_400" time="0.128" /><testcase classname="stage-2.tests.test_settlements" name="test_settlement_entry_to_handle_non_string_400" time="0.114" /><testcase classname="stage-2.tests.test_settlements" name="test_settlement_entry_from_handle_bad_syntax_422_not_404[Ada]" time="0.114" /><testcase classname="stage-2.tests.test_settlements" name="test_settlement_entry_from_handle_bad_syntax_422_not_404[a b]" time="0.126" /><testcase classname="stage-2.tests.test_settlements" name="test_settlement_entry_from_handle_bad_syntax_422_not_404[ada!]" time="0.117" /><testcase classname="stage-2.tests.test_settlements" name="test_settlement_entry_from_handle_bad_syntax_422_not_404[aaaaaaaaaaaaaaaaaaaaa]" time="0.123" /><testcase classname="stage-2.tests.test_settlements" name="test_settlement_entry_to_handle_bad_syntax_422_not_404[Ada]" time="0.132" /><testcase classname="stage-2.tests.test_settlements" name="test_settlement_entry_to_handle_bad_syntax_422_not_404[a b]" time="0.128" /><testcase classname="stage-2.tests.test_settlements" name="test_settlement_entry_to_handle_bad_syntax_422_not_404[ada!]" time="0.124" /><testcase classname="stage-2.tests.test_settlements" name="test_settlement_entry_to_handle_bad_syntax_422_not_404[aaaaaaaaaaaaaaaaaaaaa]" time="0.144" /><testcase classname="stage-2.tests.test_settlements" name="test_entry_errors_precede_insufficient_funds_in_input_order" time="0.152" /><testcase classname="stage-2.tests.test_settlements" name="test_affordable_net_zero_batch_succeeds_even_if_single_leg_would_not" time="0.113" /><testcase classname="stage-2.tests.test_settlements" name="test_unaffordable_net_batch_rejected_and_changes_nothing" time="0.101" /><testcase classname="stage-2.tests.test_settlements" name="test_settlement_funds_boundary_exact_balance_succeeds_one_over_fails" time="0.189" /><testcase classname="stage-2.tests.test_settlements" name="test_net_affordability_chain_through_intermediary_forward_order" time="0.174" /><testcase classname="stage-2.tests.test_settlements" name="test_net_affordability_chain_through_intermediary_reverse_order" time="0.133" /><testcase classname="stage-2.tests.test_settlements" name="test_settlement_atomic_all_or_nothing" time="0.134" /><testcase classname="stage-2.tests.test_settlements" name="test_failed_settlement_claims_no_key_and_creates_nothing" time="0.116" /><testcase classname="stage-2.tests.test_settlements" name="test_successful_settlement_response_shape" time="0.136" /><testcase classname="stage-2.tests.test_settlements" name="test_replaying_settlement_moves_no_additional_money" time="0.103" /><testcase classname="stage-2.tests.test_settlements" name="test_settlement_ignores_unknown_fields" time="0.108" /><testcase classname="stage-2.tests.test_settlements" name="test_operator_self_transfer_entries_permitted" time="0.075" /><testcase classname="stage-2.tests.test_splits" name="test_split_creates_requests_for_everyone_but_caller" time="0.110" /><testcase classname="stage-2.tests.test_splits" name="test_split_response_shape" time="0.124" /><testcase classname="stage-2.tests.test_splits" name="test_shares_sum_exactly_to_amount" time="0.275" /><testcase classname="stage-2.tests.test_splits" name="test_share_arithmetic_matches_spec_examples[1000-3-expected0]" time="0.142" /><testcase classname="stage-2.tests.test_splits" name="test_share_arithmetic_matches_spec_examples[1-3-expected1]" time="0.141" /><testcase classname="stage-2.tests.test_splits" name="test_share_arithmetic_matches_spec_examples[10-3-expected2]" time="0.130" /><testcase classname="stage-2.tests.test_splits" name="test_share_arithmetic_matches_spec_examples[999-3-expected3]" time="0.125" /><testcase classname="stage-2.tests.test_splits" name="test_share_arithmetic_matches_spec_examples[5-5-expected4]" time="0.218" /><testcase classname="stage-2.tests.test_splits" name="test_share_arithmetic_matches_spec_examples[17-5-expected5]" time="0.214" /><testcase classname="stage-2.tests.test_splits" name="test_reordering_participants_changes_who_gets_extra_unit" time="0.145" /><testcase classname="stage-2.tests.test_splits" name="test_zero_share_is_legal_and_still_creates_request" time="0.198" /><testcase classname="stage-2.tests.test_splits" name="test_split_only_caller_participant" time="0.054" /><testcase classname="stage-2.tests.test_splits" name="test_split_checks_no_balance_and_moves_no_money" time="0.145" /><testcase classname="stage-2.tests.test_splits" name="test_split_errors" time="0.149" /><testcase classname="stage-2.tests.test_splits" name="test_split_participant_handles_type_errors" time="0.094" /><testcase classname="stage-2.tests.test_splits" name="test_each_split_independent_balances_sum_preserved" time="0.248" /><testcase classname="stage-2.tests.test_ui_activity" name="test_activity_item_fields_for_a_seeded_public_payment" time="30.618"><failure message="playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.&#10;Call log:&#10;  - waiting for locator(&quot;[data-testid=\&quot;login-email\&quot;]&quot;)">page = &lt;Page url='http://172.28.0.2:8080/login'&gt;
+demo = {'fixture': {'currency': 'EUR', 'minor_units': 2, 'users': [{'id': 'u-alice', 'email': 'alice@example.com', 'password'...M', 'user_id': 'u-carol'}, 'dave': {'token': 'xcpsk4F7A9Gx-7tJjlU0fbmPnQNOd0t3QDZ1qIUYATU', 'user_id': 'u-dave'}, ...}}
+
+    def test_activity_item_fields_for_a_seeded_public_payment(page, demo):
+        """R-2-131"""
+&gt;       ui_login_demo_user(page, demo["fixture"])
+
+/tmp/redline-wt-0qytlqx_/stage-2/tests/test_ui_activity.py:10: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:300: in ui_login_demo_user
+    ui_login(page, u["email"], u["password"])
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:290: in ui_login
+    page.fill(tid("login-email"), email)
+.venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py:11332: in fill
+    self._sync(
+.venv/lib/python3.12/site-packages/playwright/_impl/_page.py:930: in fill
+    return await self._main_frame.fill(**locals_to_params(locals()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:637: in fill
+    await self._fill(**locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:649: in _fill
+    await self._channel.send("fill", self._timeout, locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:76: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;playwright._impl._connection.Connection object at 0x773e2050bb30&gt;
+cb = &lt;function Channel.send.&lt;locals&gt;.&lt;lambda&gt; at 0x773e1f253240&gt;
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -&gt; Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+&gt;           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.
+E           Call log:
+E             - waiting for locator("[data-testid=\"login-email\"]")
+
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:632: TimeoutError</failure></testcase><testcase classname="stage-2.tests.test_ui_activity" name="test_activity_note_element_present_even_when_empty" time="30.348"><failure message="playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.&#10;Call log:&#10;  - waiting for locator(&quot;[data-testid=\&quot;login-email\&quot;]&quot;)">page = &lt;Page url='http://172.28.0.2:8080/login'&gt;
+demo = {'fixture': {'currency': 'EUR', 'minor_units': 2, 'users': [{'id': 'u-alice', 'email': 'alice@example.com', 'password'...4', 'user_id': 'u-carol'}, 'dave': {'token': '1WngAWylC16NNz0rk8sWyj-SgBNSmNJmSHN5vcEl9Sg', 'user_id': 'u-dave'}, ...}}
+
+    def test_activity_note_element_present_even_when_empty(page, demo):
+        """R-2-131"""
+&gt;       user = ui_login_demo_user(page, demo["fixture"])
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+/tmp/redline-wt-0qytlqx_/stage-2/tests/test_ui_activity.py:27: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:300: in ui_login_demo_user
+    ui_login(page, u["email"], u["password"])
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:290: in ui_login
+    page.fill(tid("login-email"), email)
+.venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py:11332: in fill
+    self._sync(
+.venv/lib/python3.12/site-packages/playwright/_impl/_page.py:930: in fill
+    return await self._main_frame.fill(**locals_to_params(locals()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:637: in fill
+    await self._fill(**locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:649: in _fill
+    await self._channel.send("fill", self._timeout, locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:76: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;playwright._impl._connection.Connection object at 0x773e2050bb30&gt;
+cb = &lt;function Channel.send.&lt;locals&gt;.&lt;lambda&gt; at 0x773e1f76db20&gt;
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -&gt; Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+&gt;           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.
+E           Call log:
+E             - waiting for locator("[data-testid=\"login-email\"]")
+
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:632: TimeoutError</failure></testcase><testcase classname="stage-2.tests.test_ui_activity" name="test_empty_activity_marker_when_nothing_visible" time="30.075"><failure message="playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.&#10;Call log:&#10;  - waiting for locator(&quot;[data-testid=\&quot;login-email\&quot;]&quot;)">page = &lt;Page url='http://172.28.0.2:8080/login'&gt;
+
+    def test_empty_activity_marker_when_nothing_visible(page):
+        """R-2-131"""
+        a_id, b_id = unique("u"), unique("u")
+        fixture = make_fixture([user(a_id, unique_handle("a"), balance=100), user(b_id, unique_handle("b"), balance=0)])
+        reset_ok(fixture)
+&gt;       ui_login(page, fixture["users"][0]["email"], fixture["users"][0]["password"])
+
+/tmp/redline-wt-0qytlqx_/stage-2/tests/test_ui_activity.py:45: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:290: in ui_login
+    page.fill(tid("login-email"), email)
+.venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py:11332: in fill
+    self._sync(
+.venv/lib/python3.12/site-packages/playwright/_impl/_page.py:930: in fill
+    return await self._main_frame.fill(**locals_to_params(locals()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:637: in fill
+    await self._fill(**locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:649: in _fill
+    await self._channel.send("fill", self._timeout, locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:76: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;playwright._impl._connection.Connection object at 0x773e2050bb30&gt;
+cb = &lt;function Channel.send.&lt;locals&gt;.&lt;lambda&gt; at 0x773e1f1d2ac0&gt;
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -&gt; Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+&gt;           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.
+E           Call log:
+E             - waiting for locator("[data-testid=\"login-email\"]")
+
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:632: TimeoutError</failure></testcase><testcase classname="stage-2.tests.test_ui_activity" name="test_activity_newest_first_in_dom" time="30.334"><failure message="playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.&#10;Call log:&#10;  - waiting for locator(&quot;[data-testid=\&quot;login-email\&quot;]&quot;)">page = &lt;Page url='http://172.28.0.2:8080/login'&gt;
+demo = {'fixture': {'currency': 'EUR', 'minor_units': 2, 'users': [{'id': 'u-alice', 'email': 'alice@example.com', 'password'...s', 'user_id': 'u-carol'}, 'dave': {'token': 'jekoyGYe0hvM5tAGRRcFnKPvr81IvN0ivkzPXKERWoE', 'user_id': 'u-dave'}, ...}}
+
+    def test_activity_newest_first_in_dom(page, demo):
+        """R-2-131, R-2-132: newest first in the DOM; ties within the same
+        second may appear in either order, so this only orders payments created
+        with a deliberate gap, never asserting on same-second ties."""
+&gt;       user = ui_login_demo_user(page, demo["fixture"])
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+/tmp/redline-wt-0qytlqx_/stage-2/tests/test_ui_activity.py:56: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:300: in ui_login_demo_user
+    ui_login(page, u["email"], u["password"])
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:290: in ui_login
+    page.fill(tid("login-email"), email)
+.venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py:11332: in fill
+    self._sync(
+.venv/lib/python3.12/site-packages/playwright/_impl/_page.py:930: in fill
+    return await self._main_frame.fill(**locals_to_params(locals()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:637: in fill
+    await self._fill(**locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:649: in _fill
+    await self._channel.send("fill", self._timeout, locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:76: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;playwright._impl._connection.Connection object at 0x773e2050bb30&gt;
+cb = &lt;function Channel.send.&lt;locals&gt;.&lt;lambda&gt; at 0x773e204cfe20&gt;
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -&gt; Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+&gt;           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.
+E           Call log:
+E             - waiting for locator("[data-testid=\"login-email\"]")
+
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:632: TimeoutError</failure></testcase><testcase classname="stage-2.tests.test_ui_activity" name="test_parties_show_handles_not_internal_ids" time="30.344"><failure message="playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.&#10;Call log:&#10;  - waiting for locator(&quot;[data-testid=\&quot;login-email\&quot;]&quot;)">page = &lt;Page url='http://172.28.0.2:8080/login'&gt;
+demo = {'fixture': {'currency': 'EUR', 'minor_units': 2, 'users': [{'id': 'u-alice', 'email': 'alice@example.com', 'password'...c', 'user_id': 'u-carol'}, 'dave': {'token': '01UZtMGVb_nyC-diU4tWiLoqdqadALFif5vcjcK1dh4', 'user_id': 'u-dave'}, ...}}
+
+    def test_parties_show_handles_not_internal_ids(page, demo):
+        """R-2-106: people are formatted for people first — handles, not raw
+        internal user ids, appear in the activity list."""
+&gt;       ui_login_demo_user(page, demo["fixture"])
+
+/tmp/redline-wt-0qytlqx_/stage-2/tests/test_ui_activity.py:82: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:300: in ui_login_demo_user
+    ui_login(page, u["email"], u["password"])
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:290: in ui_login
+    page.fill(tid("login-email"), email)
+.venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py:11332: in fill
+    self._sync(
+.venv/lib/python3.12/site-packages/playwright/_impl/_page.py:930: in fill
+    return await self._main_frame.fill(**locals_to_params(locals()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:637: in fill
+    await self._fill(**locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:649: in _fill
+    await self._channel.send("fill", self._timeout, locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:76: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;playwright._impl._connection.Connection object at 0x773e2050bb30&gt;
+cb = &lt;function Channel.send.&lt;locals&gt;.&lt;lambda&gt; at 0x773e20368d60&gt;
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -&gt; Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+&gt;           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.
+E           Call log:
+E             - waiting for locator("[data-testid=\"login-email\"]")
+
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:632: TimeoutError</failure></testcase><testcase classname="stage-2.tests.test_ui_auth" name="test_every_required_route_reachable" time="30.371"><failure message="playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.&#10;Call log:&#10;  - waiting for locator(&quot;[data-testid=\&quot;login-email\&quot;]&quot;)">page = &lt;Page url='http://172.28.0.2:8080/login'&gt;
+demo = {'fixture': {'currency': 'EUR', 'minor_units': 2, 'users': [{'id': 'u-alice', 'email': 'alice@example.com', 'password'...M', 'user_id': 'u-carol'}, 'dave': {'token': 'Yt_werh-9nCXwJsnQPE90RE_xVu3anITBBuI2qBnJK0', 'user_id': 'u-dave'}, ...}}
+
+    def test_every_required_route_reachable(page, demo):
+        """R-2-090"""
+&gt;       ui_login_demo_user(page, demo["fixture"])
+
+/tmp/redline-wt-0qytlqx_/stage-2/tests/test_ui_auth.py:14: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:300: in ui_login_demo_user
+    ui_login(page, u["email"], u["password"])
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:290: in ui_login
+    page.fill(tid("login-email"), email)
+.venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py:11332: in fill
+    self._sync(
+.venv/lib/python3.12/site-packages/playwright/_impl/_page.py:930: in fill
+    return await self._main_frame.fill(**locals_to_params(locals()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:637: in fill
+    await self._fill(**locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:649: in _fill
+    await self._channel.send("fill", self._timeout, locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:76: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;playwright._impl._connection.Connection object at 0x773e2050bb30&gt;
+cb = &lt;function Channel.send.&lt;locals&gt;.&lt;lambda&gt; at 0x773e1f2e8b80&gt;
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -&gt; Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+&gt;           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.
+E           Call log:
+E             - waiting for locator("[data-testid=\"login-email\"]")
+
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:632: TimeoutError</failure></testcase><testcase classname="stage-2.tests.test_ui_auth" name="test_requests_and_authorizations_shared_html_json" time="30.328"><failure message="playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.&#10;Call log:&#10;  - waiting for locator(&quot;[data-testid=\&quot;login-email\&quot;]&quot;)">page = &lt;Page url='http://172.28.0.2:8080/login'&gt;
+demo = {'fixture': {'currency': 'EUR', 'minor_units': 2, 'users': [{'id': 'u-alice', 'email': 'alice@example.com', 'password'...I', 'user_id': 'u-carol'}, 'dave': {'token': 'yDljdDSkAkBT5G6u-CgjFAVt96Crc0PhNNotzGES23Q', 'user_id': 'u-dave'}, ...}}
+
+    def test_requests_and_authorizations_shared_html_json(page, demo):
+        """R-2-091: Accept: text/html gets the UI; no Accept / application/json
+        gets JSON, and existing API clients are unaffected."""
+&gt;       user = ui_login_demo_user(page, demo["fixture"])
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+/tmp/redline-wt-0qytlqx_/stage-2/tests/test_ui_auth.py:23: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:300: in ui_login_demo_user
+    ui_login(page, u["email"], u["password"])
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:290: in ui_login
+    page.fill(tid("login-email"), email)
+.venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py:11332: in fill
+    self._sync(
+.venv/lib/python3.12/site-packages/playwright/_impl/_page.py:930: in fill
+    return await self._main_frame.fill(**locals_to_params(locals()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:637: in fill
+    await self._fill(**locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:649: in _fill
+    await self._channel.send("fill", self._timeout, locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:76: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;playwright._impl._connection.Connection object at 0x773e2050bb30&gt;
+cb = &lt;function Channel.send.&lt;locals&gt;.&lt;lambda&gt; at 0x773e1f15c360&gt;
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -&gt; Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+&gt;           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.
+E           Call log:
+E             - waiting for locator("[data-testid=\"login-email\"]")
+
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:632: TimeoutError</failure></testcase><testcase classname="stage-2.tests.test_ui_auth" name="test_no_external_network_request" time="30.391"><failure message="playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.&#10;Call log:&#10;  - waiting for locator(&quot;[data-testid=\&quot;login-email\&quot;]&quot;)">page = &lt;Page url='http://172.28.0.2:8080/login'&gt;
+demo = {'fixture': {'currency': 'EUR', 'minor_units': 2, 'users': [{'id': 'u-alice', 'email': 'alice@example.com', 'password'...k', 'user_id': 'u-carol'}, 'dave': {'token': 'nlXx2w0-s4eidUZAOrd3Qh_WsfLaS7BlrSMpXVCq0vQ', 'user_id': 'u-dave'}, ...}}
+
+    def test_no_external_network_request(page, demo):
+        """R-2-092: every runtime asset is served from the image."""
+&gt;       ui_login_demo_user(page, demo["fixture"])
+
+/tmp/redline-wt-0qytlqx_/stage-2/tests/test_ui_auth.py:42: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:300: in ui_login_demo_user
+    ui_login(page, u["email"], u["password"])
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:290: in ui_login
+    page.fill(tid("login-email"), email)
+.venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py:11332: in fill
+    self._sync(
+.venv/lib/python3.12/site-packages/playwright/_impl/_page.py:930: in fill
+    return await self._main_frame.fill(**locals_to_params(locals()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:637: in fill
+    await self._fill(**locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:649: in _fill
+    await self._channel.send("fill", self._timeout, locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:76: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;playwright._impl._connection.Connection object at 0x773e2050bb30&gt;
+cb = &lt;function Channel.send.&lt;locals&gt;.&lt;lambda&gt; at 0x773e1f16fba0&gt;
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -&gt; Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+&gt;           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.
+E           Call log:
+E             - waiting for locator("[data-testid=\"login-email\"]")
+
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:632: TimeoutError</failure></testcase><testcase classname="stage-2.tests.test_ui_auth" name="test_current_user_visible_on_every_screen" time="30.368"><failure message="playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.&#10;Call log:&#10;  - waiting for locator(&quot;[data-testid=\&quot;login-email\&quot;]&quot;)">page = &lt;Page url='http://172.28.0.2:8080/login'&gt;
+demo = {'fixture': {'currency': 'EUR', 'minor_units': 2, 'users': [{'id': 'u-alice', 'email': 'alice@example.com', 'password'...I', 'user_id': 'u-carol'}, 'dave': {'token': 'w7_wDVgzYtDqpUVpgC1GnbzR83FLvgo1yf0XaueFQwE', 'user_id': 'u-dave'}, ...}}
+
+    def test_current_user_visible_on_every_screen(page, demo):
+        """R-2-093, R-2-123, R-2-124"""
+&gt;       user = ui_login_demo_user(page, demo["fixture"])
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+/tmp/redline-wt-0qytlqx_/stage-2/tests/test_ui_auth.py:54: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:300: in ui_login_demo_user
+    ui_login(page, u["email"], u["password"])
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:290: in ui_login
+    page.fill(tid("login-email"), email)
+.venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py:11332: in fill
+    self._sync(
+.venv/lib/python3.12/site-packages/playwright/_impl/_page.py:930: in fill
+    return await self._main_frame.fill(**locals_to_params(locals()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:637: in fill
+    await self._fill(**locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:649: in _fill
+    await self._channel.send("fill", self._timeout, locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:76: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;playwright._impl._connection.Connection object at 0x773e2050bb30&gt;
+cb = &lt;function Channel.send.&lt;locals&gt;.&lt;lambda&gt; at 0x773e1f16fb00&gt;
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -&gt; Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+&gt;           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.
+E           Call log:
+E             - waiting for locator("[data-testid=\"login-email\"]")
+
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:632: TimeoutError</failure></testcase><testcase classname="stage-2.tests.test_ui_auth" name="test_signup_fields_and_flow" time="0.055"><failure message="AssertionError: missing signup-email&#10;assert 0 &gt; 0&#10; +  where 0 = count()&#10; +    where count = &lt;Locator frame=&lt;Frame name= url='http://172.28.0.2:8080/signup'&gt; selector='[data-testid=&quot;signup-email&quot;]'&gt;.count&#10; +      where &lt;Locator frame=&lt;Frame name= url='http://172.28.0.2:8080/signup'&gt; selector='[data-testid=&quot;signup-email&quot;]'&gt; = locator('[data-testid=&quot;signup-email&quot;]')&#10; +        where locator = &lt;Page url='http://172.28.0.2:8080/signup'&gt;.locator&#10; +        and   '[data-testid=&quot;signup-email&quot;]' = tid('signup-email')">page = &lt;Page url='http://172.28.0.2:8080/signup'&gt;
+
+    def test_signup_fields_and_flow(page):
+        """R-2-120"""
+        email = unique_email("uisignup")
+        page.goto(url("/signup"), wait_until="load")
+        for field in ("signup-email", "signup-password", "signup-display-name", "signup-submit"):
+&gt;           assert page.locator(tid(field)).count() &gt; 0, f"missing {field}"
+E           AssertionError: missing signup-email
+E           assert 0 &gt; 0
+E            +  where 0 = count()
+E            +    where count = &lt;Locator frame=&lt;Frame name= url='http://172.28.0.2:8080/signup'&gt; selector='[data-testid="signup-email"]'&gt;.count
+E            +      where &lt;Locator frame=&lt;Frame name= url='http://172.28.0.2:8080/signup'&gt; selector='[data-testid="signup-email"]'&gt; = locator('[data-testid="signup-email"]')
+E            +        where locator = &lt;Page url='http://172.28.0.2:8080/signup'&gt;.locator
+E            +        and   '[data-testid="signup-email"]' = tid('signup-email')
+
+/tmp/redline-wt-0qytlqx_/stage-2/tests/test_ui_auth.py:69: AssertionError</failure></testcase><testcase classname="stage-2.tests.test_ui_auth" name="test_login_fields_and_flow" time="0.319"><failure message="AssertionError: missing login-email&#10;assert 0 &gt; 0&#10; +  where 0 = count()&#10; +    where count = &lt;Locator frame=&lt;Frame name= url='http://172.28.0.2:8080/login'&gt; selector='[data-testid=&quot;login-email&quot;]'&gt;.count&#10; +      where &lt;Locator frame=&lt;Frame name= url='http://172.28.0.2:8080/login'&gt; selector='[data-testid=&quot;login-email&quot;]'&gt; = locator('[data-testid=&quot;login-email&quot;]')&#10; +        where locator = &lt;Page url='http://172.28.0.2:8080/login'&gt;.locator&#10; +        and   '[data-testid=&quot;login-email&quot;]' = tid('login-email')">page = &lt;Page url='http://172.28.0.2:8080/login'&gt;
+demo = {'fixture': {'currency': 'EUR', 'minor_units': 2, 'users': [{'id': 'u-alice', 'email': 'alice@example.com', 'password'...M', 'user_id': 'u-carol'}, 'dave': {'token': 'P-dXobaQY-hH_UDXDRWW0GmzLjz1tUn0LNTYdMx58bs', 'user_id': 'u-dave'}, ...}}
+
+    def test_login_fields_and_flow(page, demo):
+        """R-2-121"""
+        page.goto(url("/login"), wait_until="load")
+        for field in ("login-email", "login-password", "login-submit"):
+&gt;           assert page.locator(tid(field)).count() &gt; 0, f"missing {field}"
+E           AssertionError: missing login-email
+E           assert 0 &gt; 0
+E            +  where 0 = count()
+E            +    where count = &lt;Locator frame=&lt;Frame name= url='http://172.28.0.2:8080/login'&gt; selector='[data-testid="login-email"]'&gt;.count
+E            +      where &lt;Locator frame=&lt;Frame name= url='http://172.28.0.2:8080/login'&gt; selector='[data-testid="login-email"]'&gt; = locator('[data-testid="login-email"]')
+E            +        where locator = &lt;Page url='http://172.28.0.2:8080/login'&gt;.locator
+E            +        and   '[data-testid="login-email"]' = tid('login-email')
+
+/tmp/redline-wt-0qytlqx_/stage-2/tests/test_ui_auth.py:78: AssertionError</failure></testcase><testcase classname="stage-2.tests.test_ui_auth" name="test_auth_error_present_only_when_there_is_one" time="30.281"><failure message="playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.&#10;Call log:&#10;  - waiting for locator(&quot;[data-testid=\&quot;login-email\&quot;]&quot;)">page = &lt;Page url='http://172.28.0.2:8080/login'&gt;
+demo = {'fixture': {'currency': 'EUR', 'minor_units': 2, 'users': [{'id': 'u-alice', 'email': 'alice@example.com', 'password'...s', 'user_id': 'u-carol'}, 'dave': {'token': '98QwJopVwr7e9tKxmfyQnDj-wI2PGShbRMknprSAmCE', 'user_id': 'u-dave'}, ...}}
+
+    def test_auth_error_present_only_when_there_is_one(page, demo):
+        """R-2-122"""
+        page.goto(url("/login"), wait_until="load")
+        assert page.locator(tid("auth-error")).count() == 0
+&gt;       ui_login(page, "no-such-user@example.com", "wrong-password")
+
+/tmp/redline-wt-0qytlqx_/stage-2/tests/test_ui_auth.py:88: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:290: in ui_login
+    page.fill(tid("login-email"), email)
+.venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py:11332: in fill
+    self._sync(
+.venv/lib/python3.12/site-packages/playwright/_impl/_page.py:930: in fill
+    return await self._main_frame.fill(**locals_to_params(locals()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:637: in fill
+    await self._fill(**locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:649: in _fill
+    await self._channel.send("fill", self._timeout, locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:76: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;playwright._impl._connection.Connection object at 0x773e2050bb30&gt;
+cb = &lt;function Channel.send.&lt;locals&gt;.&lt;lambda&gt; at 0x773e1f1a98a0&gt;
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -&gt; Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+&gt;           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.
+E           Call log:
+E             - waiting for locator("[data-testid=\"login-email\"]")
+
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:632: TimeoutError</failure></testcase><testcase classname="stage-2.tests.test_ui_auth" name="test_logout_button_present_and_signs_out" time="30.327"><failure message="playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.&#10;Call log:&#10;  - waiting for locator(&quot;[data-testid=\&quot;login-email\&quot;]&quot;)">page = &lt;Page url='http://172.28.0.2:8080/login'&gt;
+demo = {'fixture': {'currency': 'EUR', 'minor_units': 2, 'users': [{'id': 'u-alice', 'email': 'alice@example.com', 'password'...8', 'user_id': 'u-carol'}, 'dave': {'token': 'gMa8Ky5Chc3nwUCSpmZwjJExMCzgUASCadIp7zAky9Q', 'user_id': 'u-dave'}, ...}}
+
+    def test_logout_button_present_and_signs_out(page, demo):
+        """R-2-125"""
+&gt;       ui_login_demo_user(page, demo["fixture"])
+
+/tmp/redline-wt-0qytlqx_/stage-2/tests/test_ui_auth.py:95: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:300: in ui_login_demo_user
+    ui_login(page, u["email"], u["password"])
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:290: in ui_login
+    page.fill(tid("login-email"), email)
+.venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py:11332: in fill
+    self._sync(
+.venv/lib/python3.12/site-packages/playwright/_impl/_page.py:930: in fill
+    return await self._main_frame.fill(**locals_to_params(locals()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:637: in fill
+    await self._fill(**locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:649: in _fill
+    await self._channel.send("fill", self._timeout, locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:76: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;playwright._impl._connection.Connection object at 0x773e2050bb30&gt;
+cb = &lt;function Channel.send.&lt;locals&gt;.&lt;lambda&gt; at 0x773e1f253c40&gt;
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -&gt; Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+&gt;           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.
+E           Call log:
+E             - waiting for locator("[data-testid=\"login-email\"]")
+
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:632: TimeoutError</failure></testcase><testcase classname="stage-2.tests.test_ui_layout" name="test_primary_actions_are_real_buttons_with_text" time="30.357"><failure message="playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.&#10;Call log:&#10;  - waiting for locator(&quot;[data-testid=\&quot;login-email\&quot;]&quot;)">page = &lt;Page url='http://172.28.0.2:8080/login'&gt;
+demo = {'fixture': {'currency': 'EUR', 'minor_units': 2, 'users': [{'id': 'u-alice', 'email': 'alice@example.com', 'password'...M', 'user_id': 'u-carol'}, 'dave': {'token': 'XvBLqIQV2022IlyAlcsbc2YYfMPCNLTEX6tzDA8pTJg', 'user_id': 'u-dave'}, ...}}
+
+    def test_primary_actions_are_real_buttons_with_text(page, demo):
+        """R-2-103: a minimal, structural proxy for "primary actions are easy to
+        identify" — each is an actual interactive control with visible text,
+        not a bare clickable div."""
+&gt;       ui_login_demo_user(page, demo["fixture"])
+
+/tmp/redline-wt-0qytlqx_/stage-2/tests/test_ui_layout.py:21: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:300: in ui_login_demo_user
+    ui_login(page, u["email"], u["password"])
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:290: in ui_login
+    page.fill(tid("login-email"), email)
+.venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py:11332: in fill
+    self._sync(
+.venv/lib/python3.12/site-packages/playwright/_impl/_page.py:930: in fill
+    return await self._main_frame.fill(**locals_to_params(locals()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:637: in fill
+    await self._fill(**locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:649: in _fill
+    await self._channel.send("fill", self._timeout, locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:76: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;playwright._impl._connection.Connection object at 0x773e2050bb30&gt;
+cb = &lt;function Channel.send.&lt;locals&gt;.&lt;lambda&gt; at 0x773e1f1a9760&gt;
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -&gt; Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+&gt;           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.
+E           Call log:
+E             - waiting for locator("[data-testid=\"login-email\"]")
+
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:632: TimeoutError</failure></testcase><testcase classname="stage-2.tests.test_ui_layout" name="test_available_is_visually_the_headline_number" time="30.346"><failure message="playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.&#10;Call log:&#10;  - waiting for locator(&quot;[data-testid=\&quot;login-email\&quot;]&quot;)">page = &lt;Page url='http://172.28.0.2:8080/login'&gt;
+demo = {'fixture': {'currency': 'EUR', 'minor_units': 2, 'users': [{'id': 'u-alice', 'email': 'alice@example.com', 'password'...E', 'user_id': 'u-carol'}, 'dave': {'token': 'wBzoqIPnbitSYakFp_Esr51ShwTRR9wa5LYqbjnDjAE', 'user_id': 'u-dave'}, ...}}
+
+    def test_available_is_visually_the_headline_number(page, demo):
+        """R-2-104"""
+&gt;       ui_login_demo_user(page, demo["fixture"])
+
+/tmp/redline-wt-0qytlqx_/stage-2/tests/test_ui_layout.py:33: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:300: in ui_login_demo_user
+    ui_login(page, u["email"], u["password"])
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:290: in ui_login
+    page.fill(tid("login-email"), email)
+.venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py:11332: in fill
+    self._sync(
+.venv/lib/python3.12/site-packages/playwright/_impl/_page.py:930: in fill
+    return await self._main_frame.fill(**locals_to_params(locals()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:637: in fill
+    await self._fill(**locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:649: in _fill
+    await self._channel.send("fill", self._timeout, locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:76: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;playwright._impl._connection.Connection object at 0x773e2050bb30&gt;
+cb = &lt;function Channel.send.&lt;locals&gt;.&lt;lambda&gt; at 0x773e1f1da020&gt;
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -&gt; Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+&gt;           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.
+E           Call log:
+E             - waiting for locator("[data-testid=\"login-email\"]")
+
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:632: TimeoutError</failure></testcase><testcase classname="stage-2.tests.test_ui_layout" name="test_available_and_held_are_visually_distinguishable" time="30.347"><failure message="playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.&#10;Call log:&#10;  - waiting for locator(&quot;[data-testid=\&quot;login-email\&quot;]&quot;)">page = &lt;Page url='http://172.28.0.2:8080/login'&gt;
+demo = {'fixture': {'currency': 'EUR', 'minor_units': 2, 'users': [{'id': 'u-alice', 'email': 'alice@example.com', 'password'...0', 'user_id': 'u-carol'}, 'dave': {'token': 'QibpDTphKeOs1xxEHWeLyCnoxjSdC_pFOXcp7fdCuk8', 'user_id': 'u-dave'}, ...}}
+
+    def test_available_and_held_are_visually_distinguishable(page, demo):
+        """R-2-105"""
+&gt;       ui_login_demo_user(page, demo["fixture"])
+
+/tmp/redline-wt-0qytlqx_/stage-2/tests/test_ui_layout.py:46: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:300: in ui_login_demo_user
+    ui_login(page, u["email"], u["password"])
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:290: in ui_login
+    page.fill(tid("login-email"), email)
+.venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py:11332: in fill
+    self._sync(
+.venv/lib/python3.12/site-packages/playwright/_impl/_page.py:930: in fill
+    return await self._main_frame.fill(**locals_to_params(locals()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:637: in fill
+    await self._fill(**locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:649: in _fill
+    await self._channel.send("fill", self._timeout, locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:76: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;playwright._impl._connection.Connection object at 0x773e2050bb30&gt;
+cb = &lt;function Channel.send.&lt;locals&gt;.&lt;lambda&gt; at 0x773e1f1f65c0&gt;
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -&gt; Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+&gt;           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.
+E           Call log:
+E             - waiting for locator("[data-testid=\"login-email\"]")
+
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:632: TimeoutError</failure></testcase><testcase classname="stage-2.tests.test_ui_layout" name="test_no_horizontal_overflow_at_required_viewports" time="30.348"><failure message="playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.&#10;Call log:&#10;  - waiting for locator(&quot;[data-testid=\&quot;login-email\&quot;]&quot;)">page = &lt;Page url='http://172.28.0.2:8080/login'&gt;
+demo = {'fixture': {'currency': 'EUR', 'minor_units': 2, 'users': [{'id': 'u-alice', 'email': 'alice@example.com', 'password'...E', 'user_id': 'u-carol'}, 'dave': {'token': '1kjanIbRhnAk32qyw8Lw8E2xih_c1Kat8jOqZW3vV4c', 'user_id': 'u-dave'}, ...}}
+
+    def test_no_horizontal_overflow_at_required_viewports(page, demo):
+        """R-2-107"""
+&gt;       ui_login_demo_user(page, demo["fixture"])
+
+/tmp/redline-wt-0qytlqx_/stage-2/tests/test_ui_layout.py:57: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:300: in ui_login_demo_user
+    ui_login(page, u["email"], u["password"])
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:290: in ui_login
+    page.fill(tid("login-email"), email)
+.venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py:11332: in fill
+    self._sync(
+.venv/lib/python3.12/site-packages/playwright/_impl/_page.py:930: in fill
+    return await self._main_frame.fill(**locals_to_params(locals()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:637: in fill
+    await self._fill(**locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:649: in _fill
+    await self._channel.send("fill", self._timeout, locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:76: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;playwright._impl._connection.Connection object at 0x773e2050bb30&gt;
+cb = &lt;function Channel.send.&lt;locals&gt;.&lt;lambda&gt; at 0x773e1f1f68e0&gt;
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -&gt; Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+&gt;           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.
+E           Call log:
+E             - waiting for locator("[data-testid=\"login-email\"]")
+
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:632: TimeoutError</failure></testcase><testcase classname="stage-2.tests.test_ui_layout" name="test_no_undersized_controls_at_375" time="30.360"><failure message="playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.&#10;Call log:&#10;  - waiting for locator(&quot;[data-testid=\&quot;login-email\&quot;]&quot;)">page = &lt;Page url='http://172.28.0.2:8080/login'&gt;
+demo = {'fixture': {'currency': 'EUR', 'minor_units': 2, 'users': [{'id': 'u-alice', 'email': 'alice@example.com', 'password'...k', 'user_id': 'u-carol'}, 'dave': {'token': 'iBMSxk_aEKbsCCl0Mi3qcGCj29gfz7tZuUc5iEBNFIc', 'user_id': 'u-dave'}, ...}}
+
+    def test_no_undersized_controls_at_375(page, demo):
+        """R-2-110"""
+&gt;       ui_login_demo_user(page, demo["fixture"])
+
+/tmp/redline-wt-0qytlqx_/stage-2/tests/test_ui_layout.py:68: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:300: in ui_login_demo_user
+    ui_login(page, u["email"], u["password"])
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:290: in ui_login
+    page.fill(tid("login-email"), email)
+.venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py:11332: in fill
+    self._sync(
+.venv/lib/python3.12/site-packages/playwright/_impl/_page.py:930: in fill
+    return await self._main_frame.fill(**locals_to_params(locals()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:637: in fill
+    await self._fill(**locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:649: in _fill
+    await self._channel.send("fill", self._timeout, locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:76: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;playwright._impl._connection.Connection object at 0x773e2050bb30&gt;
+cb = &lt;function Channel.send.&lt;locals&gt;.&lt;lambda&gt; at 0x773e1f1bd260&gt;
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -&gt; Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+&gt;           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.
+E           Call log:
+E             - waiting for locator("[data-testid=\"login-email\"]")
+
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:632: TimeoutError</failure></testcase><testcase classname="stage-2.tests.test_ui_layout" name="test_every_input_has_a_visible_label" time="30.344"><failure message="playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.&#10;Call log:&#10;  - waiting for locator(&quot;[data-testid=\&quot;login-email\&quot;]&quot;)">page = &lt;Page url='http://172.28.0.2:8080/login'&gt;
+demo = {'fixture': {'currency': 'EUR', 'minor_units': 2, 'users': [{'id': 'u-alice', 'email': 'alice@example.com', 'password'...k', 'user_id': 'u-carol'}, 'dave': {'token': 'IbJ4m618wuEZM14a6hrFRMixHaYN16c3CPmAnkab91w', 'user_id': 'u-dave'}, ...}}
+
+    def test_every_input_has_a_visible_label(page, demo):
+        """R-2-108"""
+&gt;       ui_login_demo_user(page, demo["fixture"])
+
+/tmp/redline-wt-0qytlqx_/stage-2/tests/test_ui_layout.py:78: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:300: in ui_login_demo_user
+    ui_login(page, u["email"], u["password"])
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:290: in ui_login
+    page.fill(tid("login-email"), email)
+.venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py:11332: in fill
+    self._sync(
+.venv/lib/python3.12/site-packages/playwright/_impl/_page.py:930: in fill
+    return await self._main_frame.fill(**locals_to_params(locals()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:637: in fill
+    await self._fill(**locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:649: in _fill
+    await self._channel.send("fill", self._timeout, locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:76: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;playwright._impl._connection.Connection object at 0x773e2050bb30&gt;
+cb = &lt;function Channel.send.&lt;locals&gt;.&lt;lambda&gt; at 0x773e1f139440&gt;
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -&gt; Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+&gt;           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.
+E           Call log:
+E             - waiting for locator("[data-testid=\"login-email\"]")
+
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:632: TimeoutError</failure></testcase><testcase classname="stage-2.tests.test_ui_layout" name="test_empty_requests_and_authorizations_markers" time="30.075"><failure message="playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.&#10;Call log:&#10;  - waiting for locator(&quot;[data-testid=\&quot;login-email\&quot;]&quot;)">page = &lt;Page url='http://172.28.0.2:8080/login'&gt;
+
+    def test_empty_requests_and_authorizations_markers(page):
+        """R-2-109"""
+        a_id, b_id = unique("u"), unique("u")
+        fixture = make_fixture([user(a_id, unique_handle("a"), balance=100), user(b_id, unique_handle("b"), balance=0)])
+        reset_ok(fixture)
+&gt;       ui_login(page, fixture["users"][0]["email"], fixture["users"][0]["password"])
+
+/tmp/redline-wt-0qytlqx_/stage-2/tests/test_ui_layout.py:97: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:290: in ui_login
+    page.fill(tid("login-email"), email)
+.venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py:11332: in fill
+    self._sync(
+.venv/lib/python3.12/site-packages/playwright/_impl/_page.py:930: in fill
+    return await self._main_frame.fill(**locals_to_params(locals()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:637: in fill
+    await self._fill(**locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:649: in _fill
+    await self._channel.send("fill", self._timeout, locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:76: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;playwright._impl._connection.Connection object at 0x773e2050bb30&gt;
+cb = &lt;function Channel.send.&lt;locals&gt;.&lt;lambda&gt; at 0x773e1f1f6700&gt;
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -&gt; Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+&gt;           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.
+E           Call log:
+E             - waiting for locator("[data-testid=\"login-email\"]")
+
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:632: TimeoutError</failure></testcase><testcase classname="stage-2.tests.test_ui_layout" name="test_seeded_demo_user_sees_populated_first_screen" time="30.334"><failure message="playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.&#10;Call log:&#10;  - waiting for locator(&quot;[data-testid=\&quot;login-email\&quot;]&quot;)">page = &lt;Page url='http://172.28.0.2:8080/login'&gt;
+demo = {'fixture': {'currency': 'EUR', 'minor_units': 2, 'users': [{'id': 'u-alice', 'email': 'alice@example.com', 'password'...w', 'user_id': 'u-carol'}, 'dave': {'token': '19cVSKOnuQemFkmsSEHXvII4fU1_V5qPTNzWXF4VK5g', 'user_id': 'u-dave'}, ...}}
+
+    def test_seeded_demo_user_sees_populated_first_screen(page, demo):
+        """R-2-111"""
+&gt;       ui_login_demo_user(page, demo["fixture"])
+
+/tmp/redline-wt-0qytlqx_/stage-2/tests/test_ui_layout.py:106: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:300: in ui_login_demo_user
+    ui_login(page, u["email"], u["password"])
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:290: in ui_login
+    page.fill(tid("login-email"), email)
+.venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py:11332: in fill
+    self._sync(
+.venv/lib/python3.12/site-packages/playwright/_impl/_page.py:930: in fill
+    return await self._main_frame.fill(**locals_to_params(locals()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:637: in fill
+    await self._fill(**locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:649: in _fill
+    await self._channel.send("fill", self._timeout, locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:76: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;playwright._impl._connection.Connection object at 0x773e2050bb30&gt;
+cb = &lt;function Channel.send.&lt;locals&gt;.&lt;lambda&gt; at 0x773e1f138a40&gt;
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -&gt; Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+&gt;           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.
+E           Call log:
+E             - waiting for locator("[data-testid=\"login-email\"]")
+
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:632: TimeoutError</failure></testcase><testcase classname="stage-2.tests.test_ui_layout" name="test_ui_reflects_holds_immediately_after_reset" time="30.350"><failure message="playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.&#10;Call log:&#10;  - waiting for locator(&quot;[data-testid=\&quot;login-email\&quot;]&quot;)">page = &lt;Page url='http://172.28.0.2:8080/login'&gt;
+demo = {'fixture': {'currency': 'EUR', 'minor_units': 2, 'users': [{'id': 'u-alice', 'email': 'alice@example.com', 'password'...0', 'user_id': 'u-carol'}, 'dave': {'token': 'mYEE1tNir8bbdgfiJ-3D_A4s82ZV9CUTzvPiM98Lf24', 'user_id': 'u-dave'}, ...}}
+
+    def test_ui_reflects_holds_immediately_after_reset(page, demo):
+        """R-2-141"""
+&gt;       ui_login_demo_user(page, demo["fixture"])
+
+/tmp/redline-wt-0qytlqx_/stage-2/tests/test_ui_layout.py:120: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:300: in ui_login_demo_user
+    ui_login(page, u["email"], u["password"])
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:290: in ui_login
+    page.fill(tid("login-email"), email)
+.venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py:11332: in fill
+    self._sync(
+.venv/lib/python3.12/site-packages/playwright/_impl/_page.py:930: in fill
+    return await self._main_frame.fill(**locals_to_params(locals()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:637: in fill
+    await self._fill(**locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:649: in _fill
+    await self._channel.send("fill", self._timeout, locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:76: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;playwright._impl._connection.Connection object at 0x773e2050bb30&gt;
+cb = &lt;function Channel.send.&lt;locals&gt;.&lt;lambda&gt; at 0x773e1f1e18a0&gt;
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -&gt; Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+&gt;           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.
+E           Call log:
+E             - waiting for locator("[data-testid=\"login-email\"]")
+
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:632: TimeoutError</failure></testcase><testcase classname="stage-2.tests.test_ui_layout" name="test_refresh_button_updates_available_and_held" time="30.325"><failure message="playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.&#10;Call log:&#10;  - waiting for locator(&quot;[data-testid=\&quot;login-email\&quot;]&quot;)">page = &lt;Page url='http://172.28.0.2:8080/login'&gt;
+demo = {'fixture': {'currency': 'EUR', 'minor_units': 2, 'users': [{'id': 'u-alice', 'email': 'alice@example.com', 'password'...w', 'user_id': 'u-carol'}, 'dave': {'token': '5YUwvUTEXz9mvHiNv3dLKTIIE02d9yRAYXQFEdr1Kp0', 'user_id': 'u-dave'}, ...}}
+
+    def test_refresh_button_updates_available_and_held(page, demo):
+        """R-2-160"""
+&gt;       user = ui_login_demo_user(page, demo["fixture"])
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+/tmp/redline-wt-0qytlqx_/stage-2/tests/test_ui_layout.py:131: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:300: in ui_login_demo_user
+    ui_login(page, u["email"], u["password"])
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:290: in ui_login
+    page.fill(tid("login-email"), email)
+.venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py:11332: in fill
+    self._sync(
+.venv/lib/python3.12/site-packages/playwright/_impl/_page.py:930: in fill
+    return await self._main_frame.fill(**locals_to_params(locals()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:637: in fill
+    await self._fill(**locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:649: in _fill
+    await self._channel.send("fill", self._timeout, locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:76: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;playwright._impl._connection.Connection object at 0x773e2050bb30&gt;
+cb = &lt;function Channel.send.&lt;locals&gt;.&lt;lambda&gt; at 0x773e1f14df80&gt;
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -&gt; Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+&gt;           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.
+E           Call log:
+E             - waiting for locator("[data-testid=\"login-email\"]")
+
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:632: TimeoutError</failure></testcase><testcase classname="stage-2.tests.test_ui_layout" name="test_latest_refresh_wins_even_out_of_order" time="30.343"><failure message="playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.&#10;Call log:&#10;  - waiting for locator(&quot;[data-testid=\&quot;login-email\&quot;]&quot;)">page = &lt;Page url='http://172.28.0.2:8080/login'&gt;
+demo = {'fixture': {'currency': 'EUR', 'minor_units': 2, 'users': [{'id': 'u-alice', 'email': 'alice@example.com', 'password'...k', 'user_id': 'u-carol'}, 'dave': {'token': 'VVogR7xqfAm9Yf2MHYMLAHa6a0ED-7zEQW1ahnIgrFo', 'user_id': 'u-dave'}, ...}}
+
+    def test_latest_refresh_wins_even_out_of_order(page, demo):
+        """R-2-154: a delayed EARLIER read must never overwrite a LATER refresh.
+        Built by controlling response timing from the test: the first /me
+        response is delayed so the second one (triggered after a real balance
+        change) arrives first."""
+&gt;       user = ui_login_demo_user(page, demo["fixture"])
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+/tmp/redline-wt-0qytlqx_/stage-2/tests/test_ui_layout.py:153: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:300: in ui_login_demo_user
+    ui_login(page, u["email"], u["password"])
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:290: in ui_login
+    page.fill(tid("login-email"), email)
+.venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py:11332: in fill
+    self._sync(
+.venv/lib/python3.12/site-packages/playwright/_impl/_page.py:930: in fill
+    return await self._main_frame.fill(**locals_to_params(locals()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:637: in fill
+    await self._fill(**locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:649: in _fill
+    await self._channel.send("fill", self._timeout, locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:76: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;playwright._impl._connection.Connection object at 0x773e2050bb30&gt;
+cb = &lt;function Channel.send.&lt;locals&gt;.&lt;lambda&gt; at 0x773e1f14f6a0&gt;
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -&gt; Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+&gt;           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.
+E           Call log:
+E             - waiting for locator("[data-testid=\"login-email\"]")
+
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:632: TimeoutError</failure></testcase><testcase classname="stage-2.tests.test_ui_requests_split_authz" name="test_request_form_testids" time="30.330"><failure message="playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.&#10;Call log:&#10;  - waiting for locator(&quot;[data-testid=\&quot;login-email\&quot;]&quot;)">page = &lt;Page url='http://172.28.0.2:8080/login'&gt;
+demo = {'fixture': {'currency': 'EUR', 'minor_units': 2, 'users': [{'id': 'u-alice', 'email': 'alice@example.com', 'password'...o', 'user_id': 'u-carol'}, 'dave': {'token': 'MTzsObR4yPj2au9o5PgD9uWU52n2PsxYU1dSfem-jhg', 'user_id': 'u-dave'}, ...}}
+
+    def test_request_form_testids(page, demo):
+        """R-2-130"""
+&gt;       ui_login_demo_user(page, demo["fixture"])
+
+/tmp/redline-wt-0qytlqx_/stage-2/tests/test_ui_requests_split_authz.py:10: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:300: in ui_login_demo_user
+    ui_login(page, u["email"], u["password"])
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:290: in ui_login
+    page.fill(tid("login-email"), email)
+.venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py:11332: in fill
+    self._sync(
+.venv/lib/python3.12/site-packages/playwright/_impl/_page.py:930: in fill
+    return await self._main_frame.fill(**locals_to_params(locals()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:637: in fill
+    await self._fill(**locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:649: in _fill
+    await self._channel.send("fill", self._timeout, locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:76: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;playwright._impl._connection.Connection object at 0x773e2050bb30&gt;
+cb = &lt;function Channel.send.&lt;locals&gt;.&lt;lambda&gt; at 0x773e1f1b47c0&gt;
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -&gt; Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+&gt;           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.
+E           Call log:
+E             - waiting for locator("[data-testid=\"login-email\"]")
+
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:632: TimeoutError</failure></testcase><testcase classname="stage-2.tests.test_ui_requests_split_authz" name="test_requests_screen_lists_and_testids" time="30.352"><failure message="playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.&#10;Call log:&#10;  - waiting for locator(&quot;[data-testid=\&quot;login-email\&quot;]&quot;)">page = &lt;Page url='http://172.28.0.2:8080/login'&gt;
+demo = {'fixture': {'currency': 'EUR', 'minor_units': 2, 'users': [{'id': 'u-alice', 'email': 'alice@example.com', 'password'...s', 'user_id': 'u-carol'}, 'dave': {'token': 'Wp6kXcgL1AKqlIcBCs7cPvBVXHRalxCTq-91fKiqRFY', 'user_id': 'u-dave'}, ...}}
+
+    def test_requests_screen_lists_and_testids(page, demo):
+        """R-2-133"""
+&gt;       user = ui_login_demo_user(page, demo["fixture"])
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+/tmp/redline-wt-0qytlqx_/stage-2/tests/test_ui_requests_split_authz.py:18: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:300: in ui_login_demo_user
+    ui_login(page, u["email"], u["password"])
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:290: in ui_login
+    page.fill(tid("login-email"), email)
+.venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py:11332: in fill
+    self._sync(
+.venv/lib/python3.12/site-packages/playwright/_impl/_page.py:930: in fill
+    return await self._main_frame.fill(**locals_to_params(locals()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:637: in fill
+    await self._fill(**locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:649: in _fill
+    await self._channel.send("fill", self._timeout, locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:76: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;playwright._impl._connection.Connection object at 0x773e2050bb30&gt;
+cb = &lt;function Channel.send.&lt;locals&gt;.&lt;lambda&gt; at 0x773e1f17a340&gt;
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -&gt; Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+&gt;           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.
+E           Call log:
+E             - waiting for locator("[data-testid=\"login-email\"]")
+
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:632: TimeoutError</failure></testcase><testcase classname="stage-2.tests.test_ui_requests_split_authz" name="test_request_actions_present_only_on_correct_side_and_status" time="30.338"><failure message="playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.&#10;Call log:&#10;  - waiting for locator(&quot;[data-testid=\&quot;login-email\&quot;]&quot;)">page = &lt;Page url='http://172.28.0.2:8080/login'&gt;
+demo = {'fixture': {'currency': 'EUR', 'minor_units': 2, 'users': [{'id': 'u-alice', 'email': 'alice@example.com', 'password'...U', 'user_id': 'u-carol'}, 'dave': {'token': 'SykRINFPoGYNL6tlruCXt_JuLJVQl3vHOotEFUSR5tQ', 'user_id': 'u-dave'}, ...}}
+
+    def test_request_actions_present_only_on_correct_side_and_status(page, demo):
+        """R-2-134"""
+&gt;       user = ui_login_demo_user(page, demo["fixture"])
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+/tmp/redline-wt-0qytlqx_/stage-2/tests/test_ui_requests_split_authz.py:33: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:300: in ui_login_demo_user
+    ui_login(page, u["email"], u["password"])
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:290: in ui_login
+    page.fill(tid("login-email"), email)
+.venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py:11332: in fill
+    self._sync(
+.venv/lib/python3.12/site-packages/playwright/_impl/_page.py:930: in fill
+    return await self._main_frame.fill(**locals_to_params(locals()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:637: in fill
+    await self._fill(**locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:649: in _fill
+    await self._channel.send("fill", self._timeout, locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:76: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;playwright._impl._connection.Connection object at 0x773e2050bb30&gt;
+cb = &lt;function Channel.send.&lt;locals&gt;.&lt;lambda&gt; at 0x773e1f139800&gt;
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -&gt; Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+&gt;           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.
+E           Call log:
+E             - waiting for locator("[data-testid=\"login-email\"]")
+
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:632: TimeoutError</failure></testcase><testcase classname="stage-2.tests.test_ui_requests_split_authz" name="test_split_form_testids_and_preview" time="30.332"><failure message="playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.&#10;Call log:&#10;  - waiting for locator(&quot;[data-testid=\&quot;login-email\&quot;]&quot;)">page = &lt;Page url='http://172.28.0.2:8080/login'&gt;
+demo = {'fixture': {'currency': 'EUR', 'minor_units': 2, 'users': [{'id': 'u-alice', 'email': 'alice@example.com', 'password'...4', 'user_id': 'u-carol'}, 'dave': {'token': 'dQ3T0uMX7syd42DBD5TUWWtLXP9Ew01j0t8SooNBbEw', 'user_id': 'u-dave'}, ...}}
+
+    def test_split_form_testids_and_preview(page, demo):
+        """R-2-135, R-2-136"""
+&gt;       user = ui_login_demo_user(page, demo["fixture"])
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+/tmp/redline-wt-0qytlqx_/stage-2/tests/test_ui_requests_split_authz.py:48: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:300: in ui_login_demo_user
+    ui_login(page, u["email"], u["password"])
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:290: in ui_login
+    page.fill(tid("login-email"), email)
+.venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py:11332: in fill
+    self._sync(
+.venv/lib/python3.12/site-packages/playwright/_impl/_page.py:930: in fill
+    return await self._main_frame.fill(**locals_to_params(locals()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:637: in fill
+    await self._fill(**locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:649: in _fill
+    await self._channel.send("fill", self._timeout, locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:76: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;playwright._impl._connection.Connection object at 0x773e2050bb30&gt;
+cb = &lt;function Channel.send.&lt;locals&gt;.&lt;lambda&gt; at 0x773e1f1b4680&gt;
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -&gt; Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+&gt;           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.
+E           Call log:
+E             - waiting for locator("[data-testid=\"login-email\"]")
+
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:632: TimeoutError</failure></testcase><testcase classname="stage-2.tests.test_ui_requests_split_authz" name="test_authorizations_screen_testids" time="30.332"><failure message="playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.&#10;Call log:&#10;  - waiting for locator(&quot;[data-testid=\&quot;login-email\&quot;]&quot;)">page = &lt;Page url='http://172.28.0.2:8080/login'&gt;
+demo = {'fixture': {'currency': 'EUR', 'minor_units': 2, 'users': [{'id': 'u-alice', 'email': 'alice@example.com', 'password'...s', 'user_id': 'u-carol'}, 'dave': {'token': 'YY1y4zTMeomu6SSe4rLCNINnuO4sucwNqyFexUuO7Zk', 'user_id': 'u-dave'}, ...}}
+
+    def test_authorizations_screen_testids(page, demo):
+        """R-2-137"""
+&gt;       user = ui_login_demo_user(page, demo["fixture"])
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+/tmp/redline-wt-0qytlqx_/stage-2/tests/test_ui_requests_split_authz.py:79: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:300: in ui_login_demo_user
+    ui_login(page, u["email"], u["password"])
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:290: in ui_login
+    page.fill(tid("login-email"), email)
+.venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py:11332: in fill
+    self._sync(
+.venv/lib/python3.12/site-packages/playwright/_impl/_page.py:930: in fill
+    return await self._main_frame.fill(**locals_to_params(locals()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:637: in fill
+    await self._fill(**locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:649: in _fill
+    await self._channel.send("fill", self._timeout, locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:76: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;playwright._impl._connection.Connection object at 0x773e2050bb30&gt;
+cb = &lt;function Channel.send.&lt;locals&gt;.&lt;lambda&gt; at 0x773e1f13afc0&gt;
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -&gt; Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+&gt;           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.
+E           Call log:
+E             - waiting for locator("[data-testid=\"login-email\"]")
+
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:632: TimeoutError</failure></testcase><testcase classname="stage-2.tests.test_ui_requests_split_authz" name="test_authorization_captured_field_absent_unless_captured" time="30.422"><failure message="playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.&#10;Call log:&#10;  - waiting for locator(&quot;[data-testid=\&quot;login-email\&quot;]&quot;)">page = &lt;Page url='http://172.28.0.2:8080/login'&gt;
+demo = {'fixture': {'currency': 'EUR', 'minor_units': 2, 'users': [{'id': 'u-alice', 'email': 'alice@example.com', 'password'...Q', 'user_id': 'u-carol'}, 'dave': {'token': 'l-yhsM7fXEEYrxgQ9bQJA4YeWR-sHL1oK82ZUtiMYJ0', 'user_id': 'u-dave'}, ...}}
+
+    def test_authorization_captured_field_absent_unless_captured(page, demo):
+        """R-2-137"""
+&gt;       user = ui_login_demo_user(page, demo["fixture"])
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+/tmp/redline-wt-0qytlqx_/stage-2/tests/test_ui_requests_split_authz.py:97: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:300: in ui_login_demo_user
+    ui_login(page, u["email"], u["password"])
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:290: in ui_login
+    page.fill(tid("login-email"), email)
+.venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py:11332: in fill
+    self._sync(
+.venv/lib/python3.12/site-packages/playwright/_impl/_page.py:930: in fill
+    return await self._main_frame.fill(**locals_to_params(locals()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:637: in fill
+    await self._fill(**locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:649: in _fill
+    await self._channel.send("fill", self._timeout, locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:76: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;playwright._impl._connection.Connection object at 0x773e2050bb30&gt;
+cb = &lt;function Channel.send.&lt;locals&gt;.&lt;lambda&gt; at 0x773e1f1b7e20&gt;
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -&gt; Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+&gt;           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.
+E           Call log:
+E             - waiting for locator("[data-testid=\"login-email\"]")
+
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:632: TimeoutError</failure></testcase><testcase classname="stage-2.tests.test_ui_requests_split_authz" name="test_capture_void_buttons_present_only_on_correct_side" time="30.348"><failure message="playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.&#10;Call log:&#10;  - waiting for locator(&quot;[data-testid=\&quot;login-email\&quot;]&quot;)">page = &lt;Page url='http://172.28.0.2:8080/login'&gt;
+demo = {'fixture': {'currency': 'EUR', 'minor_units': 2, 'users': [{'id': 'u-alice', 'email': 'alice@example.com', 'password'...c', 'user_id': 'u-carol'}, 'dave': {'token': '-fUnaHNELRl7QG3yL3f9IMVtUMArYqMCjwtB28ch-7E', 'user_id': 'u-dave'}, ...}}
+
+    def test_capture_void_buttons_present_only_on_correct_side(page, demo):
+        """R-2-138"""
+&gt;       user = ui_login_demo_user(page, demo["fixture"])
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+/tmp/redline-wt-0qytlqx_/stage-2/tests/test_ui_requests_split_authz.py:105: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:300: in ui_login_demo_user
+    ui_login(page, u["email"], u["password"])
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:290: in ui_login
+    page.fill(tid("login-email"), email)
+.venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py:11332: in fill
+    self._sync(
+.venv/lib/python3.12/site-packages/playwright/_impl/_page.py:930: in fill
+    return await self._main_frame.fill(**locals_to_params(locals()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:637: in fill
+    await self._fill(**locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:649: in _fill
+    await self._channel.send("fill", self._timeout, locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:76: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;playwright._impl._connection.Connection object at 0x773e2050bb30&gt;
+cb = &lt;function Channel.send.&lt;locals&gt;.&lt;lambda&gt; at 0x773e1f13a980&gt;
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -&gt; Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+&gt;           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.
+E           Call log:
+E             - waiting for locator("[data-testid=\"login-email\"]")
+
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:632: TimeoutError</failure></testcase><testcase classname="stage-2.tests.test_ui_requests_split_authz" name="test_request_cancelled_elsewhere_shows_error_and_removes_stale_pay_button" time="30.356"><failure message="playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.&#10;Call log:&#10;  - waiting for locator(&quot;[data-testid=\&quot;login-email\&quot;]&quot;)">page = &lt;Page url='http://172.28.0.2:8080/login'&gt;
+demo = {'fixture': {'currency': 'EUR', 'minor_units': 2, 'users': [{'id': 'u-alice', 'email': 'alice@example.com', 'password'...4', 'user_id': 'u-carol'}, 'dave': {'token': 'CYOXU4CK1NYUtEIPOnZOg2KNu_ag2250EoFV21R1EoQ', 'user_id': 'u-dave'}, ...}}
+
+    def test_request_cancelled_elsewhere_shows_error_and_removes_stale_pay_button(page, demo):
+        """R-2-156"""
+&gt;       alice = ui_login_demo_user(page, demo["fixture"])
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+/tmp/redline-wt-0qytlqx_/stage-2/tests/test_ui_requests_split_authz.py:121: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:300: in ui_login_demo_user
+    ui_login(page, u["email"], u["password"])
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:290: in ui_login
+    page.fill(tid("login-email"), email)
+.venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py:11332: in fill
+    self._sync(
+.venv/lib/python3.12/site-packages/playwright/_impl/_page.py:930: in fill
+    return await self._main_frame.fill(**locals_to_params(locals()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:637: in fill
+    await self._fill(**locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:649: in _fill
+    await self._channel.send("fill", self._timeout, locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:76: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;playwright._impl._connection.Connection object at 0x773e2050bb30&gt;
+cb = &lt;function Channel.send.&lt;locals&gt;.&lt;lambda&gt; at 0x773e1f1b62a0&gt;
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -&gt; Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+&gt;           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.
+E           Call log:
+E             - waiting for locator("[data-testid=\"login-email\"]")
+
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:632: TimeoutError</failure></testcase><testcase classname="stage-2.tests.test_ui_wallet_pay" name="test_formatted_amount_minor_units_rule" time="30.070"><failure message="playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.&#10;Call log:&#10;  - waiting for locator(&quot;[data-testid=\&quot;login-email\&quot;]&quot;)">page = &lt;Page url='http://172.28.0.2:8080/login'&gt;
+
+    def test_formatted_amount_minor_units_rule(page):
+        """R-2-100: exactly minor_units decimal places, a single space, then the
+        currency code; no decimal point at all when minor_units is 0."""
+        jpy_id, jpy_handle = unique("u"), unique_handle("jpy")
+        jpy_fixture = make_fixture([user(jpy_id, jpy_handle, balance=1200)], currency="JPY", minor_units=0)
+        reset_ok(jpy_fixture)
+&gt;       ui_login(page, jpy_fixture["users"][0]["email"], jpy_fixture["users"][0]["password"])
+
+/tmp/redline-wt-0qytlqx_/stage-2/tests/test_ui_wallet_pay.py:20: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:290: in ui_login
+    page.fill(tid("login-email"), email)
+.venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py:11332: in fill
+    self._sync(
+.venv/lib/python3.12/site-packages/playwright/_impl/_page.py:930: in fill
+    return await self._main_frame.fill(**locals_to_params(locals()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:637: in fill
+    await self._fill(**locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:649: in _fill
+    await self._channel.send("fill", self._timeout, locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:76: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;playwright._impl._connection.Connection object at 0x773e2050bb30&gt;
+cb = &lt;function Channel.send.&lt;locals&gt;.&lt;lambda&gt; at 0x773e1f13a7a0&gt;
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -&gt; Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+&gt;           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.
+E           Call log:
+E             - waiting for locator("[data-testid=\"login-email\"]")
+
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:632: TimeoutError</failure></testcase><testcase classname="stage-2.tests.test_ui_wallet_pay" name="test_wallet_testids" time="30.319"><failure message="playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.&#10;Call log:&#10;  - waiting for locator(&quot;[data-testid=\&quot;login-email\&quot;]&quot;)">page = &lt;Page url='http://172.28.0.2:8080/login'&gt;
+demo = {'fixture': {'currency': 'EUR', 'minor_units': 2, 'users': [{'id': 'u-alice', 'email': 'alice@example.com', 'password'...Q', 'user_id': 'u-carol'}, 'dave': {'token': 'kcjA8TzrZcqD4AG4RqATXz2wExuqukEa22blQPmrsig', 'user_id': 'u-dave'}, ...}}
+
+    def test_wallet_testids(page, demo):
+        """R-2-126, R-2-127, R-2-128"""
+&gt;       user = ui_login_demo_user(page, demo["fixture"])
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+/tmp/redline-wt-0qytlqx_/stage-2/tests/test_ui_wallet_pay.py:34: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:300: in ui_login_demo_user
+    ui_login(page, u["email"], u["password"])
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:290: in ui_login
+    page.fill(tid("login-email"), email)
+.venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py:11332: in fill
+    self._sync(
+.venv/lib/python3.12/site-packages/playwright/_impl/_page.py:930: in fill
+    return await self._main_frame.fill(**locals_to_params(locals()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:637: in fill
+    await self._fill(**locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:649: in _fill
+    await self._channel.send("fill", self._timeout, locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:76: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;playwright._impl._connection.Connection object at 0x773e2050bb30&gt;
+cb = &lt;function Channel.send.&lt;locals&gt;.&lt;lambda&gt; at 0x773e1f1e1e40&gt;
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -&gt; Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+&gt;           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.
+E           Call log:
+E             - waiting for locator("[data-testid=\"login-email\"]")
+
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:632: TimeoutError</failure></testcase><testcase classname="stage-2.tests.test_ui_wallet_pay" name="test_wallet_held_absent_when_zero" time="30.179"><failure message="playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.&#10;Call log:&#10;  - waiting for locator(&quot;[data-testid=\&quot;login-email\&quot;]&quot;)">page = &lt;Page url='http://172.28.0.2:8080/login'&gt;
+
+    def test_wallet_held_absent_when_zero(page):
+        """R-2-128"""
+        fixture, token_a, _ = two_user_fixture(balance_a=5000, balance_b=0)
+        reset_ok(fixture)
+&gt;       ui_login(page, fixture["users"][0]["email"], fixture["users"][0]["password"])
+
+/tmp/redline-wt-0qytlqx_/stage-2/tests/test_ui_wallet_pay.py:56: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:290: in ui_login
+    page.fill(tid("login-email"), email)
+.venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py:11332: in fill
+    self._sync(
+.venv/lib/python3.12/site-packages/playwright/_impl/_page.py:930: in fill
+    return await self._main_frame.fill(**locals_to_params(locals()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:637: in fill
+    await self._fill(**locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:649: in _fill
+    await self._channel.send("fill", self._timeout, locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:76: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;playwright._impl._connection.Connection object at 0x773e2050bb30&gt;
+cb = &lt;function Channel.send.&lt;locals&gt;.&lt;lambda&gt; at 0x773e1f1e22a0&gt;
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -&gt; Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+&gt;           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.
+E           Call log:
+E             - waiting for locator("[data-testid=\"login-email\"]")
+
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:632: TimeoutError</failure></testcase><testcase classname="stage-2.tests.test_ui_wallet_pay" name="test_pay_form_testids_present" time="30.332"><failure message="playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.&#10;Call log:&#10;  - waiting for locator(&quot;[data-testid=\&quot;login-email\&quot;]&quot;)">page = &lt;Page url='http://172.28.0.2:8080/login'&gt;
+demo = {'fixture': {'currency': 'EUR', 'minor_units': 2, 'users': [{'id': 'u-alice', 'email': 'alice@example.com', 'password'...8', 'user_id': 'u-carol'}, 'dave': {'token': 'IrNMq6oXjVLxricyESBJu9bY_LdBaykTbO43wuBcf1o', 'user_id': 'u-dave'}, ...}}
+
+    def test_pay_form_testids_present(page, demo):
+        """R-2-129"""
+&gt;       ui_login_demo_user(page, demo["fixture"])
+
+/tmp/redline-wt-0qytlqx_/stage-2/tests/test_ui_wallet_pay.py:63: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:300: in ui_login_demo_user
+    ui_login(page, u["email"], u["password"])
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:290: in ui_login
+    page.fill(tid("login-email"), email)
+.venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py:11332: in fill
+    self._sync(
+.venv/lib/python3.12/site-packages/playwright/_impl/_page.py:930: in fill
+    return await self._main_frame.fill(**locals_to_params(locals()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:637: in fill
+    await self._fill(**locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:649: in _fill
+    await self._channel.send("fill", self._timeout, locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:76: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;playwright._impl._connection.Connection object at 0x773e2050bb30&gt;
+cb = &lt;function Channel.send.&lt;locals&gt;.&lt;lambda&gt; at 0x773e1f1e2520&gt;
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -&gt; Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+&gt;           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.
+E           Call log:
+E             - waiting for locator("[data-testid=\"login-email\"]")
+
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:632: TimeoutError</failure></testcase><testcase classname="stage-2.tests.test_ui_wallet_pay" name="test_decimal_input_submits_minor_units" time="30.341"><failure message="playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.&#10;Call log:&#10;  - waiting for locator(&quot;[data-testid=\&quot;login-email\&quot;]&quot;)">page = &lt;Page url='http://172.28.0.2:8080/login'&gt;
+demo = {'fixture': {'currency': 'EUR', 'minor_units': 2, 'users': [{'id': 'u-alice', 'email': 'alice@example.com', 'password'...g', 'user_id': 'u-carol'}, 'dave': {'token': 'UQCadpdROXl2oioVuxDv9w0PWWKffRkYjb3Ij3pAW4Q', 'user_id': 'u-dave'}, ...}}
+
+    def test_decimal_input_submits_minor_units(page, demo):
+        """R-2-101"""
+&gt;       user = ui_login_demo_user(page, demo["fixture"])
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+/tmp/redline-wt-0qytlqx_/stage-2/tests/test_ui_wallet_pay.py:74: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:300: in ui_login_demo_user
+    ui_login(page, u["email"], u["password"])
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:290: in ui_login
+    page.fill(tid("login-email"), email)
+.venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py:11332: in fill
+    self._sync(
+.venv/lib/python3.12/site-packages/playwright/_impl/_page.py:930: in fill
+    return await self._main_frame.fill(**locals_to_params(locals()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:637: in fill
+    await self._fill(**locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:649: in _fill
+    await self._channel.send("fill", self._timeout, locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:76: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;playwright._impl._connection.Connection object at 0x773e2050bb30&gt;
+cb = &lt;function Channel.send.&lt;locals&gt;.&lt;lambda&gt; at 0x773e1f253920&gt;
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -&gt; Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+&gt;           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.
+E           Call log:
+E             - waiting for locator("[data-testid=\"login-email\"]")
+
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:632: TimeoutError</failure></testcase><testcase classname="stage-2.tests.test_ui_wallet_pay" name="test_decimal_input_rejects_too_many_places_without_sending" time="30.318"><failure message="playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.&#10;Call log:&#10;  - waiting for locator(&quot;[data-testid=\&quot;login-email\&quot;]&quot;)">page = &lt;Page url='http://172.28.0.2:8080/login'&gt;
+demo = {'fixture': {'currency': 'EUR', 'minor_units': 2, 'users': [{'id': 'u-alice', 'email': 'alice@example.com', 'password'...4', 'user_id': 'u-carol'}, 'dave': {'token': '_52BnTx3XJWVrrUtZWoAltaNO_Pt_gb0zaWOYMx5U7w', 'user_id': 'u-dave'}, ...}}
+
+    def test_decimal_input_rejects_too_many_places_without_sending(page, demo):
+        """R-2-102"""
+&gt;       user = ui_login_demo_user(page, demo["fixture"])
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+/tmp/redline-wt-0qytlqx_/stage-2/tests/test_ui_wallet_pay.py:92: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:300: in ui_login_demo_user
+    ui_login(page, u["email"], u["password"])
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:290: in ui_login
+    page.fill(tid("login-email"), email)
+.venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py:11332: in fill
+    self._sync(
+.venv/lib/python3.12/site-packages/playwright/_impl/_page.py:930: in fill
+    return await self._main_frame.fill(**locals_to_params(locals()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:637: in fill
+    await self._fill(**locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:649: in _fill
+    await self._channel.send("fill", self._timeout, locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:76: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;playwright._impl._connection.Connection object at 0x773e2050bb30&gt;
+cb = &lt;function Channel.send.&lt;locals&gt;.&lt;lambda&gt; at 0x773e201ef880&gt;
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -&gt; Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+&gt;           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.
+E           Call log:
+E             - waiting for locator("[data-testid=\"login-email\"]")
+
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:632: TimeoutError</failure></testcase><testcase classname="stage-2.tests.test_ui_wallet_pay" name="test_authorize_form_testids_present" time="30.334"><failure message="playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.&#10;Call log:&#10;  - waiting for locator(&quot;[data-testid=\&quot;login-email\&quot;]&quot;)">page = &lt;Page url='http://172.28.0.2:8080/login'&gt;
+demo = {'fixture': {'currency': 'EUR', 'minor_units': 2, 'users': [{'id': 'u-alice', 'email': 'alice@example.com', 'password'...s', 'user_id': 'u-carol'}, 'dave': {'token': 'Rc82Pe3Ty5wl6kxqq_WgYRX1cbH0mr3Eyxzz9wU-ckI', 'user_id': 'u-dave'}, ...}}
+
+    def test_authorize_form_testids_present(page, demo):
+        """R-2-139"""
+&gt;       ui_login_demo_user(page, demo["fixture"])
+
+/tmp/redline-wt-0qytlqx_/stage-2/tests/test_ui_wallet_pay.py:107: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:300: in ui_login_demo_user
+    ui_login(page, u["email"], u["password"])
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:290: in ui_login
+    page.fill(tid("login-email"), email)
+.venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py:11332: in fill
+    self._sync(
+.venv/lib/python3.12/site-packages/playwright/_impl/_page.py:930: in fill
+    return await self._main_frame.fill(**locals_to_params(locals()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:637: in fill
+    await self._fill(**locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:649: in _fill
+    await self._channel.send("fill", self._timeout, locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:76: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;playwright._impl._connection.Connection object at 0x773e2050bb30&gt;
+cb = &lt;function Channel.send.&lt;locals&gt;.&lt;lambda&gt; at 0x773e1f2537e0&gt;
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -&gt; Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+&gt;           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.
+E           Call log:
+E             - waiting for locator("[data-testid=\"login-email\"]")
+
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:632: TimeoutError</failure></testcase><testcase classname="stage-2.tests.test_ui_wallet_pay" name="test_wallet_refresh_does_not_clear_pay_form" time="30.323"><failure message="playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.&#10;Call log:&#10;  - waiting for locator(&quot;[data-testid=\&quot;login-email\&quot;]&quot;)">page = &lt;Page url='http://172.28.0.2:8080/login'&gt;
+demo = {'fixture': {'currency': 'EUR', 'minor_units': 2, 'users': [{'id': 'u-alice', 'email': 'alice@example.com', 'password'...Y', 'user_id': 'u-carol'}, 'dave': {'token': 'TJ7nEi9mA7tSXqsGL-Sr5z71jMj4P2lHT9b6_DZh_V4', 'user_id': 'u-dave'}, ...}}
+
+    def test_wallet_refresh_does_not_clear_pay_form(page, demo):
+        """R-2-140"""
+&gt;       user = ui_login_demo_user(page, demo["fixture"])
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+/tmp/redline-wt-0qytlqx_/stage-2/tests/test_ui_wallet_pay.py:116: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:300: in ui_login_demo_user
+    ui_login(page, u["email"], u["password"])
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:290: in ui_login
+    page.fill(tid("login-email"), email)
+.venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py:11332: in fill
+    self._sync(
+.venv/lib/python3.12/site-packages/playwright/_impl/_page.py:930: in fill
+    return await self._main_frame.fill(**locals_to_params(locals()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:637: in fill
+    await self._fill(**locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:649: in _fill
+    await self._channel.send("fill", self._timeout, locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:76: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;playwright._impl._connection.Connection object at 0x773e2050bb30&gt;
+cb = &lt;function Channel.send.&lt;locals&gt;.&lt;lambda&gt; at 0x773e1f253c40&gt;
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -&gt; Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+&gt;           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.
+E           Call log:
+E             - waiting for locator("[data-testid=\"login-email\"]")
+
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:632: TimeoutError</failure></testcase><testcase classname="stage-2.tests.test_ui_wallet_pay" name="test_pay_form_keeps_values_after_success" time="30.315"><failure message="playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.&#10;Call log:&#10;  - waiting for locator(&quot;[data-testid=\&quot;login-email\&quot;]&quot;)">page = &lt;Page url='http://172.28.0.2:8080/login'&gt;
+demo = {'fixture': {'currency': 'EUR', 'minor_units': 2, 'users': [{'id': 'u-alice', 'email': 'alice@example.com', 'password'...8', 'user_id': 'u-carol'}, 'dave': {'token': 'Cm9rWLveaXwMfRLcrFvo28_NZ-x-7SX0cPR9a-861-o', 'user_id': 'u-dave'}, ...}}
+
+    def test_pay_form_keeps_values_after_success(page, demo):
+        """R-2-150"""
+&gt;       user = ui_login_demo_user(page, demo["fixture"])
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+/tmp/redline-wt-0qytlqx_/stage-2/tests/test_ui_wallet_pay.py:132: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:300: in ui_login_demo_user
+    ui_login(page, u["email"], u["password"])
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:290: in ui_login
+    page.fill(tid("login-email"), email)
+.venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py:11332: in fill
+    self._sync(
+.venv/lib/python3.12/site-packages/playwright/_impl/_page.py:930: in fill
+    return await self._main_frame.fill(**locals_to_params(locals()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:637: in fill
+    await self._fill(**locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:649: in _fill
+    await self._channel.send("fill", self._timeout, locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:76: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;playwright._impl._connection.Connection object at 0x773e2050bb30&gt;
+cb = &lt;function Channel.send.&lt;locals&gt;.&lt;lambda&gt; at 0x773e1f253b00&gt;
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -&gt; Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+&gt;           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.
+E           Call log:
+E             - waiting for locator("[data-testid=\"login-email\"]")
+
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:632: TimeoutError</failure></testcase><testcase classname="stage-2.tests.test_ui_wallet_pay" name="test_resubmitting_unchanged_form_sends_no_second_payment" time="30.339"><failure message="playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.&#10;Call log:&#10;  - waiting for locator(&quot;[data-testid=\&quot;login-email\&quot;]&quot;)">page = &lt;Page url='http://172.28.0.2:8080/login'&gt;
+demo = {'fixture': {'currency': 'EUR', 'minor_units': 2, 'users': [{'id': 'u-alice', 'email': 'alice@example.com', 'password'...s', 'user_id': 'u-carol'}, 'dave': {'token': 'XVPOtJQPIfHOdqhCWzt4kJ5eM529nWVChHrS2bBIcXs', 'user_id': 'u-dave'}, ...}}
+
+    def test_resubmitting_unchanged_form_sends_no_second_payment(page, demo):
+        """R-2-151"""
+&gt;       user = ui_login_demo_user(page, demo["fixture"])
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+/tmp/redline-wt-0qytlqx_/stage-2/tests/test_ui_wallet_pay.py:147: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:300: in ui_login_demo_user
+    ui_login(page, u["email"], u["password"])
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:290: in ui_login
+    page.fill(tid("login-email"), email)
+.venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py:11332: in fill
+    self._sync(
+.venv/lib/python3.12/site-packages/playwright/_impl/_page.py:930: in fill
+    return await self._main_frame.fill(**locals_to_params(locals()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:637: in fill
+    await self._fill(**locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:649: in _fill
+    await self._channel.send("fill", self._timeout, locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:76: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;playwright._impl._connection.Connection object at 0x773e2050bb30&gt;
+cb = &lt;function Channel.send.&lt;locals&gt;.&lt;lambda&gt; at 0x773e1f1d3100&gt;
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -&gt; Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+&gt;           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.
+E           Call log:
+E             - waiting for locator("[data-testid=\"login-email\"]")
+
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:632: TimeoutError</failure></testcase><testcase classname="stage-2.tests.test_ui_wallet_pay" name="test_changing_a_field_creates_a_new_payment" time="30.320"><failure message="playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.&#10;Call log:&#10;  - waiting for locator(&quot;[data-testid=\&quot;login-email\&quot;]&quot;)">page = &lt;Page url='http://172.28.0.2:8080/login'&gt;
+demo = {'fixture': {'currency': 'EUR', 'minor_units': 2, 'users': [{'id': 'u-alice', 'email': 'alice@example.com', 'password'...s', 'user_id': 'u-carol'}, 'dave': {'token': 'FTqtSAranjdgXf753mjBofqz-tOd-IgSNOZyF5VnaSY', 'user_id': 'u-dave'}, ...}}
+
+    def test_changing_a_field_creates_a_new_payment(page, demo):
+        """R-2-152"""
+&gt;       user = ui_login_demo_user(page, demo["fixture"])
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+/tmp/redline-wt-0qytlqx_/stage-2/tests/test_ui_wallet_pay.py:169: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:300: in ui_login_demo_user
+    ui_login(page, u["email"], u["password"])
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:290: in ui_login
+    page.fill(tid("login-email"), email)
+.venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py:11332: in fill
+    self._sync(
+.venv/lib/python3.12/site-packages/playwright/_impl/_page.py:930: in fill
+    return await self._main_frame.fill(**locals_to_params(locals()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:637: in fill
+    await self._fill(**locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:649: in _fill
+    await self._channel.send("fill", self._timeout, locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:76: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;playwright._impl._connection.Connection object at 0x773e2050bb30&gt;
+cb = &lt;function Channel.send.&lt;locals&gt;.&lt;lambda&gt; at 0x773e1f15dd00&gt;
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -&gt; Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+&gt;           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.
+E           Call log:
+E             - waiting for locator("[data-testid=\"login-email\"]")
+
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:632: TimeoutError</failure></testcase><testcase classname="stage-2.tests.test_ui_wallet_pay" name="test_action_refreshes_without_manual_reload" time="30.321"><failure message="playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.&#10;Call log:&#10;  - waiting for locator(&quot;[data-testid=\&quot;login-email\&quot;]&quot;)">page = &lt;Page url='http://172.28.0.2:8080/login'&gt;
+demo = {'fixture': {'currency': 'EUR', 'minor_units': 2, 'users': [{'id': 'u-alice', 'email': 'alice@example.com', 'password'...k', 'user_id': 'u-carol'}, 'dave': {'token': 'vExCS2rqHAKZN_D-loAaM6TEFvlOUA43jDbNOnOuymI', 'user_id': 'u-dave'}, ...}}
+
+    def test_action_refreshes_without_manual_reload(page, demo):
+        """R-2-153"""
+&gt;       user = ui_login_demo_user(page, demo["fixture"])
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+/tmp/redline-wt-0qytlqx_/stage-2/tests/test_ui_wallet_pay.py:192: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:300: in ui_login_demo_user
+    ui_login(page, u["email"], u["password"])
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:290: in ui_login
+    page.fill(tid("login-email"), email)
+.venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py:11332: in fill
+    self._sync(
+.venv/lib/python3.12/site-packages/playwright/_impl/_page.py:930: in fill
+    return await self._main_frame.fill(**locals_to_params(locals()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:637: in fill
+    await self._fill(**locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:649: in _fill
+    await self._channel.send("fill", self._timeout, locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:76: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;playwright._impl._connection.Connection object at 0x773e2050bb30&gt;
+cb = &lt;function Channel.send.&lt;locals&gt;.&lt;lambda&gt; at 0x773e1f1d32e0&gt;
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -&gt; Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+&gt;           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.
+E           Call log:
+E             - waiting for locator("[data-testid=\"login-email\"]")
+
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:632: TimeoutError</failure></testcase><testcase classname="stage-2.tests.test_ui_wallet_pay" name="test_refused_payment_shows_error_refreshes_preserves_inputs" time="30.326"><failure message="playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.&#10;Call log:&#10;  - waiting for locator(&quot;[data-testid=\&quot;login-email\&quot;]&quot;)">page = &lt;Page url='http://172.28.0.2:8080/login'&gt;
+demo = {'fixture': {'currency': 'EUR', 'minor_units': 2, 'users': [{'id': 'u-alice', 'email': 'alice@example.com', 'password'...8', 'user_id': 'u-carol'}, 'dave': {'token': 'M9DODf0T-hahQyiOHQP-fyv6aMTjIX4iImIFJCE0hZc', 'user_id': 'u-dave'}, ...}}
+
+    def test_refused_payment_shows_error_refreshes_preserves_inputs(page, demo):
+        """R-2-155"""
+&gt;       user = ui_login_demo_user(page, demo["fixture"])
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+/tmp/redline-wt-0qytlqx_/stage-2/tests/test_ui_wallet_pay.py:206: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:300: in ui_login_demo_user
+    ui_login(page, u["email"], u["password"])
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:290: in ui_login
+    page.fill(tid("login-email"), email)
+.venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py:11332: in fill
+    self._sync(
+.venv/lib/python3.12/site-packages/playwright/_impl/_page.py:930: in fill
+    return await self._main_frame.fill(**locals_to_params(locals()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:637: in fill
+    await self._fill(**locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:649: in _fill
+    await self._channel.send("fill", self._timeout, locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:76: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;playwright._impl._connection.Connection object at 0x773e2050bb30&gt;
+cb = &lt;function Channel.send.&lt;locals&gt;.&lt;lambda&gt; at 0x773e1f15d080&gt;
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -&gt; Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+&gt;           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.
+E           Call log:
+E             - waiting for locator("[data-testid=\"login-email\"]")
+
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:632: TimeoutError</failure></testcase><testcase classname="stage-2.tests.test_ui_wallet_pay" name="test_pay_uncertain_on_response_lost_after_commit" time="30.332"><failure message="playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.&#10;Call log:&#10;  - waiting for locator(&quot;[data-testid=\&quot;login-email\&quot;]&quot;)">page = &lt;Page url='http://172.28.0.2:8080/login'&gt;
+demo = {'fixture': {'currency': 'EUR', 'minor_units': 2, 'users': [{'id': 'u-alice', 'email': 'alice@example.com', 'password'...U', 'user_id': 'u-carol'}, 'dave': {'token': 'EXA9Hw9S-u-HvW1EFfFHO1e5SjqPzq39R64zh3LKLAI', 'user_id': 'u-dave'}, ...}}
+
+    def test_pay_uncertain_on_response_lost_after_commit(page, demo):
+        """R-2-157, R-2-158: the response is lost AFTER the server has already
+        committed the write — built as a client-side failure (the browser's own
+        fetch never sees the response), not a server fault, per the dispatch's
+        explicit guidance. The real request is forwarded to the live server so
+        it genuinely commits; only the browser's view of the response is lost."""
+&gt;       user = ui_login_demo_user(page, demo["fixture"])
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+/tmp/redline-wt-0qytlqx_/stage-2/tests/test_ui_wallet_pay.py:232: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:300: in ui_login_demo_user
+    ui_login(page, u["email"], u["password"])
+/tmp/redline-wt-0qytlqx_/stage-2/tests/conftest.py:290: in ui_login
+    page.fill(tid("login-email"), email)
+.venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py:11332: in fill
+    self._sync(
+.venv/lib/python3.12/site-packages/playwright/_impl/_page.py:930: in fill
+    return await self._main_frame.fill(**locals_to_params(locals()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:637: in fill
+    await self._fill(**locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:649: in _fill
+    await self._channel.send("fill", self._timeout, locals_to_params(locals()))
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:76: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;playwright._impl._connection.Connection object at 0x773e2050bb30&gt;
+cb = &lt;function Channel.send.&lt;locals&gt;.&lt;lambda&gt; at 0x773e1f2e8040&gt;
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -&gt; Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+&gt;           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.
+E           Call log:
+E             - waiting for locator("[data-testid=\"login-email\"]")
+
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:632: TimeoutError</failure></testcase><testcase classname="stage-2.tests.test_upgrade_stage2" name="test_import_of_a_no_holds_export_yields_available_equals_total" time="0.093" /><testcase classname="stage-2.tests.test_upgrade_stage2" name="test_token_survives_import" time="0.087" /><testcase classname="stage-2.tests.test_upgrade_stage2" name="test_pending_request_payable_after_import" time="0.092" /><testcase classname="stage-2.tests.test_upgrade_stage2" name="test_claimed_key_remains_retryable_after_import_moves_money_once" time="0.126" /><testcase classname="stage-2.tests.test_upgrade_stage2" name="test_export_round_trips_authorization_fields" time="0.111" /><testcase classname="stage-2.tests.test_wallet_holds" name="test_get_me_shape_with_and_without_holds" time="0.095" /><testcase classname="stage-2.tests.test_wallet_holds" name="test_payments_remain_immediate_no_intermediate_hold" time="0.101" /><testcase classname="stage-2.tests.test_wallet_holds" name="test_payment_blocked_by_hold_even_though_total_covers_it" time="0.117" /><testcase classname="stage-2.tests.test_wallet_holds" name="test_request_pay_blocked_by_hold_even_though_total_covers_it" time="0.087" /><testcase classname="stage-2.tests.test_wallet_holds" name="test_no_endpoint_creates_a_hold_from_a_request" time="0.085" /><testcase classname="stage-2.tests.test_wallet_holds" name="test_splits_unchanged_by_holds" time="0.115" /><testcase classname="stage-2.tests.test_wallet_holds" name="test_seven_idempotent_write_paths_require_key" time="0.111" /><testcase classname="stage-2.tests.test_wallet_holds" name="test_settlement_net_debit_against_available" time="0.120" /><testcase classname="stage-2.tests.test_wallet_holds" name="test_payment_object_authorization_id_null_for_direct_payment" time="0.110" /></testsuite></testsuites>

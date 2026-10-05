@@ -1,0 +1,71 @@
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /tmp/redline-wt-6ko08s3i/stage-2/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s2/N2-5-g2-20261004T213412-fb17.junit.xml  (exit 1)
+hon3.12/site-packages/playwright/_impl/_connection.py:76: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <playwright._impl._connection.Connection object at 0x7d6b7d05efc0>
+cb = <function Channel.send.<locals>.<lambda> at 0x7d6b774593a0>
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -> Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+>           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Page.fill: Timeout 30000ms exceeded.
+E           Call log:
+E             - waiting for locator("[data-testid=\"pay-handle\"]")
+
+../.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:632: TimeoutError
+=========================== short test summary info ============================
+FAILED ../../../../../../tmp/redline-wt-6ko08s3i/stage-2/tests/test_authorizations.py::test_final_capture_releases_remainder_and_closes
+FAILED ../../../../../../tmp/redline-wt-6ko08s3i/stage-2/tests/test_ui_activity.py::test_activity_item_fields_for_a_seeded_public_payment
+FAILED ../../../../../../tmp/redline-wt-6ko08s3i/stage-2/tests/test_ui_activity.py::test_activity_note_element_present_even_when_empty
+FAILED ../../../../../../tmp/redline-wt-6ko08s3i/stage-2/tests/test_ui_activity.py::test_empty_activity_marker_when_nothing_visible
+FAILED ../../../../../../tmp/redline-wt-6ko08s3i/stage-2/tests/test_ui_activity.py::test_activity_newest_first_in_dom
+FAILED ../../../../../../tmp/redline-wt-6ko08s3i/stage-2/tests/test_ui_activity.py::test_parties_show_handles_not_internal_ids
+FAILED ../../../../../../tmp/redline-wt-6ko08s3i/stage-2/tests/test_ui_auth.py::test_requests_and_authorizations_shared_html_json
+FAILED ../../../../../../tmp/redline-wt-6ko08s3i/stage-2/tests/test_ui_layout.py::test_primary_actions_are_real_buttons_with_text
+FAILED ../../../../../../tmp/redline-wt-6ko08s3i/stage-2/tests/test_ui_layout.py::test_available_is_visually_the_headline_number
+FAILED ../../../../../../tmp/redline-wt-6ko08s3i/stage-2/tests/test_ui_layout.py::test_available_and_held_are_visually_distinguishable
+FAILED ../../../../../../tmp/redline-wt-6ko08s3i/stage-2/tests/test_ui_layout.py::test_every_input_has_a_visible_label
+FAILED ../../../../../../tmp/redline-wt-6ko08s3i/stage-2/tests/test_ui_layout.py::test_seeded_demo_user_sees_populated_first_screen
+FAILED ../../../../../../tmp/redline-wt-6ko08s3i/stage-2/tests/test_ui_layout.py::test_ui_reflects_holds_immediately_after_reset
+FAILED ../../../../../../tmp/redline-wt-6ko08s3i/stage-2/tests/test_ui_layout.py::test_refresh_button_updates_available_and_held
+FAILED ../../../../../../tmp/redline-wt-6ko08s3i/stage-2/tests/test_ui_layout.py::test_latest_refresh_wins_even_out_of_order
+FAILED ../../../../../../tmp/redline-wt-6ko08s3i/stage-2/tests/test_ui_requests_split_authz.py::test_request_form_testids
+FAILED ../../../../../../tmp/redline-wt-6ko08s3i/stage-2/tests/test_ui_requests_split_authz.py::test_requests_screen_lists_and_testids
+FAILED ../../../../../../tmp/redline-wt-6ko08s3i/stage-2/tests/test_ui_requests_split_authz.py::test_request_actions_present_only_on_correct_side_and_status
+FAILED ../../../../../../tmp/redline-wt-6ko08s3i/stage-2/tests/test_ui_requests_split_authz.py::test_split_form_testids_and_preview
+FAILED ../../../../../../tmp/redline-wt-6ko08s3i/stage-2/tests/test_ui_requests_split_authz.py::test_authorizations_screen_testids
+FAILED ../../../../../../tmp/redline-wt-6ko08s3i/stage-2/tests/test_ui_requests_split_authz.py::test_capture_void_buttons_present_only_on_correct_side
+FAILED ../../../../../../tmp/redline-wt-6ko08s3i/stage-2/tests/test_ui_requests_split_authz.py::test_request_cancelled_elsewhere_shows_error_and_removes_stale_pay_button
+FAILED ../../../../../../tmp/redline-wt-6ko08s3i/stage-2/tests/test_ui_wallet_pay.py::test_formatted_amount_minor_units_rule
+FAILED ../../../../../../tmp/redline-wt-6ko08s3i/stage-2/tests/test_ui_wallet_pay.py::test_wallet_testids
+FAILED ../../../../../../tmp/redline-wt-6ko08s3i/stage-2/tests/test_ui_wallet_pay.py::test_pay_form_testids_present
+FAILED ../../../../../../tmp/redline-wt-6ko08s3i/stage-2/tests/test_ui_wallet_pay.py::test_decimal_input_submits_minor_units
+FAILED ../../../../../../tmp/redline-wt-6ko08s3i/stage-2/tests/test_ui_wallet_pay.py::test_decimal_input_rejects_too_many_places_without_sending
+FAILED ../../../../../../tmp/redline-wt-6ko08s3i/stage-2/tests/test_ui_wallet_pay.py::test_authorize_form_testids_present
+FAILED ../../../../../../tmp/redline-wt-6ko08s3i/stage-2/tests/test_ui_wallet_pay.py::test_wallet_refresh_does_not_clear_pay_form
+FAILED ../../../../../../tmp/redline-wt-6ko08s3i/stage-2/tests/test_ui_wallet_pay.py::test_pay_form_keeps_values_after_success
+FAILED ../../../../../../tmp/redline-wt-6ko08s3i/stage-2/tests/test_ui_wallet_pay.py::test_resubmitting_unchanged_form_sends_no_second_payment
+FAILED ../../../../../../tmp/redline-wt-6ko08s3i/stage-2/tests/test_ui_wallet_pay.py::test_changing_a_field_creates_a_new_payment
+FAILED ../../../../../../tmp/redline-wt-6ko08s3i/stage-2/tests/test_ui_wallet_pay.py::test_action_refreshes_without_manual_reload
+FAILED ../../../../../../tmp/redline-wt-6ko08s3i/stage-2/tests/test_ui_wallet_pay.py::test_refused_payment_shows_error_refreshes_preserves_inputs
+FAILED ../../../../../../tmp/redline-wt-6ko08s3i/stage-2/tests/test_ui_wallet_pay.py::test_pay_uncertain_on_response_lost_after_commit
+35 failed, 423 passed in 679.71s (0:11:19)
+
+
+
+RESULT: FAIL — 423 passed, 35 failed, 0 errors, 0 skipped

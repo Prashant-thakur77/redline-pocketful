@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="2" time="69.535" timestamp="2026-10-04T22:05:35.206128+05:30" hostname="prashant-Dell-G15-5530"><testcase classname="adversarial.test_n1_10_2_adversarial" name="test_reset_landing_while_waiters_are_parked_on_an_in_flight_claim" time="65.042" /><testcase classname="adversarial.test_n1_10_2_adversarial" name="test_import_landing_while_waiters_are_parked_on_an_in_flight_claim" time="4.277"><failure message="AssertionError: import must succeed (trial 0): 422&#10;assert 422 == 204">def test_import_landing_while_waiters_are_parked_on_an_in_flight_claim():
+        """Same race, with POST /_test/import (a different fixture, via the
+        export/import round trip) in place of reset — restore() has the same
+        R-1-112a obligation as clear() and the same hazard."""
+    
+        def do_import():
+            new_uid, new_handle = unique("u"), unique_handle("postimp")
+            new_email = f"{new_handle}@example.com"
+            other_fixture = make_fixture([user(new_uid, new_handle, balance=888, email=new_email)])
+            # Build the import document via a real export of a throwaway reset,
+            # so it's a genuine export/import document, not a hand-built one.
+            reset_ok(other_fixture)
+            export_doc = api_get("/_test/export").json()
+            t0 = time.monotonic()
+            r = api_post("/_test/import", json=export_doc)
+            return r.status_code, time.monotonic() - t0, new_email
+    
+        def verify(trial_i, responses, wipe_result):
+            import_status, import_elapsed, new_email = wipe_result
+            assert import_status == 204, f"import must succeed (trial {trial_i}): {import_status}"
+            assert import_elapsed &lt; 10.0, (
+                f"R-1-015: import must finish within 10s even mid-race, took {import_elapsed:.2f}s (trial {trial_i})"
+            )
+    
+            over_budget = [(s, e) for s, _, e in responses if e &gt; _REQUEST_BUDGET_S]
+            assert not over_budget, (
+                f"R-1-015 breach (trial {trial_i}): a parked waiter exceeded {_REQUEST_BUDGET_S}s: {over_budget}"
+            )
+    
+            bad_5xx = [(s, b[:200]) for s, b, _ in responses if s &gt;= 500]
+            assert not bad_5xx, (
+                f"R-1-005/R-1-080b breach (trial {trial_i}): a parked waiter got a 5xx when the entry it was "
+                f"waiting on was wiped out from under it by an import: {bad_5xx}"
+            )
+    
+            winners = [b for s, b, _ in responses if s == 201]
+            assert len(winners) &lt;= 1, f"never two winners even across an import race (trial {trial_i}): {len(winners)} 201s"
+            replays = [b for s, b, _ in responses if s == 200]
+            if winners:
+                assert all(b == winners[0] for b in replays), f"every 200 must carry the exact winner body (trial {trial_i})"
+            for s, b, _ in responses:
+                if s not in (200, 201):
+                    assert 400 &lt;= s &lt; 500, f"unexpected non-4xx/non-2xx status {s} (trial {trial_i}): {b}"
+                    assert '"error"' in b, f"a {s} response must carry the error envelope (trial {trial_i}): {b}"
+    
+            # Verify THIS trial's imported state right now, before the next
+            # trial's own reset/import invalidates this email/token.
+            bal_new = api_get("/me", headers={"Authorization": f"Bearer {login_token(new_email)}"}).json()["balance"]
+            assert bal_new == 888, f"R-1-001: imported fixture's balance must be exact post-race, got {bal_new} (trial {trial_i})"
+    
+&gt;       max_elapsed_seen = _run_waiter_race(do_import, verify)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+/tmp/redline-mut-9zpxbiqz/stage-1/tests/adversarial/test_n1_10_2_adversarial.py:236: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/redline-mut-9zpxbiqz/stage-1/tests/adversarial/test_n1_10_2_adversarial.py:127: in _run_waiter_race
+    verify_fn(trial_i, responses, wipe_result)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+trial_i = 0
+responses = [(200, '{"settlement_id": "VfcE2yl2iD-18VRrDG0X8Q", "committed_at": "2026-10-04T16:36:44+00:00", "payments": [{"paymen... null, "created_at": "2026-10-04T16:36:44+00:00", "settlement_id": "VfcE2yl2iD-18VRrDG0X8Q"}]}', 0.008682663996296469)]
+wipe_result = (422, 0.008293667000543792, 'postimp6b9e444a9679@example.com')
+
+    def verify(trial_i, responses, wipe_result):
+        import_status, import_elapsed, new_email = wipe_result
+&gt;       assert import_status == 204, f"import must succeed (trial {trial_i}): {import_status}"
+E       AssertionError: import must succeed (trial 0): 422
+E       assert 422 == 204
+
+/tmp/redline-mut-9zpxbiqz/stage-1/tests/adversarial/test_n1_10_2_adversarial.py:205: AssertionError</failure></testcase></testsuite></testsuites>

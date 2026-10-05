@@ -1,0 +1,49 @@
+$ docker build --label redline-gate=1 -t redline-gate-d6ef536e8d /tmp/redline-wt-wzwhquns/stage-2  (exit 0)
+
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 176B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/4] FROM docker.io/library/python:3.12-slim
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 98.52kB done
+#5 DONE 0.0s
+
+#6 [2/4] WORKDIR /app
+#6 CACHED
+
+#7 [3/4] COPY main.py ./main.py
+#7 CACHED
+
+#8 [4/4] COPY service ./service
+#8 DONE 0.0s
+
+#9 exporting to image
+#9 exporting layers 0.0s done
+#9 writing image sha256:b60d970edf24ee13392810ac734e64aecdc616ffc69bf87fff4c6f837c8aef52 done
+#9 naming to docker.io/library/redline-gate-d6ef536e8d done
+#9 DONE 0.0s
+
+$ docker network create --internal redline-net-12c7a5e3f1  (exit 0)
+b9b3c1c234280ee229bd199a93e6b965ef6ccb87ee4f796b0871d40d84c81ea2
+
+
+$ docker run -d --network redline-net-12c7a5e3f1 --cpus 2 --memory 2g -e PORT=8080 redline-gate-d6ef536e8d  (exit 0)
+95579d91de5fc6ebf584fbdca8ee9ad8c2e82edd0f2f895644e792676b4f3f63
+
+
+
+RESULT: PASS — built and healthy offline at http://172.27.0.2:8080/health
+--- service log (tail) ---
+

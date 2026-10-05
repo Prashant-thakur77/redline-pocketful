@@ -1,0 +1,1296 @@
+$ docker build --label redline-gate=1 -t redline-mut-a9f60cad-base /tmp/redline-mut-9zpxbiqz/stage-1  (exit 0)
+
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 176B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/4] FROM docker.io/library/python:3.12-slim
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 1.14kB done
+#5 DONE 0.0s
+
+#6 [3/4] COPY main.py ./main.py
+#6 CACHED
+
+#7 [2/4] WORKDIR /app
+#7 CACHED
+
+#8 [4/4] COPY service ./service
+#8 CACHED
+
+#9 exporting to image
+#9 exporting layers done
+#9 writing image sha256:c705bbc19829da55d08d0e7825a47876ea179dc94ac43cdede3f1e40bd2a847b done
+#9 naming to docker.io/library/redline-mut-a9f60cad-base done
+#9 DONE 0.0s
+
+$ docker network create --internal redline-net-6422562f1e  (exit 0)
+e7fb5e16ae4fb6511aa21587b43922403063f33df2b5031b2fcbd80095123292
+
+
+$ docker run -d --network redline-net-6422562f1e --cpus 2 --memory 2g -e PORT=8080 redline-mut-a9f60cad-base  (exit 0)
+d48e549ca418a7e7e1c6d9310bee1f8c70daf11db6af030fcc957c366e5af638
+
+
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /tmp/redline-mut-9zpxbiqz/stage-1/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s1/close-g6-20261004T161906-814e.junit.xml  (exit 0)
+........................................................................ [ 22%]
+........................................................................ [ 45%]
+........................................................................ [ 68%]
+........................................................................ [ 91%]
+..........................                                               [100%]
+314 passed in 177.82s (0:02:57)
+
+
+--- service log (tail) ---
+
+$ docker build --label redline-gate=1 -t redline-mut-a9f60cad-1 /tmp/redline-mut-9zpxbiqz/stage-1  (exit 0)
+
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 176B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/4] FROM docker.io/library/python:3.12-slim
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 4.91kB done
+#5 DONE 0.0s
+
+#6 [2/4] WORKDIR /app
+#6 CACHED
+
+#7 [3/4] COPY main.py ./main.py
+#7 CACHED
+
+#8 [4/4] COPY service ./service
+#8 DONE 0.0s
+
+#9 exporting to image
+#9 exporting layers 0.0s done
+#9 writing image sha256:e344c3e365baf1ae7704d1790677a098338bb394f4b446cd7bba3b819d5af8a4 done
+#9 naming to docker.io/library/redline-mut-a9f60cad-1 done
+#9 DONE 0.1s
+
+$ docker network create --internal redline-net-512e9c68a2  (exit 0)
+9cce36973954821b6e45c5bd1d2261976460dd040997604de31519a1753262bc
+
+
+$ docker run -d --network redline-net-512e9c68a2 --cpus 2 --memory 2g -e PORT=8080 redline-mut-a9f60cad-1  (exit 0)
+32b4be0945743325cf9d48dd87f774a97a3502f01e839143f923e4dc8608cf5f
+
+
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /tmp/redline-mut-9zpxbiqz/stage-1/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s1/close-g6-20261004T161906-814e.junit.xml -x  (exit 1)
+..............F
+=================================== FAILURES ===================================
+______________ test_concurrent_identical_payment_exactly_one_201 _______________
+
+two_users = {'fixture': {'currency': 'EUR', 'minor_units': 2, 'users': [{'id': 'ua0a6581220301', 'email': 'alicea0a6581220303@exam...: 'boba0a6581220304', 'token': 'nFqhlctnnYxl4ItdG_NczhL2ZAfRb2W7ssQBoLkO35s', 'email': 'boba0a6581220304@example.com'}}
+
+    def test_concurrent_identical_payment_exactly_one_201(two_users):
+        """R-1-108, over real HTTP this time: 20 concurrent POST /payments with
+        the same Idempotency-Key and the same body must produce exactly one
+        201 and the rest 200 with an identical body, and the balance must
+        move by exactly one payment's amount, not N."""
+        a, b = two_users["a"], two_users["b"]
+        key = unique("race")
+    
+        def attempt(_i):
+            return _pay(a["token"], b["handle"], 100, key)
+    
+        with ThreadPoolExecutor(20) as pool:
+            responses = list(pool.map(attempt, range(20)))
+    
+        statuses = Counter(r.status_code for r in responses)
+>       assert statuses[201] == 1, f"expected exactly one 201, got {dict(statuses)}"
+E       AssertionError: expected exactly one 201, got {201: 20}
+E       assert 20 == 1
+
+/tmp/redline-mut-9zpxbiqz/stage-1/tests/adversarial/test_n1_5_adversarial.py:41: AssertionError
+=========================== short test summary info ============================
+FAILED ../../../../../tmp/redline-mut-9zpxbiqz/stage-1/tests/adversarial/test_n1_5_adversarial.py::test_concurrent_identical_payment_exactly_one_201
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+1 failed, 14 passed in 144.50s (0:02:24)
+
+
+--- service log (tail) ---
+
+#1 service/routes/payments.py:38 [true to false]: killed
+   - requires_idempotency_key = True
+   + requires_idempotency_key = False
+$ docker build --label redline-gate=1 -t redline-mut-a9f60cad-2 /tmp/redline-mut-9zpxbiqz/stage-1  (exit 0)
+
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 176B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/4] FROM docker.io/library/python:3.12-slim
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 7.84kB done
+#5 DONE 0.0s
+
+#6 [2/4] WORKDIR /app
+#6 CACHED
+
+#7 [3/4] COPY main.py ./main.py
+#7 CACHED
+
+#8 [4/4] COPY service ./service
+#8 DONE 0.0s
+
+#9 exporting to image
+#9 exporting layers 0.0s done
+#9 writing image sha256:bb2fe9451ba4daed05db1c7f2eaff44d353f1fc98783be5dbb5ae11a3b4ee59f done
+#9 naming to docker.io/library/redline-mut-a9f60cad-2 done
+#9 DONE 0.1s
+
+$ docker network create --internal redline-net-f21eb555a1  (exit 0)
+bf18fd16dc092189ff5a53b7064397dcb2cd578fca76907846757454fa94fac8
+
+
+$ docker run -d --network redline-net-f21eb555a1 --cpus 2 --memory 2g -e PORT=8080 redline-mut-a9f60cad-2  (exit 0)
+e85a4418b87dc90fe3b6ca1997f11391152cafbd1712ca0bc0253cae2b012e7e
+
+
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /tmp/redline-mut-9zpxbiqz/stage-1/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s1/close-g6-20261004T161906-814e.junit.xml -x  (exit 1)
+........................................................................ [ 22%]
+........................................................................ [ 45%]
+...........................................................F
+=================================== FAILURES ===================================
+______________________ test_request_ignores_payer_balance ______________________
+
+    def test_request_ignores_payer_balance():
+        """R-1-151"""
+        fixture, token_a, token_b = _two_user_fixture(balance_a=0, balance_b=0)
+        b_handle = fixture["users"][1]["handle"]
+        r = api_post("/requests", json={"payer_handle": b_handle, "amount": 1_000_000},
+                     headers={**auth(token_a), **idem(unique("k"))})
+        assert r.status_code == 201, r.text
+        req_id = r.json()["request_id"]
+    
+        # the request is created despite the payer's zero balance, and sits pending
+        pay_attempt = api_post(f"/requests/{req_id}/pay", json={}, headers={**auth(token_b), **idem(unique("k"))})
+        assert_error(pay_attempt, 409, "insufficient_funds")
+        still = api_get("/requests", headers=auth(token_a))
+        matching = [x for x in still.json()["requests"] if x["request_id"] == req_id]
+>       assert matching and matching[0]["status"] == "pending"
+E       assert ([])
+
+/tmp/redline-mut-9zpxbiqz/stage-1/tests/test_requests.py:41: AssertionError
+=========================== short test summary info ============================
+FAILED ../../../../../tmp/redline-mut-9zpxbiqz/stage-1/tests/test_requests.py::test_request_ignores_payer_balance
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+1 failed, 203 passed in 166.59s (0:02:46)
+
+
+--- service log (tail) ---
+
+#2 service/routes/requests_read.py:61 [and to or]: killed
+   - if direction == "incoming" and not is_payer:
+   + if direction == "incoming" or not is_payer:
+$ docker build --label redline-gate=1 -t redline-mut-a9f60cad-3 /tmp/redline-mut-9zpxbiqz/stage-1  (exit 0)
+
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 176B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/4] FROM docker.io/library/python:3.12-slim
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 4.07kB done
+#5 DONE 0.0s
+
+#6 [2/4] WORKDIR /app
+#6 CACHED
+
+#7 [3/4] COPY main.py ./main.py
+#7 CACHED
+
+#8 [4/4] COPY service ./service
+#8 DONE 0.0s
+
+#9 exporting to image
+#9 exporting layers 0.0s done
+#9 writing image sha256:c4b1b0da4f27d7ce0e66b695232f90a800ed1005ca07f35aeb942855d0b17175 done
+#9 naming to docker.io/library/redline-mut-a9f60cad-3 done
+#9 DONE 0.1s
+
+$ docker network create --internal redline-net-0aed9e6578  (exit 0)
+8f64a1b5c2d89a36ba827978d0c8bb56c494735efae8a33c75c0b55b697ab42e
+
+
+$ docker run -d --network redline-net-0aed9e6578 --cpus 2 --memory 2g -e PORT=8080 redline-mut-a9f60cad-3  (exit 0)
+346b515205308f221124be661df9d9244e98c28b10ecd9fe9f91cac45f600199
+
+
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /tmp/redline-mut-9zpxbiqz/stage-1/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s1/close-g6-20261004T161906-814e.junit.xml -x  (exit 1)
+........................................................................ [ 22%]
+........................................................................ [ 45%]
+...........................................................F
+=================================== FAILURES ===================================
+______________________ test_request_ignores_payer_balance ______________________
+
+    def test_request_ignores_payer_balance():
+        """R-1-151"""
+        fixture, token_a, token_b = _two_user_fixture(balance_a=0, balance_b=0)
+        b_handle = fixture["users"][1]["handle"]
+        r = api_post("/requests", json={"payer_handle": b_handle, "amount": 1_000_000},
+                     headers={**auth(token_a), **idem(unique("k"))})
+        assert r.status_code == 201, r.text
+        req_id = r.json()["request_id"]
+    
+        # the request is created despite the payer's zero balance, and sits pending
+        pay_attempt = api_post(f"/requests/{req_id}/pay", json={}, headers={**auth(token_b), **idem(unique("k"))})
+        assert_error(pay_attempt, 409, "insufficient_funds")
+        still = api_get("/requests", headers=auth(token_a))
+        matching = [x for x in still.json()["requests"] if x["request_id"] == req_id]
+>       assert matching and matching[0]["status"] == "pending"
+E       assert ([])
+
+/tmp/redline-mut-9zpxbiqz/stage-1/tests/test_requests.py:41: AssertionError
+=========================== short test summary info ============================
+FAILED ../../../../../tmp/redline-mut-9zpxbiqz/stage-1/tests/test_requests.py::test_request_ignores_payer_balance
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+1 failed, 203 passed in 167.21s (0:02:47)
+
+
+--- service log (tail) ---
+
+#3 service/routes/requests_read.py:57 [or to and]: killed
+   - if not (is_requester or is_payer):
+   + if not (is_requester and is_payer):
+$ docker build --label redline-gate=1 -t redline-mut-a9f60cad-4 /tmp/redline-mut-9zpxbiqz/stage-1  (exit 0)
+
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 176B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/4] FROM docker.io/library/python:3.12-slim
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 11.51kB done
+#5 DONE 0.0s
+
+#6 [2/4] WORKDIR /app
+#6 CACHED
+
+#7 [3/4] COPY main.py ./main.py
+#7 CACHED
+
+#8 [4/4] COPY service ./service
+#8 DONE 0.0s
+
+#9 exporting to image
+#9 exporting layers 0.0s done
+#9 writing image sha256:fc270ec902ec7ea348c931e50cb528ad4e564d040e60ad7f32c40e5a37a13b6e done
+#9 naming to docker.io/library/redline-mut-a9f60cad-4 done
+#9 DONE 0.1s
+
+$ docker network create --internal redline-net-edb5861763  (exit 0)
+2f7d5ee6904015c22b84de331356876b59bca73602ffc647a4d2c79abed3feb3
+
+
+$ docker run -d --network redline-net-edb5861763 --cpus 2 --memory 2g -e PORT=8080 redline-mut-a9f60cad-4  (exit 0)
+20a2e74f044ab29b6e078ea0c2ef03b34cc373a1d30180a51951bfa8af90afea
+
+
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /tmp/redline-mut-9zpxbiqz/stage-1/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s1/close-g6-20261004T161906-814e.junit.xml -x  (exit 1)
+................................F
+=================================== FAILURES ===================================
+__________________ test_cancel_racing_pay_exactly_one_winner ___________________
+
+    def test_cancel_racing_pay_exactly_one_winner():
+        """Same race, cancel (by the requester) vs pay (by the payer)."""
+        users = _three_users()
+        req_id = _create_request(users["requester"]["token"], users["payer"]["handle"], 100)
+    
+        def do_pay():
+            return ("pay", _pay_request(req_id, users["payer"]["token"], unique("racepay2")))
+    
+        def do_cancel():
+            return ("cancel", _cancel_request(req_id, users["requester"]["token"]))
+    
+        with ThreadPoolExecutor(2) as pool:
+            results = list(pool.map(lambda f: f(), [do_pay, do_cancel]))
+    
+        outcomes = dict(results)
+        assert all(r.status_code < 500 for _, r in results), f"no 5xx allowed: {outcomes}"
+    
+        pay_r, cancel_r = outcomes["pay"], outcomes["cancel"]
+        pay_ok = pay_r.status_code == 201
+        cancel_ok = cancel_r.status_code == 200
+>       assert pay_ok != cancel_ok, (
+            f"exactly one of pay/cancel must win, got pay={pay_r.status_code} cancel={cancel_r.status_code}"
+        )
+E       AssertionError: exactly one of pay/cancel must win, got pay=201 cancel=200
+E       assert True != True
+
+/tmp/redline-mut-9zpxbiqz/stage-1/tests/adversarial/test_n1_6_adversarial.py:167: AssertionError
+=========================== short test summary info ============================
+FAILED ../../../../../tmp/redline-mut-9zpxbiqz/stage-1/tests/adversarial/test_n1_6_adversarial.py::test_cancel_racing_pay_exactly_one_winner
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+1 failed, 32 passed in 148.30s (0:02:28)
+
+
+--- service log (tail) ---
+
+#4 service/routes/requests.py:166 [eq to ne]: killed
+   - if request["status"] == "cancelled":
+   + if request["status"] != "cancelled":
+$ docker build --label redline-gate=1 -t redline-mut-a9f60cad-5 /tmp/redline-mut-9zpxbiqz/stage-1  (exit 0)
+
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 176B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/4] FROM docker.io/library/python:3.12-slim
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 12.69kB done
+#5 DONE 0.0s
+
+#6 [2/4] WORKDIR /app
+#6 CACHED
+
+#7 [3/4] COPY main.py ./main.py
+#7 CACHED
+
+#8 [4/4] COPY service ./service
+#8 DONE 0.0s
+
+#9 exporting to image
+#9 exporting layers 0.0s done
+#9 writing image sha256:8d6ebe28e61ece7f85a331426756ab2ee080eb5d47a67c661afc1f44a745b8e9 done
+#9 naming to docker.io/library/redline-mut-a9f60cad-5 done
+#9 DONE 0.1s
+
+$ docker network create --internal redline-net-4eeab1d32f  (exit 0)
+d67916596a5192782949fe7df5167236a4388e3cf62a2406750f0356987bbcb7
+
+
+$ docker run -d --network redline-net-4eeab1d32f --cpus 2 --memory 2g -e PORT=8080 redline-mut-a9f60cad-5  (exit 0)
+b64cbe2f2938cc279821c22059e3818b65460d47848838046b4897a673b586c6
+
+
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /tmp/redline-mut-9zpxbiqz/stage-1/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s1/close-g6-20261004T161906-814e.junit.xml -x  (exit 1)
+b, _ in responses if s >= 500]
+            assert not bad_5xx, (
+                f"R-1-005/R-1-080b breach (trial {trial_i}): a parked waiter got a 5xx when the entry it was "
+                f"waiting on was wiped out from under it by a reset: {bad_5xx}"
+            )
+    
+            winners = [b for s, b, _ in responses if s == 201]
+            assert len(winners) <= 1, f"never two winners even across a reset race (trial {trial_i}): {len(winners)} 201s"
+            replays = [b for s, b, _ in responses if s == 200]
+            if winners:
+                assert all(b == winners[0] for b in replays), f"every 200 must carry the exact winner body (trial {trial_i})"
+            for s, b, _ in responses:
+                if s not in (200, 201):
+                    assert 400 <= s < 500, f"unexpected non-4xx/non-2xx status {s} (trial {trial_i}): {b}"
+                    assert '"error"' in b, f"a {s} response must carry the error envelope (trial {trial_i}): {b}"
+    
+            # Verify THIS trial's new state right now, before the next
+            # trial's own reset invalidates this email/token.
+            bal_new = api_get("/me", headers={"Authorization": f"Bearer {login_token(new_email)}"}).json()["balance"]
+            assert bal_new == 777, f"R-1-001: new fixture's seeded balance must be exact post-race, got {bal_new} (trial {trial_i})"
+    
+>       max_elapsed_seen = _run_waiter_race(do_reset, verify)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+/tmp/redline-mut-9zpxbiqz/stage-1/tests/adversarial/test_n1_10_2_adversarial.py:181: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/redline-mut-9zpxbiqz/stage-1/tests/adversarial/test_n1_10_2_adversarial.py:126: in _run_waiter_race
+    responses, wipe_result = _run_waiter_race_once(wipe_fn)
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/tmp/redline-mut-9zpxbiqz/stage-1/tests/adversarial/test_n1_10_2_adversarial.py:102: in _run_waiter_race_once
+    responses = [f.result(timeout=10.0) for f in futures]
+                 ^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.13-linux-x86_64-gnu/lib/python3.12/concurrent/futures/_base.py:456: in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.13-linux-x86_64-gnu/lib/python3.12/concurrent/futures/_base.py:401: in __get_result
+    raise self._exception
+../../../.local/share/uv/python/cpython-3.12.13-linux-x86_64-gnu/lib/python3.12/concurrent/futures/thread.py:59: in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/tmp/redline-mut-9zpxbiqz/stage-1/tests/adversarial/test_n1_10_2_adversarial.py:80: in settle
+    r = api_post("/settlements", json={"transfers": transfers}, headers=auth_idem(op_token, key))
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/tmp/redline-mut-9zpxbiqz/stage-1/tests/conftest.py:48: in api_post
+    return httpx.post(url(path), json=json, headers=headers, params=params, timeout=timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/httpx/_api.py:304: in post
+    return request(
+.venv/lib/python3.12/site-packages/httpx/_api.py:109: in request
+    return client.request(
+.venv/lib/python3.12/site-packages/httpx/_client.py:825: in request
+    return self.send(request, auth=auth, follow_redirects=follow_redirects)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/httpx/_client.py:914: in send
+    response = self._send_handling_auth(
+.venv/lib/python3.12/site-packages/httpx/_client.py:942: in _send_handling_auth
+    response = self._send_handling_redirects(
+.venv/lib/python3.12/site-packages/httpx/_client.py:979: in _send_handling_redirects
+    response = self._send_single_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/httpx/_client.py:1014: in _send_single_request
+    response = transport.handle_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/httpx/_transports/default.py:249: in handle_request
+    with map_httpcore_exceptions():
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.13-linux-x86_64-gnu/lib/python3.12/contextlib.py:158: in __exit__
+    self.gen.throw(value)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    @contextlib.contextmanager
+    def map_httpcore_exceptions() -> typing.Iterator[None]:
+        global HTTPCORE_EXC_MAP
+        if len(HTTPCORE_EXC_MAP) == 0:
+            HTTPCORE_EXC_MAP = _load_httpcore_exceptions()
+        try:
+            yield
+        except Exception as exc:
+            mapped_exc = None
+    
+            for from_exc, to_exc in HTTPCORE_EXC_MAP.items():
+                if not isinstance(exc, from_exc):
+                    continue
+                # We want to map to the most specific exception we can find.
+                # Eg if `exc` is an `httpcore.ReadTimeout`, we want to map to
+                # `httpx.ReadTimeout`, not just `httpx.TimeoutException`.
+                if mapped_exc is None or issubclass(to_exc, mapped_exc):
+                    mapped_exc = to_exc
+    
+            if mapped_exc is None:  # pragma: no cover
+                raise
+    
+            message = str(exc)
+>           raise mapped_exc(message) from exc
+E           httpx.ReadTimeout: timed out
+
+.venv/lib/python3.12/site-packages/httpx/_transports/default.py:118: ReadTimeout
+=========================== short test summary info ============================
+FAILED ../../../../../tmp/redline-mut-9zpxbiqz/stage-1/tests/adversarial/test_n1_10_2_adversarial.py::test_reset_landing_while_waiters_are_parked_on_an_in_flight_claim
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+1 failed in 14.57s
+
+
+--- service log (tail) ---
+Traceback (most recent call last):
+  File "/app/service/server.py", line 182, in _dispatch
+    status, body = endpoint.handle(ctx)
+    ^^^^^^^^^^^^
+ValueError: too many values to unpack (expected 2)
+Traceback (most recent call last):
+  File "/app/service/server.py", line 182, in _dispatch
+    status, body = endpoint.handle(ctx)
+    ^^^^^^^^^^^^
+ValueError: too many values to unpack (expected 2)
+Traceback (most recent call last):
+  File "/app/service/server.py", line 182, in _dispatch
+    status, body = endpoint.handle(ctx)
+    ^^^^^^^^^^^^
+ValueError: too many values to unpack (expected 2)
+Traceback (most recent call last):
+  File "/app/service/server.py", line 182, in _dispatch
+    status, body = endpoint.handle(ctx)
+    ^^^^^^^^^^^^
+ValueError: too many values to unpack (expected 2)
+Traceback (most recent call last):
+  File "/app/service/server.py", line 182, in _dispatch
+    status, body = endpoint.handle(ctx)
+    ^^^^^^^^^^^^
+ValueError: too many values to unpack (expected 2)
+Traceback (most recent call last):
+  File "/app/service/server.py", line 182, in _dispatch
+    status, body = endpoint.handle(ctx)
+    ^^^^^^^^^^^^
+Traceback (most recent call last):
+ValueError: too many values to unpack (expected 2)
+  File "/app/service/server.py", line 182, in _dispatch
+    status, body = endpoint.handle(ctx)
+    ^^^^^^^^^^^^
+Traceback (most recent call last):
+ValueError: too many values to unpack (expected 2)
+  File "/app/service/server.py", line 182, in _dispatch
+    status, body = endpoint.handle(ctx)
+    ^^^^^^^^^^^^
+Traceback (most recent call last):
+ValueError: too many values to unpack (expected 2)
+  File "/app/service/server.py", line 182, in _dispatch
+    status, body = endpoint.handle(ctx)
+    ^^^^^^^^^^^^
+ValueError: too many values to unpack (expected 2)
+Traceback (most recent call last):
+  File "/app/service/server.py", line 182, in _dispatch
+    status, body = endpoint.handle(ctx)
+    ^^^^^^^^^^^^
+ValueError: too many values to unpack (expected 2)
+
+#5 service/pipeline.py:88 [eq to ne]: killed
+   - if outcome == "replay":
+   + if outcome != "replay":
+$ docker build --label redline-gate=1 -t redline-mut-a9f60cad-6 /tmp/redline-mut-9zpxbiqz/stage-1  (exit 0)
+
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 176B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/4] FROM docker.io/library/python:3.12-slim
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 13.58kB done
+#5 DONE 0.0s
+
+#6 [2/4] WORKDIR /app
+#6 CACHED
+
+#7 [3/4] COPY main.py ./main.py
+#7 CACHED
+
+#8 [4/4] COPY service ./service
+#8 DONE 0.0s
+
+#9 exporting to image
+#9 exporting layers 0.0s done
+#9 writing image sha256:70232c2c832c275d753ff986a7476e5388abb4cb9d1fc94f9d8774f3ff440fac done
+#9 naming to docker.io/library/redline-mut-a9f60cad-6 done
+#9 DONE 0.0s
+
+$ docker network create --internal redline-net-b226c2ab30  (exit 0)
+874a48b86400729702e1695e63831c4f82bf5781192fe073f5caf2cf22b6759e
+
+
+$ docker run -d --network redline-net-b226c2ab30 --cpus 2 --memory 2g -e PORT=8080 redline-mut-a9f60cad-6  (exit 0)
+e9d25057c776024ba0f93d2b7963592a1c1f9a24d98cf19848fd8460b64d095a
+
+
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /tmp/redline-mut-9zpxbiqz/stage-1/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s1/close-g6-20261004T161906-814e.junit.xml -x  (exit 1)
+an_in_flight_claim _______
+
+    def test_reset_landing_while_waiters_are_parked_on_an_in_flight_claim():
+        """R-1-080b/R-1-112a: a reset with a DIFFERENT fixture lands while one
+        or more callers are parked inside resolve_or_claim's event.wait() for
+        the SAME key + body as an in-flight 32-entry settlement. Every
+        participant must get a response inside the 5s budget, never a 5xx,
+        and either 200 with the winner's exact body or a legitimate error
+        from being re-tried as a fresh first use against the now-wiped
+        handles (404 — R-1-040: nothing from before the reset is visible)."""
+    
+        def do_reset():
+            new_uid, new_handle = unique("u"), unique_handle("postwipe")
+            new_email = f"{new_handle}@example.com"
+            t0 = time.monotonic()
+            r = reset_ok(make_fixture([user(new_uid, new_handle, balance=777, email=new_email)]))
+            return r.status_code, time.monotonic() - t0, new_email
+    
+        def verify(trial_i, responses, wipe_result):
+            reset_status, reset_elapsed, new_email = wipe_result
+            assert reset_status == 204
+            assert reset_elapsed < 10.0, (
+                f"R-1-015: reset must finish within 10s even mid-race, took {reset_elapsed:.2f}s (trial {trial_i})"
+            )
+    
+            over_budget = [(s, e) for s, _, e in responses if e > _REQUEST_BUDGET_S]
+            assert not over_budget, (
+                f"R-1-015 breach (trial {trial_i}): a parked waiter exceeded {_REQUEST_BUDGET_S}s: {over_budget}"
+            )
+    
+            bad_5xx = [(s, b[:200]) for s, b, _ in responses if s >= 500]
+            assert not bad_5xx, (
+                f"R-1-005/R-1-080b breach (trial {trial_i}): a parked waiter got a 5xx when the entry it was "
+                f"waiting on was wiped out from under it by a reset: {bad_5xx}"
+            )
+    
+            winners = [b for s, b, _ in responses if s == 201]
+            assert len(winners) <= 1, f"never two winners even across a reset race (trial {trial_i}): {len(winners)} 201s"
+            replays = [b for s, b, _ in responses if s == 200]
+            if winners:
+                assert all(b == winners[0] for b in replays), f"every 200 must carry the exact winner body (trial {trial_i})"
+            for s, b, _ in responses:
+                if s not in (200, 201):
+                    assert 400 <= s < 500, f"unexpected non-4xx/non-2xx status {s} (trial {trial_i}): {b}"
+                    assert '"error"' in b, f"a {s} response must carry the error envelope (trial {trial_i}): {b}"
+    
+            # Verify THIS trial's new state right now, before the next
+            # trial's own reset invalidates this email/token.
+            bal_new = api_get("/me", headers={"Authorization": f"Bearer {login_token(new_email)}"}).json()["balance"]
+            assert bal_new == 777, f"R-1-001: new fixture's seeded balance must be exact post-race, got {bal_new} (trial {trial_i})"
+    
+>       max_elapsed_seen = _run_waiter_race(do_reset, verify)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+/tmp/redline-mut-9zpxbiqz/stage-1/tests/adversarial/test_n1_10_2_adversarial.py:181: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/redline-mut-9zpxbiqz/stage-1/tests/adversarial/test_n1_10_2_adversarial.py:127: in _run_waiter_race
+    verify_fn(trial_i, responses, wipe_result)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+trial_i = 0
+responses = [(500, '{"error": {"code": "internal_error", "message": "unexpected server error"}}', 0.016147041002113838), (500, '{"...1600043066), (500, '{"error": {"code": "internal_error", "message": "unexpected server error"}}', 0.01495894099934958)]
+wipe_result = (204, 0.02201855000021169, 'postwipef2764a24604@example.com')
+
+    def verify(trial_i, responses, wipe_result):
+        reset_status, reset_elapsed, new_email = wipe_result
+        assert reset_status == 204
+        assert reset_elapsed < 10.0, (
+            f"R-1-015: reset must finish within 10s even mid-race, took {reset_elapsed:.2f}s (trial {trial_i})"
+        )
+    
+        over_budget = [(s, e) for s, _, e in responses if e > _REQUEST_BUDGET_S]
+        assert not over_budget, (
+            f"R-1-015 breach (trial {trial_i}): a parked waiter exceeded {_REQUEST_BUDGET_S}s: {over_budget}"
+        )
+    
+        bad_5xx = [(s, b[:200]) for s, b, _ in responses if s >= 500]
+>       assert not bad_5xx, (
+            f"R-1-005/R-1-080b breach (trial {trial_i}): a parked waiter got a 5xx when the entry it was "
+            f"waiting on was wiped out from under it by a reset: {bad_5xx}"
+        )
+E       AssertionError: R-1-005/R-1-080b breach (trial 0): a parked waiter got a 5xx when the entry it was waiting on was wiped out from under it by a reset: [(500, '{"error": {"code": "internal_error", "message": "unexpected server error"}}'), (500, '{"error": {"code": "internal_error", "message": "unexpected server error"}}'), (500, '{"error": {"code": "internal_error", "message": "unexpected server error"}}'), (500, '{"error": {"code": "internal_error", "message": "unexpected server error"}}'), (500, '{"error": {"code": "internal_error", "message": "unexpected server error"}}')]
+E       assert not [(500, '{"error": {"code": "internal_error", "message": "unexpected server error"}}'), (500, '{"error": {"code": "inte...": "unexpected server error"}}'), (500, '{"error": {"code": "internal_error", "message": "unexpected server error"}}')]
+
+/tmp/redline-mut-9zpxbiqz/stage-1/tests/adversarial/test_n1_10_2_adversarial.py:161: AssertionError
+=========================== short test summary info ============================
+FAILED ../../../../../tmp/redline-mut-9zpxbiqz/stage-1/tests/adversarial/test_n1_10_2_adversarial.py::test_reset_landing_while_waiters_are_parked_on_an_in_flight_claim
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+1 failed in 4.63s
+
+
+--- service log (tail) ---
+                   ^^^^^^^^^^^^^^^^^^^^
+TypeError: cannot unpack non-iterable NoneType object
+Traceback (most recent call last):
+Traceback (most recent call last):
+  File "/app/service/server.py", line 182, in _dispatch
+    status, body = endpoint.handle(ctx)
+                   ^^^^^^^^^^^^^^^^^^^^
+  File "/app/service/pipeline.py", line 86, in handle
+    outcome, payload = IDEMPOTENCY.resolve_or_claim(ctx.user["id"], ctx.method, ctx.path,
+    ^^^^^^^^^^^^^^^^
+  File "/app/service/server.py", line 182, in _dispatch
+    status, body = endpoint.handle(ctx)
+                   ^^^^^^^^^^^^^^^^^^^^
+  File "/app/service/server.py", line 182, in _dispatch
+    status, body = endpoint.handle(ctx)
+                   ^^^^^^^^^^^^^^^^^^^^
+Traceback (most recent call last):
+  File "/app/service/server.py", line 182, in _dispatch
+    status, body = endpoint.handle(ctx)
+                   ^^^^^^^^^^^^^^^^^^^^
+  File "/app/service/pipeline.py", line 86, in handle
+    outcome, payload = IDEMPOTENCY.resolve_or_claim(ctx.user["id"], ctx.method, ctx.path,
+    ^^^^^^^^^^^^^^^^
+Traceback (most recent call last):
+Traceback (most recent call last):
+  File "/app/service/server.py", line 182, in _dispatch
+    status, body = endpoint.handle(ctx)
+                   ^^^^^^^^^^^^^^^^^^^^
+  File "/app/service/pipeline.py", line 86, in handle
+    outcome, payload = IDEMPOTENCY.resolve_or_claim(ctx.user["id"], ctx.method, ctx.path,
+    ^^^^^^^^^^^^^^^^
+TypeError: cannot unpack non-iterable NoneType object
+  File "/app/service/server.py", line 182, in _dispatch
+    status, body = endpoint.handle(ctx)
+                   ^^^^^^^^^^^^^^^^^^^^
+  File "/app/service/pipeline.py", line 86, in handle
+    outcome, payload = IDEMPOTENCY.resolve_or_claim(ctx.user["id"], ctx.method, ctx.path,
+    ^^^^^^^^^^^^^^^^
+  File "/app/service/pipeline.py", line 86, in handle
+    outcome, payload = IDEMPOTENCY.resolve_or_claim(ctx.user["id"], ctx.method, ctx.path,
+    ^^^^^^^^^^^^^^^^
+  File "/app/service/pipeline.py", line 86, in handle
+    outcome, payload = IDEMPOTENCY.resolve_or_claim(ctx.user["id"], ctx.method, ctx.path,
+    ^^^^^^^^^^^^^^^^
+  File "/app/service/pipeline.py", line 86, in handle
+    outcome, payload = IDEMPOTENCY.resolve_or_claim(ctx.user["id"], ctx.method, ctx.path,
+    ^^^^^^^^^^^^^^^^
+TypeError: cannot unpack non-iterable NoneType object
+TypeError: cannot unpack non-iterable NoneType object
+TypeError: cannot unpack non-iterable NoneType object
+TypeError: cannot unpack non-iterable NoneType object
+  File "/app/service/server.py", line 182, in _dispatch
+    status, body = endpoint.handle(ctx)
+                   ^^^^^^^^^^^^^^^^^^^^
+TypeError: cannot unpack non-iterable NoneType object
+  File "/app/service/pipeline.py", line 86, in handle
+    outcome, payload = IDEMPOTENCY.resolve_or_claim(ctx.user["id"], ctx.method, ctx.path,
+    ^^^^^^^^^^^^^^^^
+TypeError: cannot unpack non-iterable NoneType object
+TypeError: cannot unpack non-iterable NoneType object
+
+#6 service/idempotency.py:77 [true to false]: killed
+   - while True:
+   + while False:
+$ docker build --label redline-gate=1 -t redline-mut-a9f60cad-7 /tmp/redline-mut-9zpxbiqz/stage-1  (exit 0)
+
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 176B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/4] FROM docker.io/library/python:3.12-slim
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 13.25kB done
+#5 DONE 0.0s
+
+#6 [2/4] WORKDIR /app
+#6 CACHED
+
+#7 [3/4] COPY main.py ./main.py
+#7 CACHED
+
+#8 [4/4] COPY service ./service
+#8 DONE 0.0s
+
+#9 exporting to image
+#9 exporting layers 0.0s done
+#9 writing image sha256:a7cd8a11c71b0f738dbf6c52f00b8de365fe8bb2e1aa2e086da6d551c8c081ed done
+#9 naming to docker.io/library/redline-mut-a9f60cad-7 done
+#9 DONE 0.0s
+
+$ docker network create --internal redline-net-f0521781fa  (exit 0)
+4db5817eacf5e39afe1bc402ee24470a797f9ea58e73ac0670e17131444a1665
+
+
+$ docker run -d --network redline-net-f0521781fa --cpus 2 --memory 2g -e PORT=8080 redline-mut-a9f60cad-7  (exit 0)
+182d8901bf59164c0b1b06bf902a00b77c40ec1b7f2acf6a5bae9b50ad9cc16f
+
+
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /tmp/redline-mut-9zpxbiqz/stage-1/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s1/close-g6-20261004T161906-814e.junit.xml -x  (exit 1)
+....F
+=================================== FAILURES ===================================
+_____ test_r_1_244_reset_under_load_no_torn_state_and_idempotency_cleared ______
+
+    def test_r_1_244_reset_under_load_no_torn_state_and_idempotency_cleared():
+        """Target 2: a reset concurrent with other traffic never produces a
+        5xx, and after it returns 204 only the new fixture is visible,
+        including the idempotency table (R-1-040, R-1-244) — the defect
+        @verifier found at b78abac (IDEMPOTENCY.clear() defined but never
+        called) is exactly what this guards against regressing to."""
+        op_id, op_handle = unique("u"), unique_handle("preop")
+        op_email = f"{op_handle}@example.com"
+        bob_id, bob_handle = unique("u"), unique_handle("prebob")
+        bob_email = f"{bob_handle}@example.com"
+        reset_ok(make_fixture([user(op_id, op_handle, balance=10_000, email=op_email),
+                                user(bob_id, bob_handle, balance=0, email=bob_email)]))
+        old_token = login_token(op_email)
+    
+        pre_reset_key = unique("pre-reset-claim")
+        r_claim = api_post("/payments", json={"to_handle": bob_handle, "amount": 10},
+                            headers=auth_idem(old_token, pre_reset_key))
+>       assert r_claim.status_code == 201, r_claim.text
+E       AssertionError: {"error": {"code": "self_payment", "message": "cannot pay yourself"}}
+E       assert 422 == 201
+E        +  where 422 = <Response [422 Unprocessable Entity]>.status_code
+
+/tmp/redline-mut-9zpxbiqz/stage-1/tests/adversarial/test_n1_10_adversarial.py:190: AssertionError
+=========================== short test summary info ============================
+FAILED ../../../../../tmp/redline-mut-9zpxbiqz/stage-1/tests/adversarial/test_n1_10_adversarial.py::test_r_1_244_reset_under_load_no_torn_state_and_idempotency_cleared
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+1 failed, 4 passed in 139.25s (0:02:19)
+
+
+--- service log (tail) ---
+
+#7 service/routes/payments.py:57 [eq to ne]: killed
+   - if to_handle_raw == ctx.user["handle"]:
+   + if to_handle_raw != ctx.user["handle"]:
+$ docker build --label redline-gate=1 -t redline-mut-a9f60cad-8 /tmp/redline-mut-9zpxbiqz/stage-1  (exit 0)
+
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 176B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/4] FROM docker.io/library/python:3.12-slim
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 10.18kB done
+#5 DONE 0.0s
+
+#6 [2/4] WORKDIR /app
+#6 CACHED
+
+#7 [3/4] COPY main.py ./main.py
+#7 CACHED
+
+#8 [4/4] COPY service ./service
+#8 DONE 0.0s
+
+#9 exporting to image
+#9 exporting layers 0.0s done
+#9 writing image sha256:7d25400672e1c28869e43496c9c616db2b7c08273bb5dcbd05be88dcf1007659 done
+#9 naming to docker.io/library/redline-mut-a9f60cad-8 done
+#9 DONE 0.0s
+
+$ docker network create --internal redline-net-b867b844e2  (exit 0)
+5e29a19287da386bc86e35ba68b8dd438b57aedcf2185e26aa432129e265233f
+
+
+$ docker run -d --network redline-net-b867b844e2 --cpus 2 --memory 2g -e PORT=8080 redline-mut-a9f60cad-8  (exit 0)
+8a78442349a622e4fa00e2cf0d64708a0efdb5504992a789e7e0f91c636f0cbf
+
+
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /tmp/redline-mut-9zpxbiqz/stage-1/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s1/close-g6-20261004T161906-814e.junit.xml -x  (exit 1)
+F
+=================================== FAILURES ===================================
+______ test_reset_landing_while_waiters_are_parked_on_an_in_flight_claim _______
+
+    def test_reset_landing_while_waiters_are_parked_on_an_in_flight_claim():
+        """R-1-080b/R-1-112a: a reset with a DIFFERENT fixture lands while one
+        or more callers are parked inside resolve_or_claim's event.wait() for
+        the SAME key + body as an in-flight 32-entry settlement. Every
+        participant must get a response inside the 5s budget, never a 5xx,
+        and either 200 with the winner's exact body or a legitimate error
+        from being re-tried as a fresh first use against the now-wiped
+        handles (404 — R-1-040: nothing from before the reset is visible)."""
+    
+        def do_reset():
+            new_uid, new_handle = unique("u"), unique_handle("postwipe")
+            new_email = f"{new_handle}@example.com"
+            t0 = time.monotonic()
+            r = reset_ok(make_fixture([user(new_uid, new_handle, balance=777, email=new_email)]))
+            return r.status_code, time.monotonic() - t0, new_email
+    
+        def verify(trial_i, responses, wipe_result):
+            reset_status, reset_elapsed, new_email = wipe_result
+            assert reset_status == 204
+            assert reset_elapsed < 10.0, (
+                f"R-1-015: reset must finish within 10s even mid-race, took {reset_elapsed:.2f}s (trial {trial_i})"
+            )
+    
+            over_budget = [(s, e) for s, _, e in responses if e > _REQUEST_BUDGET_S]
+            assert not over_budget, (
+                f"R-1-015 breach (trial {trial_i}): a parked waiter exceeded {_REQUEST_BUDGET_S}s: {over_budget}"
+            )
+    
+            bad_5xx = [(s, b[:200]) for s, b, _ in responses if s >= 500]
+            assert not bad_5xx, (
+                f"R-1-005/R-1-080b breach (trial {trial_i}): a parked waiter got a 5xx when the entry it was "
+                f"waiting on was wiped out from under it by a reset: {bad_5xx}"
+            )
+    
+            winners = [b for s, b, _ in responses if s == 201]
+            assert len(winners) <= 1, f"never two winners even across a reset race (trial {trial_i}): {len(winners)} 201s"
+            replays = [b for s, b, _ in responses if s == 200]
+            if winners:
+                assert all(b == winners[0] for b in replays), f"every 200 must carry the exact winner body (trial {trial_i})"
+            for s, b, _ in responses:
+                if s not in (200, 201):
+                    assert 400 <= s < 500, f"unexpected non-4xx/non-2xx status {s} (trial {trial_i}): {b}"
+                    assert '"error"' in b, f"a {s} response must carry the error envelope (trial {trial_i}): {b}"
+    
+            # Verify THIS trial's new state right now, before the next
+            # trial's own reset invalidates this email/token.
+            bal_new = api_get("/me", headers={"Authorization": f"Bearer {login_token(new_email)}"}).json()["balance"]
+            assert bal_new == 777, f"R-1-001: new fixture's seeded balance must be exact post-race, got {bal_new} (trial {trial_i})"
+    
+>       max_elapsed_seen = _run_waiter_race(do_reset, verify)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+/tmp/redline-mut-9zpxbiqz/stage-1/tests/adversarial/test_n1_10_2_adversarial.py:181: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/redline-mut-9zpxbiqz/stage-1/tests/adversarial/test_n1_10_2_adversarial.py:127: in _run_waiter_race
+    verify_fn(trial_i, responses, wipe_result)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+trial_i = 0
+responses = [(409, '{"error": {"code": "insufficient_funds", "message": "insufficient funds"}}', 0.016381233996071387), (201, '{"s...4996564332), (409, '{"error": {"code": "insufficient_funds", "message": "insufficient funds"}}', 0.016863745004229713)]
+wipe_result = (204, 0.03287756099598482, 'postwipe016172b9604@example.com')
+
+    def verify(trial_i, responses, wipe_result):
+        reset_status, reset_elapsed, new_email = wipe_result
+        assert reset_status == 204
+        assert reset_elapsed < 10.0, (
+            f"R-1-015: reset must finish within 10s even mid-race, took {reset_elapsed:.2f}s (trial {trial_i})"
+        )
+    
+        over_budget = [(s, e) for s, _, e in responses if e > _REQUEST_BUDGET_S]
+        assert not over_budget, (
+            f"R-1-015 breach (trial {trial_i}): a parked waiter exceeded {_REQUEST_BUDGET_S}s: {over_budget}"
+        )
+    
+        bad_5xx = [(s, b[:200]) for s, b, _ in responses if s >= 500]
+        assert not bad_5xx, (
+            f"R-1-005/R-1-080b breach (trial {trial_i}): a parked waiter got a 5xx when the entry it was "
+            f"waiting on was wiped out from under it by a reset: {bad_5xx}"
+        )
+    
+        winners = [b for s, b, _ in responses if s == 201]
+>       assert len(winners) <= 1, f"never two winners even across a reset race (trial {trial_i}): {len(winners)} 201s"
+E       AssertionError: never two winners even across a reset race (trial 0): 2 201s
+E       assert 2 <= 1
+E        +  where 2 = len(['{"settlement_id": "xAwq-cjF_YrbaE0ArPTBEg", "committed_at": "2026-10-04T16:35:27+00:00", "payments": [{"payment_id":..."public", "request_id": null, "created_at": "2026-10-04T16:35:27+00:00", "settlement_id": "MnHuA2Jfe1AgREcdrDpCog"}]}'])
+
+/tmp/redline-mut-9zpxbiqz/stage-1/tests/adversarial/test_n1_10_2_adversarial.py:167: AssertionError
+=========================== short test summary info ============================
+FAILED ../../../../../tmp/redline-mut-9zpxbiqz/stage-1/tests/adversarial/test_n1_10_2_adversarial.py::test_reset_landing_while_waiters_are_parked_on_an_in_flight_claim
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+1 failed in 4.59s
+
+
+--- service log (tail) ---
+
+#8 service/routes/settlements.py:59 [true to false]: killed
+   - requires_idempotency_key = True
+   + requires_idempotency_key = False
+$ docker build --label redline-gate=1 -t redline-mut-a9f60cad-9 /tmp/redline-mut-9zpxbiqz/stage-1  (exit 0)
+
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 176B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/4] FROM docker.io/library/python:3.12-slim
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 7.79kB done
+#5 DONE 0.0s
+
+#6 [2/4] WORKDIR /app
+#6 CACHED
+
+#7 [3/4] COPY main.py ./main.py
+#7 CACHED
+
+#8 [4/4] COPY service ./service
+#8 DONE 0.0s
+
+#9 exporting to image
+#9 exporting layers 0.0s done
+#9 writing image sha256:bf1b5618efa03d79778ca4c91a68906ca970eeda442668ea01ac408704ee20f3 done
+#9 naming to docker.io/library/redline-mut-a9f60cad-9 done
+#9 DONE 0.1s
+
+$ docker network create --internal redline-net-9a26be0129  (exit 0)
+ab6984fe3dd0e39d126ed5de91e9297d35f5c76e44faf6d8f43cf3c9b6ed95ca
+
+
+$ docker run -d --network redline-net-9a26be0129 --cpus 2 --memory 2g -e PORT=8080 redline-mut-a9f60cad-9  (exit 0)
+9a35943002046daa1e69dbde049b3960ceb1019ea0ad37b63fa1c50a89640f44
+
+
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /tmp/redline-mut-9zpxbiqz/stage-1/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s1/close-g6-20261004T161906-814e.junit.xml -x  (exit 1)
+F
+=================================== FAILURES ===================================
+______ test_reset_landing_while_waiters_are_parked_on_an_in_flight_claim _______
+
+    def test_reset_landing_while_waiters_are_parked_on_an_in_flight_claim():
+        """R-1-080b/R-1-112a: a reset with a DIFFERENT fixture lands while one
+        or more callers are parked inside resolve_or_claim's event.wait() for
+        the SAME key + body as an in-flight 32-entry settlement. Every
+        participant must get a response inside the 5s budget, never a 5xx,
+        and either 200 with the winner's exact body or a legitimate error
+        from being re-tried as a fresh first use against the now-wiped
+        handles (404 — R-1-040: nothing from before the reset is visible)."""
+    
+        def do_reset():
+            new_uid, new_handle = unique("u"), unique_handle("postwipe")
+            new_email = f"{new_handle}@example.com"
+            t0 = time.monotonic()
+            r = reset_ok(make_fixture([user(new_uid, new_handle, balance=777, email=new_email)]))
+            return r.status_code, time.monotonic() - t0, new_email
+    
+        def verify(trial_i, responses, wipe_result):
+            reset_status, reset_elapsed, new_email = wipe_result
+            assert reset_status == 204
+            assert reset_elapsed < 10.0, (
+                f"R-1-015: reset must finish within 10s even mid-race, took {reset_elapsed:.2f}s (trial {trial_i})"
+            )
+    
+            over_budget = [(s, e) for s, _, e in responses if e > _REQUEST_BUDGET_S]
+            assert not over_budget, (
+                f"R-1-015 breach (trial {trial_i}): a parked waiter exceeded {_REQUEST_BUDGET_S}s: {over_budget}"
+            )
+    
+            bad_5xx = [(s, b[:200]) for s, b, _ in responses if s >= 500]
+            assert not bad_5xx, (
+                f"R-1-005/R-1-080b breach (trial {trial_i}): a parked waiter got a 5xx when the entry it was "
+                f"waiting on was wiped out from under it by a reset: {bad_5xx}"
+            )
+    
+            winners = [b for s, b, _ in responses if s == 201]
+            assert len(winners) <= 1, f"never two winners even across a reset race (trial {trial_i}): {len(winners)} 201s"
+            replays = [b for s, b, _ in responses if s == 200]
+            if winners:
+                assert all(b == winners[0] for b in replays), f"every 200 must carry the exact winner body (trial {trial_i})"
+            for s, b, _ in responses:
+                if s not in (200, 201):
+                    assert 400 <= s < 500, f"unexpected non-4xx/non-2xx status {s} (trial {trial_i}): {b}"
+                    assert '"error"' in b, f"a {s} response must carry the error envelope (trial {trial_i}): {b}"
+    
+            # Verify THIS trial's new state right now, before the next
+            # trial's own reset invalidates this email/token.
+            bal_new = api_get("/me", headers={"Authorization": f"Bearer {login_token(new_email)}"}).json()["balance"]
+            assert bal_new == 777, f"R-1-001: new fixture's seeded balance must be exact post-race, got {bal_new} (trial {trial_i})"
+    
+>       max_elapsed_seen = _run_waiter_race(do_reset, verify)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+/tmp/redline-mut-9zpxbiqz/stage-1/tests/adversarial/test_n1_10_2_adversarial.py:181: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/redline-mut-9zpxbiqz/stage-1/tests/adversarial/test_n1_10_2_adversarial.py:126: in _run_waiter_race
+    responses, wipe_result = _run_waiter_race_once(wipe_fn)
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/tmp/redline-mut-9zpxbiqz/stage-1/tests/adversarial/test_n1_10_2_adversarial.py:69: in _run_waiter_race_once
+    all_ops = _multi_settlement_fixture(n_operators=1 + n_contenders)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/tmp/redline-mut-9zpxbiqz/stage-1/tests/adversarial/test_n1_10_2_adversarial.py:49: in _multi_settlement_fixture
+    op_token = login_token(op_email)
+               ^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+email = 'op0262811be1@example.com', password = 'password123'
+
+    def login_token(email: str, password: str = "password123") -> str:
+        r = login(email, password)
+>       assert r.status_code == 200, f"login failed: {r.status_code} {r.text}"
+E       AssertionError: login failed: 401 {"error": {"code": "unauthenticated", "message": "missing or unknown bearer token"}}
+E       assert 401 == 200
+E        +  where 401 = <Response [401 Unauthorized]>.status_code
+
+/tmp/redline-mut-9zpxbiqz/stage-1/tests/conftest.py:110: AssertionError
+=========================== short test summary info ============================
+FAILED ../../../../../tmp/redline-mut-9zpxbiqz/stage-1/tests/adversarial/test_n1_10_2_adversarial.py::test_reset_landing_while_waiters_are_parked_on_an_in_flight_claim
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+1 failed in 4.28s
+
+
+--- service log (tail) ---
+
+#9 service/passwords.py:24 [ne to eq]: killed
+   - if scheme != "pbkdf2":
+   + if scheme == "pbkdf2":
+$ docker build --label redline-gate=1 -t redline-mut-a9f60cad-10 /tmp/redline-mut-9zpxbiqz/stage-1  (exit 0)
+
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 176B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/4] FROM docker.io/library/python:3.12-slim
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 6.62kB done
+#5 DONE 0.0s
+
+#6 [2/4] WORKDIR /app
+#6 CACHED
+
+#7 [3/4] COPY main.py ./main.py
+#7 CACHED
+
+#8 [4/4] COPY service ./service
+#8 DONE 0.0s
+
+#9 exporting to image
+#9 exporting layers 0.0s done
+#9 writing image sha256:506d602ba4e005289180de08955fefa47c7cc01d439512c84da545c7cff98d13 done
+#9 naming to docker.io/library/redline-mut-a9f60cad-10 done
+#9 DONE 0.0s
+
+$ docker network create --internal redline-net-71073a9b5f  (exit 0)
+02f0b7a533a34336d4ffe629a30c43c3ee06d6c773234ec76c3258da12c2f7dc
+
+
+$ docker run -d --network redline-net-71073a9b5f --cpus 2 --memory 2g -e PORT=8080 redline-mut-a9f60cad-10  (exit 0)
+e76e8dbe1894532abb569d39597646af2a98059a7d05e7b1468427314e5cecf7
+
+
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /tmp/redline-mut-9zpxbiqz/stage-1/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s1/close-g6-20261004T161906-814e.junit.xml -x  (exit 1)
+.F
+=================================== FAILURES ===================================
+______ test_import_landing_while_waiters_are_parked_on_an_in_flight_claim ______
+
+    def test_import_landing_while_waiters_are_parked_on_an_in_flight_claim():
+        """Same race, with POST /_test/import (a different fixture, via the
+        export/import round trip) in place of reset — restore() has the same
+        R-1-112a obligation as clear() and the same hazard."""
+    
+        def do_import():
+            new_uid, new_handle = unique("u"), unique_handle("postimp")
+            new_email = f"{new_handle}@example.com"
+            other_fixture = make_fixture([user(new_uid, new_handle, balance=888, email=new_email)])
+            # Build the import document via a real export of a throwaway reset,
+            # so it's a genuine export/import document, not a hand-built one.
+            reset_ok(other_fixture)
+            export_doc = api_get("/_test/export").json()
+            t0 = time.monotonic()
+            r = api_post("/_test/import", json=export_doc)
+            return r.status_code, time.monotonic() - t0, new_email
+    
+        def verify(trial_i, responses, wipe_result):
+            import_status, import_elapsed, new_email = wipe_result
+            assert import_status == 204, f"import must succeed (trial {trial_i}): {import_status}"
+            assert import_elapsed < 10.0, (
+                f"R-1-015: import must finish within 10s even mid-race, took {import_elapsed:.2f}s (trial {trial_i})"
+            )
+    
+            over_budget = [(s, e) for s, _, e in responses if e > _REQUEST_BUDGET_S]
+            assert not over_budget, (
+                f"R-1-015 breach (trial {trial_i}): a parked waiter exceeded {_REQUEST_BUDGET_S}s: {over_budget}"
+            )
+    
+            bad_5xx = [(s, b[:200]) for s, b, _ in responses if s >= 500]
+            assert not bad_5xx, (
+                f"R-1-005/R-1-080b breach (trial {trial_i}): a parked waiter got a 5xx when the entry it was "
+                f"waiting on was wiped out from under it by an import: {bad_5xx}"
+            )
+    
+            winners = [b for s, b, _ in responses if s == 201]
+            assert len(winners) <= 1, f"never two winners even across an import race (trial {trial_i}): {len(winners)} 201s"
+            replays = [b for s, b, _ in responses if s == 200]
+            if winners:
+                assert all(b == winners[0] for b in replays), f"every 200 must carry the exact winner body (trial {trial_i})"
+            for s, b, _ in responses:
+                if s not in (200, 201):
+                    assert 400 <= s < 500, f"unexpected non-4xx/non-2xx status {s} (trial {trial_i}): {b}"
+                    assert '"error"' in b, f"a {s} response must carry the error envelope (trial {trial_i}): {b}"
+    
+            # Verify THIS trial's imported state right now, before the next
+            # trial's own reset/import invalidates this email/token.
+            bal_new = api_get("/me", headers={"Authorization": f"Bearer {login_token(new_email)}"}).json()["balance"]
+            assert bal_new == 888, f"R-1-001: imported fixture's balance must be exact post-race, got {bal_new} (trial {trial_i})"
+    
+>       max_elapsed_seen = _run_waiter_race(do_import, verify)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+/tmp/redline-mut-9zpxbiqz/stage-1/tests/adversarial/test_n1_10_2_adversarial.py:236: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/redline-mut-9zpxbiqz/stage-1/tests/adversarial/test_n1_10_2_adversarial.py:127: in _run_waiter_race
+    verify_fn(trial_i, responses, wipe_result)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+trial_i = 0
+responses = [(200, '{"settlement_id": "VfcE2yl2iD-18VRrDG0X8Q", "committed_at": "2026-10-04T16:36:44+00:00", "payments": [{"paymen... null, "created_at": "2026-10-04T16:36:44+00:00", "settlement_id": "VfcE2yl2iD-18VRrDG0X8Q"}]}', 0.008682663996296469)]
+wipe_result = (422, 0.008293667000543792, 'postimp6b9e444a9679@example.com')
+
+    def verify(trial_i, responses, wipe_result):
+        import_status, import_elapsed, new_email = wipe_result
+>       assert import_status == 204, f"import must succeed (trial {trial_i}): {import_status}"
+E       AssertionError: import must succeed (trial 0): 422
+E       assert 422 == 204
+
+/tmp/redline-mut-9zpxbiqz/stage-1/tests/adversarial/test_n1_10_2_adversarial.py:205: AssertionError
+=========================== short test summary info ============================
+FAILED ../../../../../tmp/redline-mut-9zpxbiqz/stage-1/tests/adversarial/test_n1_10_2_adversarial.py::test_import_landing_while_waiters_are_parked_on_an_in_flight_claim
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+1 failed, 1 passed in 69.56s (0:01:09)
+
+
+--- service log (tail) ---
+
+#10 service/snapshot.py:54 [ne to eq]: killed
+   - if track != TRACK:
+   + if track == TRACK:
+
+RESULT: PASS — killed 10/10 valid mutants (100%, need 80%); 0 stillborn; 162 candidates

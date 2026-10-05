@@ -1,0 +1,31 @@
+$ /home/prashant/projects/dark-factory-wearedevs/.venv/bin/python -m harness run --track pocketful --repo /tmp/redline-wt-zd_0qjqu --stage 1 --mode isolated --out /home/prashant/projects/band-work/result/evidence/harness/s1-close-20261004T143311  (exit 3)
+building /tmp/redline-wt-zd_0qjqu/stage-1 ...
+highest contiguous stage: 0
+claimed stage: none (a suite passed under 50% of its checks)
+report: /home/prashant/projects/band-work/result/evidence/harness/s1-close-20261004T143311/report.json
+NOTE: this run only includes a portion of the full tests that are applied before judging; this is meant to provide directional feedback, and ultimately you may not pass the stage with the full set of tests.
+
+harness could not complete: docker build failed:
+
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 176B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim
+#2 ERROR: failed to do request: Head "https://registry-1.docker.io/v2/library/python/manifests/3.12-slim": dial tcp: lookup registry-1.docker.io on 127.0.0.53:53: server misbehaving
+------
+ > [internal] load metadata for docker.io/library/python:3.12-slim:
+------
+Dockerfile:1
+--------------------
+   1 | >>> FROM python:3.12-slim
+   2 |     
+   3 |     WORKDIR /app
+--------------------
+ERROR: failed to build: failed to solve: python:3.12-slim: failed to resolve source metadata for docker.io/library/python:3.12-slim: failed to do request: Head "https://registry-1.docker.io/v2/library/python/manifests/3.12-slim": dial tcp: lookup registry-1.docker.io on 127.0.0.53:53: server misbehaving
+
+
+
+RESULT: FAIL — exit 3; claimed stage none; suites not run; report /home/prashant/projects/band-work/result/evidence/harness/s1-close-20261004T143311/report.json

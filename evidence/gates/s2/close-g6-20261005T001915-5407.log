@@ -1,0 +1,74 @@
+$ docker build --label redline-gate=1 -t redline-mut-d2fed079-base /tmp/redline-mut-skcbye5h/stage-2  (exit 0)
+
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 176B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/4] FROM docker.io/library/python:3.12-slim
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 191.06kB done
+#5 DONE 0.0s
+
+#6 [2/4] WORKDIR /app
+#6 CACHED
+
+#7 [3/4] COPY main.py ./main.py
+#7 CACHED
+
+#8 [4/4] COPY service ./service
+#8 CACHED
+
+#9 exporting to image
+#9 exporting layers done
+#9 writing image sha256:3273870e12e9068f799be5b63ed5650b21d1fbf4d7a57143e06af88e64b7a8ce done
+#9 naming to docker.io/library/redline-mut-d2fed079-base done
+#9 DONE 0.0s
+
+$ docker network create --internal redline-net-42d97c04aa  (exit 0)
+feef1848091bb8f061487c6fbfa1fc7fd2ad4b61a0c9509ec2480146685e3bc8
+
+
+$ docker run -d --network redline-net-42d97c04aa --cpus 2 --memory 2g -e PORT=8080 redline-mut-d2fed079-base  (exit 0)
+219c3c4c8d615d45e22a388fc1b96e50e01a498ab994afe59427f388ce0f7421
+
+
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /tmp/redline-mut-skcbye5h/stage-2/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s2/close-g6-20261005T001915-5407.junit.xml  (exit 124)
+........................................................................ [ 14%]
+........................................................................ [ 29%]
+........................................................................ [ 44%]
+....
+timed out after 180s
+--- service log (tail) ---
+----------------------------------------
+Exception occurred during processing of request from ('172.29.0.1', 58266)
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/socketserver.py", line 697, in process_request_thread
+    self.finish_request(request, client_address)
+  File "/usr/local/lib/python3.12/socketserver.py", line 362, in finish_request
+    self.RequestHandlerClass(request, client_address, self)
+  File "/usr/local/lib/python3.12/socketserver.py", line 766, in __init__
+    self.handle()
+  File "/usr/local/lib/python3.12/http/server.py", line 442, in handle
+    self.handle_one_request()
+  File "/usr/local/lib/python3.12/http/server.py", line 408, in handle_one_request
+    self.raw_requestline = self.rfile.readline(65537)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/socket.py", line 720, in readinto
+    return self._sock.recv_into(b)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+ConnectionResetError: [Errno 104] Connection reset by peer
+----------------------------------------
+
+
+RESULT: FAIL — baseline not green: the unmutated code must pass its own tests before mutants can be judged

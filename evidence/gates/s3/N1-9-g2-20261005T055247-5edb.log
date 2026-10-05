@@ -1,0 +1,52 @@
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /tmp/redline-wt-l8hykb2_/stage-3/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s3/N1-9-g2-20261005T055247-5edb.junit.xml  (exit 1)
+onse [404 Not Found]>.status_code
+
+/tmp/redline-wt-l8hykb2_/stage-3/tests/test_upgrade_stage1_stage2.py:45: AssertionError
+=========================== short test summary info ============================
+FAILED ../../../../../tmp/redline-wt-l8hykb2_/stage-3/tests/test_corrections.py::test_correction_by_payer_succeeds_and_updates_balances
+FAILED ../../../../../tmp/redline-wt-l8hykb2_/stage-3/tests/test_corrections.py::test_correction_by_non_payer_is_403
+FAILED ../../../../../tmp/redline-wt-l8hykb2_/stage-3/tests/test_corrections.py::test_correction_stale_expected_revision_is_409
+FAILED ../../../../../tmp/redline-wt-l8hykb2_/stage-3/tests/test_corrections.py::test_correction_insufficient_funds_rejected
+FAILED ../../../../../tmp/redline-wt-l8hykb2_/stage-3/tests/test_corrections.py::test_correction_zero_amount_is_legal_and_distinct_from_rejection
+FAILED ../../../../../tmp/redline-wt-l8hykb2_/stage-3/tests/test_corrections.py::test_correction_idempotent_retry_same_key_same_body
+FAILED ../../../../../tmp/redline-wt-l8hykb2_/stage-3/tests/test_corrections.py::test_correction_negative_amount_rejected_422
+FAILED ../../../../../tmp/redline-wt-l8hykb2_/stage-3/tests/test_corrections.py::test_correction_missing_required_fields_422
+FAILED ../../../../../tmp/redline-wt-l8hykb2_/stage-3/tests/test_corrections.py::test_correction_missing_idempotency_key_is_400
+FAILED ../../../../../tmp/redline-wt-l8hykb2_/stage-3/tests/test_corrections.py::test_correction_precedence_403_before_422_validation
+FAILED ../../../../../tmp/redline-wt-l8hykb2_/stage-3/tests/test_corrections.py::test_correction_linked_settlement_payment_is_immutable
+FAILED ../../../../../tmp/redline-wt-l8hykb2_/stage-3/tests/test_corrections_concurrency.py::test_two_concurrent_corrections_from_the_same_base_revision_exactly_one_wins
+FAILED ../../../../../tmp/redline-wt-l8hykb2_/stage-3/tests/test_corrections_concurrency.py::test_concurrent_identical_retries_of_the_same_key_apply_exactly_once
+FAILED ../../../../../tmp/redline-wt-l8hykb2_/stage-3/tests/test_corrections_concurrency.py::test_concurrent_corrections_never_leave_a_negative_balance
+FAILED ../../../../../tmp/redline-wt-l8hykb2_/stage-3/tests/test_historical_holds.py::test_as_of_before_hold_opened_shows_zero_held
+FAILED ../../../../../tmp/redline-wt-l8hykb2_/stage-3/tests/test_historical_holds.py::test_as_of_between_open_and_void_still_shows_held
+FAILED ../../../../../tmp/redline-wt-l8hykb2_/stage-3/tests/test_historical_overdraft.py::test_correction_illegal_at_an_intermediate_instant_even_if_final_state_is_fine
+FAILED ../../../../../tmp/redline-wt-l8hykb2_/stage-3/tests/test_historical_overdraft.py::test_correction_illegal_between_two_existing_payments_even_though_final_balance_is_nonnegative
+FAILED ../../../../../tmp/redline-wt-l8hykb2_/stage-3/tests/test_historical_overdraft.py::test_correction_legal_when_every_intermediate_instant_stays_non_negative
+FAILED ../../../../../tmp/redline-wt-l8hykb2_/stage-3/tests/test_historical_overdraft.py::test_historical_overdraft_rejection_reports_the_distinct_error_code
+FAILED ../../../../../tmp/redline-wt-l8hykb2_/stage-3/tests/test_known_at.py::test_revisions_endpoint_ignores_known_at_between_two_revisions
+FAILED ../../../../../tmp/redline-wt-l8hykb2_/stage-3/tests/test_known_at.py::test_known_at_on_me_excludes_a_not_yet_recorded_payment_from_balance
+FAILED ../../../../../tmp/redline-wt-l8hykb2_/stage-3/tests/test_known_at.py::test_known_at_on_statement_excludes_a_not_yet_recorded_entry
+FAILED ../../../../../tmp/redline-wt-l8hykb2_/stage-3/tests/test_known_at.py::test_known_at_malformed_timestamp_422_on_me
+FAILED ../../../../../tmp/redline-wt-l8hykb2_/stage-3/tests/test_known_at.py::test_zero_amount_revision_is_present_not_absent_once_recorded
+FAILED ../../../../../tmp/redline-wt-l8hykb2_/stage-3/tests/test_me_as_of.py::test_as_of_reflects_a_backdated_correction
+FAILED ../../../../../tmp/redline-wt-l8hykb2_/stage-3/tests/test_me_as_of.py::test_as_of_never_negative_across_two_corrections_at_different_instants
+FAILED ../../../../../tmp/redline-wt-l8hykb2_/stage-3/tests/test_revisions.py::test_revisions_are_consecutive_and_recorded_at_strictly_increases
+FAILED ../../../../../tmp/redline-wt-l8hykb2_/stage-3/tests/test_snapshots.py::test_snapshot_first_page_is_stable_across_later_writes
+FAILED ../../../../../tmp/redline-wt-l8hykb2_/stage-3/tests/test_snapshots.py::test_fresh_tokenless_call_sees_new_writes_immediately
+FAILED ../../../../../tmp/redline-wt-l8hykb2_/stage-3/tests/test_snapshots.py::test_walking_every_page_via_snapshot_stays_consistent_despite_writes
+FAILED ../../../../../tmp/redline-wt-l8hykb2_/stage-3/tests/test_snapshots.py::test_invalid_snapshot_value_422
+FAILED ../../../../../tmp/redline-wt-l8hykb2_/stage-3/tests/test_statement.py::test_statement_requires_auth
+FAILED ../../../../../tmp/redline-wt-l8hykb2_/stage-3/tests/test_statement.py::test_statement_empty_for_a_fresh_user
+FAILED ../../../../../tmp/redline-wt-l8hykb2_/stage-3/tests/test_statement.py::test_statement_lists_a_payment_as_a_signed_entry
+FAILED ../../../../../tmp/redline-wt-l8hykb2_/stage-3/tests/test_statement.py::test_statement_entries_ordered_by_effective_at_ascending
+FAILED ../../../../../tmp/redline-wt-l8hykb2_/stage-3/tests/test_statement.py::test_statement_opening_plus_deltas_equals_closing
+FAILED ../../../../../tmp/redline-wt-l8hykb2_/stage-3/tests/test_statement.py::test_statement_pagination_covers_every_entry_exactly_once
+FAILED ../../../../../tmp/redline-wt-l8hykb2_/stage-3/tests/test_statement.py::test_statement_only_shows_the_authenticated_users_own_entries
+FAILED ../../../../../tmp/redline-wt-l8hykb2_/stage-3/tests/test_statement.py::test_statement_limit_bounds_page_size
+FAILED ../../../../../tmp/redline-wt-l8hykb2_/stage-3/tests/test_statement.py::test_statement_invalid_limit_422
+FAILED ../../../../../tmp/redline-wt-l8hykb2_/stage-3/tests/test_upgrade_stage1_stage2.py::test_export_import_preserves_revision_history
+42 failed, 537 passed in 491.81s (0:08:11)
+
+
+
+RESULT: FAIL — 537 passed, 42 failed, 0 errors, 0 skipped

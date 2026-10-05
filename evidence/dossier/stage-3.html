@@ -1,0 +1,24 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>Stage 3 dossier</title>
+<style>
+:root{--bg:#fbfaf7;--fg:#1d1d1b;--muted:#6b6a65;--line:#e4e1d8;--ok:#1f7a4d;--bad:#b42318}
+@media (prefers-color-scheme:dark){:root{--bg:#161614;--fg:#eceae4;--muted:#a3a198;--line:#33322e;--ok:#4cc38a;--bad:#ff6b5b}}
+body{background:var(--bg);color:var(--fg);font:15px/1.5 system-ui,sans-serif;max-width:960px;margin:0 auto;padding:24px 16px}
+h1{font-size:24px;margin:0 0 4px}h2{font-size:17px;margin:28px 0 8px}
+.muted{color:var(--muted)}table{border-collapse:collapse;width:100%;font-size:14px;display:block;overflow-x:auto}
+th,td{text-align:left;padding:6px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+.pass{color:var(--ok);font-weight:600}.fail{color:var(--bad);font-weight:600}
+.src{font:12px ui-monospace,monospace;color:var(--muted)}
+</style></head><body>
+<h1>Stage 3 dossier</h1>
+<p class="muted">Outcome: <b>open</b> · catch rate 67% · ledger chain intact · generated 2026-10-05T06:08:32+00:00</p>
+<h2>Gates</h2><table><tr><th>Gate</th><th>Last</th><th>Runs</th><th>Failures caught</th><th>Source</th></tr><tr><td>g1</td><td class='pass'>pass</td><td>5</td><td>0</td><td><span class="src">gate:g1:N3-1-g1-20261005T045028-0756.log, gate:g1:N3-2-g1-20261005T051603-0238.log, gate:g1:N3-1-g1-20261005T053552-3441.log +2</span></td></tr><tr><td>g2</td><td class='fail'>fail</td><td>10</td><td>10</td><td><span class="src">gate:g2:N3-1-g2-20261005T045030-6dfa.log, gate:g2:N3-1-g2-20261005T045752-c760.log, gate:g2:N3-1-g2-20261005T050250-080c.log +7</span></td></tr><tr><td>g4</td><td class='pass'>pass</td><td>4</td><td>1</td><td><span class="src">gate:g4:N3-1-g4-20261005T045504-c771.log, gate:g4:N3-2-g4-20261005T052102-8754.log, gate:g4:N3-1-g4-20261005T054035-a4af.log +1</span></td></tr><tr><td>g8</td><td class='pass'>pass</td><td>13</td><td>0</td><td><span class="src">gate:g8:N3-T-g8-20261005T041313-8a09.log, gate:g8:N3-T-g8-20261005T041520-7ced.log, gate:g8:N3-1-g8-20261005T043739-3d79.log +10</span></td></tr><tr><td>scope</td><td class='pass'>pass</td><td>5</td><td>0</td><td><span class="src">gate:scope:N3-1-scope-20261005T045027-cf15.log, gate:scope:N3-2-scope-20261005T051603-a5c3.log, gate:scope:N3-1-scope-20261005T053552-bd9f.log +2</span></td></tr></table>
+<h2>Reviews that changed the work</h2><table><tr><th>Node</th><th>Seat</th><th>Verdict</th><th>What it caught</th><th>Change it forced</th><th>Source</th></tr><tr><td>N3-T</td><td>planner</td><td class='fail'>NEEDS_WORK</td><td>@redline — **one correction to N3-T, mid-flight. Two changes, both small; everything else in parts 1–3 stands.**
+
+**1. Do NOT delete `stage-3/tests/_manual_check_n24b.py`. Restore it.** I told you to </td><td>`ec754c8→846862a` 19 files, 1933 +, 18 -</td><td><span class="src">room:a7de01d5-509c-4ff9-9eb6-6be905ab140a</span></td></tr><tr><td>N3-1</td><td>planner</td><td class='fail'>NEEDS_WORK</td><td>@redline — answers to all three, and **two of your assumptions are wrong. Fix them before part B.** Rulings committed as binding rows at `900d36d`.
+
+**1. `POST /payments/{id}/corrections` — CONFIRMED </td><td>`900d36d→3f480dc` 20 files, 974 +, 121 -</td><td><span class="src">room:caaefa30-716e-4198-96a7-8dc99baae0a3</span></td></tr><tr><td>N3-T</td><td>planner</td><td class='fail'>NEEDS_WORK</td><td>@redline — **STOP before you lock part B. My rulings crossed your message; here they are compressed. Two of your three assumptions are WRONG.** Full text is at commit `900d36d` in `plan/s3-requirement</td><td>`af154ec→846862a` 10 files, 793 +, 117 -</td><td><span class="src">room:a2e7b9d4-5c56-464f-9d08-1ab571cf013b</span></td></tr><tr><td>N3-T</td><td>planner</td><td class='fail'>NEEDS_WORK</td><td>@redline — **CONFIRMED THREE TIMES NOW, and you are still waiting on it. Nothing is pending from me. Stop waiting; make these edits.** This is the whole answer, as edits, not prose. Rows R-3-078 and R</td><td>`de7831e→846862a` 7 files, 279 +, 140 -</td><td><span class="src">room:e42b9c58-4959-41ab-9ae7-a1c039e6d57a</span></td></tr><tr><td>N3-1</td><td>adversary</td><td class='fail'>BREACH</td><td>@builder @verifier @planner — N3-1+N3-2 combined attack at `e481fcd`, per planner&#x27;s three targets:
+
+1. **Opening balance exactly 0 → accepted.** A↔B at 1000/1000, A pays B 1000 (opening A=2000, openin</td><td>`4bf2b1c→1d5f29a` 1 file, 7 +</td><td><span class="src">room:9500547b-fe2b-4d6a-9edb-dd670ea960cc</span></td></tr></table>
+<h2>Cost by seat</h2><table><tr><th>Seat</th><th>Tokens</th><th>USD</th><th>Minutes</th><th>Source</th></tr><tr><td>builder</td><td>300,000</td><td>$4.35</td><td>143.3</td><td><span class="src">seat:builder, seat:builder, seat:builder +1</span></td></tr></table>
+</body></html>

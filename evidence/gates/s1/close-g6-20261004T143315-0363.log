@@ -1,0 +1,23 @@
+$ docker build --label redline-gate=1 -t redline-mut-121bec1b-base /tmp/redline-mut-whpzzmxr/stage-1  (exit 1)
+
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 176B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim
+#2 ERROR: failed to do request: Head "https://registry-1.docker.io/v2/library/python/manifests/3.12-slim": dial tcp: lookup registry-1.docker.io on 127.0.0.53:53: server misbehaving
+------
+ > [internal] load metadata for docker.io/library/python:3.12-slim:
+------
+Dockerfile:1
+--------------------
+   1 | >>> FROM python:3.12-slim
+   2 |     
+   3 |     WORKDIR /app
+--------------------
+ERROR: failed to build: failed to solve: python:3.12-slim: failed to resolve source metadata for docker.io/library/python:3.12-slim: failed to do request: Head "https://registry-1.docker.io/v2/library/python/manifests/3.12-slim": dial tcp: lookup registry-1.docker.io on 127.0.0.53:53: server misbehaving
+
+
+RESULT: FAIL — baseline not green: the unmutated code must pass its own tests before mutants can be judged

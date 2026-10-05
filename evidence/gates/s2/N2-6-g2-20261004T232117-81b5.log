@@ -1,0 +1,82 @@
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /tmp/redline-wt-kvz4m1st/stage-2/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s2/N2-6-g2-20261004T232117-81b5.junit.xml  (exit 1)
+.2:8080/split'> selector='[data-testid="split-amount"]'> = locator('[data-testid="split-amount"]')
+E            +        where locator = <Page url='http://172.31.0.2:8080/split'>.locator
+E            +        and   '[data-testid="split-amount"]' = tid('split-amount')
+
+/tmp/redline-wt-kvz4m1st/stage-2/tests/test_ui_requests_split_authz.py:52: AssertionError
+______________________ test_authorizations_screen_testids ______________________
+
+page = <Page url='http://172.31.0.2:8080/authorizations'>
+demo = {'fixture': {'currency': 'EUR', 'minor_units': 2, 'users': [{'id': 'u-alice', 'email': 'alice@example.com', 'password'...o', 'user_id': 'u-carol'}, 'dave': {'token': 'b-2PJLkCBpoQ0M_m8UK0rTX-EDSNWHvXUVMojS8R-lc', 'user_id': 'u-dave'}, ...}}
+
+    def test_authorizations_screen_testids(page, demo):
+        """R-2-137"""
+        user = ui_login_demo_user(page, demo["fixture"])
+        page.goto(url("/authorizations"), wait_until="load")
+>       assert page.locator(tid("authorization-list")).count() > 0
+E       assert 0 > 0
+E        +  where 0 = count()
+E        +    where count = <Locator frame=<Frame name= url='http://172.31.0.2:8080/authorizations'> selector='[data-testid="authorization-list"]'>.count
+E        +      where <Locator frame=<Frame name= url='http://172.31.0.2:8080/authorizations'> selector='[data-testid="authorization-list"]'> = locator('[data-testid="authorization-list"]')
+E        +        where locator = <Page url='http://172.31.0.2:8080/authorizations'>.locator
+E        +        and   '[data-testid="authorization-list"]' = tid('authorization-list')
+
+/tmp/redline-wt-kvz4m1st/stage-2/tests/test_ui_requests_split_authz.py:81: AssertionError
+____________ test_capture_void_buttons_present_only_on_correct_side ____________
+
+page = <Page url='http://172.31.0.2:8080/authorizations'>
+demo = {'fixture': {'currency': 'EUR', 'minor_units': 2, 'users': [{'id': 'u-alice', 'email': 'alice@example.com', 'password'...M', 'user_id': 'u-carol'}, 'dave': {'token': 'GKvL6DlvwbIfkr3qsknfvn16qoHb0pimUVSi2uqk9s4', 'user_id': 'u-dave'}, ...}}
+
+    def test_capture_void_buttons_present_only_on_correct_side(page, demo):
+        """R-2-138"""
+        user = ui_login_demo_user(page, demo["fixture"])
+        page.goto(url("/authorizations"), wait_until="load")
+        # a-seed-open-out: alice is the PAYER (outgoing) -> void only, no capture
+>       assert page.locator(tid("authorization-void-a-seed-open-out")).count() > 0
+E       assert 0 > 0
+E        +  where 0 = count()
+E        +    where count = <Locator frame=<Frame name= url='http://172.31.0.2:8080/authorizations'> selector='[data-testid="authorization-void-a-seed-open-out"]'>.count
+E        +      where <Locator frame=<Frame name= url='http://172.31.0.2:8080/authorizations'> selector='[data-testid="authorization-void-a-seed-open-out"]'> = locator('[data-testid="authorization-void-a-seed-open-out"]')
+E        +        where locator = <Page url='http://172.31.0.2:8080/authorizations'>.locator
+E        +        and   '[data-testid="authorization-void-a-seed-open-out"]' = tid('authorization-void-a-seed-open-out')
+
+/tmp/redline-wt-kvz4m1st/stage-2/tests/test_ui_requests_split_authz.py:108: AssertionError
+__ test_request_cancelled_elsewhere_shows_error_and_removes_stale_pay_button ___
+
+page = <Page url='http://172.31.0.2:8080/requests'>
+demo = {'fixture': {'currency': 'EUR', 'minor_units': 2, 'users': [{'id': 'u-alice', 'email': 'alice@example.com', 'password'...g', 'user_id': 'u-carol'}, 'dave': {'token': 'KWhkmhjSVi6_d_lQUbtHKqoJrjxQzSN3FWeCRHGG1MA', 'user_id': 'u-dave'}, ...}}
+
+    def test_request_cancelled_elsewhere_shows_error_and_removes_stale_pay_button(page, demo):
+        """R-2-156"""
+        alice = ui_login_demo_user(page, demo["fixture"])
+        bob = demo["fixture"]["users"][1]
+        bob_token = login_token(bob["email"], bob["password"])
+    
+        req = api_post("/requests", json={"payer_handle": alice["handle"], "amount": 50},
+                       headers={**auth(bob_token), **idem(unique("k"))})
+        assert req.status_code == 201, req.text
+        req_id = req.json()["request_id"]
+    
+        page.goto(url("/requests"), wait_until="load")
+        pay_button = page.locator(tid(f"request-pay-{req_id}"))
+>       assert pay_button.count() > 0, "the pay button must be visible before the stale-state race"
+E       AssertionError: the pay button must be visible before the stale-state race
+E       assert 0 > 0
+E        +  where 0 = count()
+E        +    where count = <Locator frame=<Frame name= url='http://172.31.0.2:8080/requests'> selector='[data-testid="request-pay-73zF1eaDo-5pzmHiDxMXbg"]'>.count
+
+/tmp/redline-wt-kvz4m1st/stage-2/tests/test_ui_requests_split_authz.py:132: AssertionError
+=========================== short test summary info ============================
+FAILED ../../../../../../tmp/redline-wt-kvz4m1st/stage-2/tests/test_authorizations.py::test_final_capture_releases_remainder_and_closes
+FAILED ../../../../../../tmp/redline-wt-kvz4m1st/stage-2/tests/test_ui_layout.py::test_seeded_demo_user_sees_populated_first_screen
+FAILED ../../../../../../tmp/redline-wt-kvz4m1st/stage-2/tests/test_ui_requests_split_authz.py::test_requests_screen_lists_and_testids
+FAILED ../../../../../../tmp/redline-wt-kvz4m1st/stage-2/tests/test_ui_requests_split_authz.py::test_request_actions_present_only_on_correct_side_and_status
+FAILED ../../../../../../tmp/redline-wt-kvz4m1st/stage-2/tests/test_ui_requests_split_authz.py::test_split_form_testids_and_preview
+FAILED ../../../../../../tmp/redline-wt-kvz4m1st/stage-2/tests/test_ui_requests_split_authz.py::test_authorizations_screen_testids
+FAILED ../../../../../../tmp/redline-wt-kvz4m1st/stage-2/tests/test_ui_requests_split_authz.py::test_capture_void_buttons_present_only_on_correct_side
+FAILED ../../../../../../tmp/redline-wt-kvz4m1st/stage-2/tests/test_ui_requests_split_authz.py::test_request_cancelled_elsewhere_shows_error_and_removes_stale_pay_button
+8 failed, 472 passed in 242.11s (0:04:02)
+
+
+
+RESULT: FAIL — 472 passed, 8 failed, 0 errors, 0 skipped

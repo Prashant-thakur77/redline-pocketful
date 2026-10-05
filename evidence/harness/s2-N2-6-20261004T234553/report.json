@@ -1,0 +1,83 @@
+{
+  "revision": "cd67d6ccfd90e71703d79d16baad00463a9dfdd3",
+  "track": "pocketful",
+  "stages": {
+    "1": "pass",
+    "2": "fail"
+  },
+  "highest_contiguous": 1,
+  "started_at": "2026-10-04T23:45:54.060954+00:00",
+  "finished_at": "2026-10-04T23:48:09.358976+00:00",
+  "schema_version": 2,
+  "run_id": "9e22944b7d3c432cb12cee47e1789948",
+  "mode": "isolated",
+  "provenance": "working-tree",
+  "state": "completed",
+  "pytest_args": [],
+  "suite_digest": "3b6e53065b039392eb98f74a0055d034459ecc2f88eccf1d973a44f61c8b5c45",
+  "checks": {
+    "1": {
+      "collected": 147,
+      "passed": 147,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "deselected": 0,
+      "xfailed": 0,
+      "files": {
+        "stage_1/test_me_payments.py": {
+          "passed": 24,
+          "total": 24
+        },
+        "stage_1/test_requests_splits_feed.py": {
+          "passed": 39,
+          "total": 39
+        },
+        "stage_1/test_retries_splits_input.py": {
+          "passed": 51,
+          "total": 51
+        },
+        "stage_1/test_sample.py": {
+          "passed": 19,
+          "total": 19
+        },
+        "stage_1/test_seeded_state.py": {
+          "passed": 14,
+          "total": 14
+        }
+      }
+    },
+    "2": {
+      "collected": 35,
+      "passed": 25,
+      "failed": 10,
+      "errors": 0,
+      "skipped": 0,
+      "deselected": 0,
+      "xfailed": 0,
+      "files": {
+        "stage_2/test_sample.py": {
+          "passed": 8,
+          "total": 10
+        },
+        "stage_2/test_ui.py": {
+          "passed": 17,
+          "total": 25
+        }
+      }
+    }
+  },
+  "overshoot": null,
+  "claimed_stage": "2",
+  "share": 0.74,
+  "upgrade_sources": {
+    "2": {
+      "folder": "/home/prashant/projects/band-work/result/stage-1",
+      "revision": "cd67d6ccfd90e71703d79d16baad00463a9dfdd3"
+    },
+    "3": {
+      "folder": "/home/prashant/projects/band-work/result/stage-2",
+      "revision": "cd67d6ccfd90e71703d79d16baad00463a9dfdd3"
+    }
+  }
+}

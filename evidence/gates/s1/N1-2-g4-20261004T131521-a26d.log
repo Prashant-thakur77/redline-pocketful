@@ -1,0 +1,5 @@
+ops 1300 (1000 unique, 300 replays), concurrency 50, 1.9s
+statuses {404: 1300}
+invariant: False — paid request r-seed-5 has no payment_id
+
+RESULT: FAIL — invariant broken after storm: paid request r-seed-5 has no payment_id

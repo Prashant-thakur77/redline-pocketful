@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="8" time="1.593" timestamp="2026-10-04T19:58:13.694504+05:30" hostname="prashant-Dell-G15-5530"><testcase classname="adversarial.test_n1_1_adversarial" name="test_head_method_is_not_a_5xx_r_1_005" time="0.026" /><testcase classname="adversarial.test_n1_1_adversarial" name="test_options_method_is_not_a_5xx_r_1_005" time="0.005" /><testcase classname="adversarial.test_n1_1_adversarial" name="test_malformed_content_length_gets_a_response_not_a_dropped_connection" time="0.001" /><testcase classname="adversarial.test_n1_2_adversarial" name="test_login_timing_does_not_distinguish_unknown_email_from_wrong_password" time="1.057" /><testcase classname="adversarial.test_n1_3_adversarial" name="test_concurrent_signups_same_email_exactly_one_201" time="0.043" /><testcase classname="adversarial.test_n1_3_adversarial" name="test_concurrent_signups_colliding_derived_handle_exactly_one_201" time="0.046" /><testcase classname="adversarial.test_n1_5_adversarial" name="test_concurrent_identical_payment_exactly_one_201" time="0.105" /><testcase classname="adversarial.test_n1_5_adversarial" name="test_concurrent_overdraft_race_never_goes_negative" time="0.125"><failure message="AssertionError: expected exactly 10 successful payments, got {201: 30}&#10;assert 30 == 10">two_users = {'fixture': {'currency': 'EUR', 'minor_units': 2, 'users': [{'id': 'ud5f23e929', 'email': 'aliced5f23e9211@example.com...andle': 'bobd5f23e9212', 'token': 'ftxgrGrJaUk9eq_UxU5UeEMG8u45N05Qv6LBUA4GPJo', 'email': 'bobd5f23e9212@example.com'}}
+
+    def test_concurrent_overdraft_race_never_goes_negative(two_users):
+        """R-1-002: 30 concurrent payments of 1000 each from a payer with
+        balance 10000 (room for exactly 10) using 30 *different* idempotency
+        keys. Exactly 10 must succeed, the rest 409 insufficient_funds, and
+        the payer's final balance must never be negative and must equal
+        exactly balance - (successes * amount)."""
+        a, b = two_users["a"], two_users["b"]
+    
+        def attempt(i):
+            return _pay(a["token"], b["handle"], 1000, unique(f"od{i}"))
+    
+        with ThreadPoolExecutor(30) as pool:
+            responses = list(pool.map(attempt, range(30)))
+    
+        statuses = Counter(r.status_code for r in responses)
+&gt;       assert statuses[201] == 10, f"expected exactly 10 successful payments, got {dict(statuses)}"
+E       AssertionError: expected exactly 10 successful payments, got {201: 30}
+E       assert 30 == 10
+
+/tmp/redline-mut-id3015am/stage-1/tests/adversarial/test_n1_5_adversarial.py:66: AssertionError</failure></testcase></testsuite></testsuites>

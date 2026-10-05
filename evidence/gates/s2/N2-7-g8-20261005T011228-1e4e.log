@@ -1,0 +1,4 @@
+item N2-7: minutes 100.8 > cap 90
+stage: minutes 486.3 > cap 480
+
+RESULT: FAIL — item N2-7: minutes 100.8 > cap 90; stage: minutes 486.3 > cap 480 — return the item to @planner

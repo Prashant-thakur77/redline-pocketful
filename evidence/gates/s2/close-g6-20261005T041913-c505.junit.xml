@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="34" time="150.770" timestamp="2026-10-05T10:23:27.599518+05:30" hostname="prashant-Dell-G15-5530"><testcase classname="adversarial.test_n1_10_2_adversarial" name="test_reset_landing_while_waiters_are_parked_on_an_in_flight_claim" time="68.336" /><testcase classname="adversarial.test_n1_10_2_adversarial" name="test_import_landing_while_waiters_are_parked_on_an_in_flight_claim" time="66.926" /><testcase classname="adversarial.test_n1_10_adversarial" name="test_r_1_108_timing_heaviest_write_many_losers_same_key" time="1.630" /><testcase classname="adversarial.test_n1_10_adversarial" name="test_r_1_108_timing_maximum_global_lock_contention" time="5.650" /><testcase classname="adversarial.test_n1_10_adversarial" name="test_r_1_244_reset_under_load_no_torn_state_and_idempotency_cleared" time="0.518" /><testcase classname="adversarial.test_n1_10_adversarial" name="test_r_1_005_50_simultaneous_connections_no_refusals_or_5xx" time="0.148" /><testcase classname="adversarial.test_n1_10_adversarial" name="test_r_1_208_export_internally_consistent_under_concurrent_storm" time="0.492" /><testcase classname="adversarial.test_n1_10_adversarial" name="test_r_1_015_moderate_fixture_reset_export_import_under_10s" time="2.742" /><testcase classname="adversarial.test_n1_1_adversarial" name="test_head_method_is_not_a_5xx_r_1_005" time="0.004" /><testcase classname="adversarial.test_n1_1_adversarial" name="test_options_method_is_not_a_5xx_r_1_005" time="0.004" /><testcase classname="adversarial.test_n1_1_adversarial" name="test_malformed_content_length_gets_a_response_not_a_dropped_connection" time="0.001" /><testcase classname="adversarial.test_n1_2_adversarial" name="test_login_timing_does_not_distinguish_unknown_email_from_wrong_password" time="1.047" /><testcase classname="adversarial.test_n1_3_adversarial" name="test_concurrent_signups_same_email_exactly_one_201" time="0.036" /><testcase classname="adversarial.test_n1_3_adversarial" name="test_concurrent_signups_colliding_derived_handle_exactly_one_201" time="0.049" /><testcase classname="adversarial.test_n1_5_adversarial" name="test_concurrent_identical_payment_exactly_one_201" time="0.105" /><testcase classname="adversarial.test_n1_5_adversarial" name="test_concurrent_overdraft_race_never_goes_negative" time="0.137" /><testcase classname="adversarial.test_n1_5_adversarial" name="test_concurrent_conflicting_body_same_key_resolves_to_one_winner_and_clean_409s" time="0.123" /><testcase classname="adversarial.test_n1_5_adversarial" name="test_idempotency_bool_vs_number_conflict_over_http" time="0.101" /><testcase classname="adversarial.test_n1_5_adversarial" name="test_concurrent_failed_claim_is_released_not_cached" time="0.273" /><testcase classname="adversarial.test_n1_5_adversarial" name="test_concurrent_drain_to_exactly_zero_never_observes_negative_balance" time="0.256" /><testcase classname="adversarial.test_n1_5_adversarial" name="test_self_payment_precedence_over_insufficient_funds" time="0.072" /><testcase classname="adversarial.test_n1_5_adversarial" name="test_self_payment_precedence_over_bad_amount" time="0.085" /><testcase classname="adversarial.test_n1_5_adversarial" name="test_note_explicit_null_is_422_not_default" time="0.105" /><testcase classname="adversarial.test_n1_5_adversarial" name="test_visibility_explicit_null_is_422_not_default" time="0.100" /><testcase classname="adversarial.test_n1_5_adversarial" name="test_amount_boundary_max_and_over" time="0.149" /><testcase classname="adversarial.test_n1_5_adversarial" name="test_idempotency_key_reused_after_insufficient_funds_is_fresh" time="0.094" /><testcase classname="adversarial.test_n1_5_adversarial" name="test_activity_private_payment_hidden_from_third_party" time="0.148" /><testcase classname="adversarial.test_n1_6_adversarial" name="test_unrelated_third_party_pay_is_403_not_404" time="0.147" /><testcase classname="adversarial.test_n1_6_adversarial" name="test_unrelated_third_party_decline_is_403_not_404" time="0.143" /><testcase classname="adversarial.test_n1_6_adversarial" name="test_unrelated_third_party_cancel_is_403_not_404" time="0.117" /><testcase classname="adversarial.test_n1_6_adversarial" name="test_r_1_241_concurrent_pays_different_keys_exactly_one_winner" time="0.184" /><testcase classname="adversarial.test_n1_6_adversarial" name="test_decline_racing_pay_exactly_one_winner" time="0.138" /><testcase classname="adversarial.test_n1_6_adversarial" name="test_cancel_racing_pay_exactly_one_winner" time="0.135" /><testcase classname="adversarial.test_n1_6_adversarial" name="test_r_1_159_replay_during_concurrent_unrelated_decline" time="0.176"><failure message="assert 409 == 200&#10; +  where 409 = &lt;Response [409 Conflict]&gt;.status_code">def test_r_1_159_replay_during_concurrent_unrelated_decline():
+        """R-1-159: replaying a successful pay must return 200 with the
+        original payment body, never 409 request_not_pending, even while
+        another thread is concurrently declining a *different* request (so
+        the idempotency store and the write lock are both under concurrent
+        pressure at the same time)."""
+        users = _three_users()
+        req_id = _create_request(users["requester"]["token"], users["payer"]["handle"], 100)
+        other_req_id = _create_request(users["requester"]["token"], users["payer"]["handle"], 50)
+    
+        key = unique("replaypay")
+        r1 = _pay_request(req_id, users["payer"]["token"], key)
+        assert r1.status_code == 201, r1.text
+        original_body = r1.json()
+    
+        def replay():
+            return _pay_request(req_id, users["payer"]["token"], key)
+    
+        def unrelated_decline():
+            return _decline_request(other_req_id, users["payer"]["token"])
+    
+        with ThreadPoolExecutor(10) as pool:
+            replays = list(pool.map(lambda _: replay(), range(8)))
+            declines = list(pool.map(lambda _: unrelated_decline(), range(2)))
+    
+        for r in replays:
+            assert r.status_code == 200, f"replay must be 200, got {r.status_code}: {r.text}"
+            assert r.json() == original_body, f"replay body must be verbatim: {r.json()} != {original_body}"
+&gt;       assert declines[0].status_code == 200
+E       assert 409 == 200
+E        +  where 409 = &lt;Response [409 Conflict]&gt;.status_code
+
+/tmp/redline-mut-niy8eq90/stage-2/tests/adversarial/test_n1_6_adversarial.py:204: AssertionError</failure></testcase></testsuite></testsuites>

@@ -1,0 +1,42 @@
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /tmp/redline-wt-qtfjlmys/stage-2/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s2/N2-6-g2-20261004T235430-133a.junit.xml  (exit 1)
+........................................................................ [ 14%]
+........................................................................ [ 29%]
+........F............................................................... [ 44%]
+........................................................................ [ 59%]
+........................................................................ [ 74%]
+........................................................................ [ 89%]
+.................................................                        [100%]
+=================================== FAILURES ===================================
+_______________ test_final_capture_releases_remainder_and_closes _______________
+
+    def test_final_capture_releases_remainder_and_closes():
+        """R-2-056"""
+        fixture, ids, handles, tokens = n_user_fixture(2, balance=1000)
+>       auth_obj = open_authorization(tokens[0], handles[1], amount=2000)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+/tmp/redline-wt-qtfjlmys/stage-2/tests/test_authorizations.py:238: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+payer_token = '2PAWPx9bDln8ht1_QtAzXu1bjiAWNT0EhvfDXkMSXZw'
+receiver_handle = 'p17e6ea9b521332', amount = 2000, kw = {}
+
+    def open_authorization(payer_token: str, receiver_handle: str, amount: int = 1000, **kw) -> dict:
+        """Create an authorization as `payer_token`'s owner, to `receiver_handle`.
+        Shared across every stage-2 test file that needs one, so a drifting copy
+        cannot be left behind in only some of them (the N1-T.5 lesson)."""
+        r = api_post("/authorizations", json={"to_handle": receiver_handle, "amount": amount, **kw},
+                     headers={**auth(payer_token), **idem(unique("k"))})
+>       assert r.status_code == 201, r.text
+E       AssertionError: {"error": {"code": "insufficient_funds", "message": "insufficient funds"}}
+E       assert 409 == 201
+E        +  where 409 = <Response [409 Conflict]>.status_code
+
+/tmp/redline-wt-qtfjlmys/stage-2/tests/conftest.py:247: AssertionError
+=========================== short test summary info ============================
+FAILED ../../../../../../tmp/redline-wt-qtfjlmys/stage-2/tests/test_authorizations.py::test_final_capture_releases_remainder_and_closes
+1 failed, 480 passed in 249.71s (0:04:09)
+
+
+
+RESULT: FAIL — 480 passed, 1 failed, 0 errors, 0 skipped

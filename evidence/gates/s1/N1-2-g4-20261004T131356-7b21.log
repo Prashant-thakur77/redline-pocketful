@@ -1,0 +1,5 @@
+ops 1300 (1000 unique, 300 replays), concurrency 50, 2.4s
+statuses {404: 1300}
+invariant: False — GET /requests failed for alice: 404 {"error": {"code": "not_found", "message": "no such endpoint: GET /requests"}}
+
+RESULT: FAIL — invariant broken after storm: GET /requests failed for alice: 404 {"error": {"code": "not_found", "message": "no such endpoint: GET /requests"}}

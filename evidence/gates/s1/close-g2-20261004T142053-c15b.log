@@ -1,0 +1,10 @@
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /tmp/redline-wt-ofdih0il/stage-1/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s1/close-g2-20261004T142053-c15b.junit.xml  (exit 0)
+........................................................................ [ 26%]
+........................................................................ [ 52%]
+........................................................................ [ 78%]
+...........................................................              [100%]
+275 passed in 30.18s
+
+
+
+RESULT: PASS — 275 passed, 0 failed, 0 errors, 0 skipped

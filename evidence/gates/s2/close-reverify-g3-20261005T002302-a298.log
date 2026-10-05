@@ -1,0 +1,14 @@
+$ /home/prashant/projects/dark-factory-wearedevs/.venv/bin/python -m harness run --track pocketful --repo /home/prashant/projects/band-work/result --stage 2 --mode isolated --out /home/prashant/projects/band-work/result/evidence/harness/s2-close-reverify-20261005T002302  (exit 1)
+building /home/prashant/projects/band-work/result/stage-2 ...
+  stage 1: pass  (log: /home/prashant/projects/band-work/result/evidence/harness/s2-close-reverify-20261005T002302/stage-1.log)
+building upgrade source /home/prashant/projects/band-work/result/stage-1 ...
+  stage 2: fail  (log: /home/prashant/projects/band-work/result/evidence/harness/s2-close-reverify-20261005T002302/stage-2.log)
+  stage 3: fail  (log: /home/prashant/projects/band-work/result/evidence/harness/s2-close-reverify-20261005T002302/stage-3.log)
+highest contiguous stage: 1
+claimed stage: 2 on the shipped checks
+report: /home/prashant/projects/band-work/result/evidence/harness/s2-close-reverify-20261005T002302/report.json
+NOTE: this run only includes a portion of the full tests that are applied before judging; this is meant to provide directional feedback, and ultimately you may not pass the stage with the full set of tests.
+
+
+
+RESULT: FAIL — exit 1; claimed stage 2; suites {'1': 'pass', '2': 'fail', '3': 'fail'}; report /home/prashant/projects/band-work/result/evidence/harness/s2-close-reverify-20261005T002302/report.json

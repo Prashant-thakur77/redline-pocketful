@@ -1,0 +1,59 @@
+{
+  "revision": "80766eecea18f654504fa2b7dc8c4c51c50db6a1",
+  "track": "pocketful",
+  "stages": {
+    "1": "pass"
+  },
+  "highest_contiguous": 1,
+  "started_at": "2026-10-04T15:47:57.508415+00:00",
+  "finished_at": "2026-10-04T15:48:34.126372+00:00",
+  "schema_version": 2,
+  "run_id": "5ef4b746ea38409faae9521c5be1c9cf",
+  "mode": "isolated",
+  "provenance": "working-tree",
+  "state": "completed",
+  "pytest_args": [],
+  "suite_digest": "5015f93902dde016a626b879f1687f95c9371d5a15ce2ef1b1aa09304e8bec26",
+  "checks": {
+    "1": {
+      "collected": 147,
+      "passed": 147,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "deselected": 0,
+      "xfailed": 0,
+      "files": {
+        "stage_1/test_me_payments.py": {
+          "passed": 24,
+          "total": 24
+        },
+        "stage_1/test_requests_splits_feed.py": {
+          "passed": 39,
+          "total": 39
+        },
+        "stage_1/test_retries_splits_input.py": {
+          "passed": 51,
+          "total": 51
+        },
+        "stage_1/test_sample.py": {
+          "passed": 19,
+          "total": 19
+        },
+        "stage_1/test_seeded_state.py": {
+          "passed": 14,
+          "total": 14
+        }
+      }
+    }
+  },
+  "overshoot": null,
+  "claimed_stage": "1",
+  "share": 1.0,
+  "upgrade_sources": {
+    "2": {
+      "folder": "/tmp/redline-wt-rso97yvk/stage-1",
+      "revision": "80766eecea18f654504fa2b7dc8c4c51c50db6a1"
+    }
+  }
+}

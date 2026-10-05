@@ -1,0 +1,46 @@
+$ docker build --label redline-gate=1 -t redline-mut-bd96ba98-base /tmp/redline-mut-ybe6zblb/stage-1  (exit 0)
+
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 176B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/4] FROM docker.io/library/python:3.12-slim
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 1.14kB done
+#5 DONE 0.0s
+
+#6 [2/4] WORKDIR /app
+#6 CACHED
+
+#7 [3/4] COPY main.py ./main.py
+#7 CACHED
+
+#8 [4/4] COPY service ./service
+#8 CACHED
+
+#9 exporting to image
+#9 exporting layers done
+#9 writing image sha256:dfb7ea2daba4f5f34ef0a2b098a106f4a15712111aca60cc8bc20a5e11d90126 done
+#9 naming to docker.io/library/redline-mut-bd96ba98-base done
+#9 DONE 0.0s
+
+$ docker network create --internal redline-net-3dad9600e1  (exit 0)
+e05251a26ff8003992131e09963390839e18a999a8be7d2e5123ba0df79450ca
+
+
+$ docker run -d --network redline-net-3dad9600e1 --cpus 2 --memory 2g -e PORT=8080 redline-mut-bd96ba98-base  (exit 0)
+4aadf302fbca22e1fe8f837136559ec0241788bd912c2e3c66d31b53fd948d13
+
+
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /tmp/redline-mut-ybe6zblb/stage-1/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s1/close-g6-20261004T154835-bd51.junit.xml  (exit 124)

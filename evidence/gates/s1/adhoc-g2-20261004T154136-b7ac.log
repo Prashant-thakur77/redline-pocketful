@@ -1,0 +1,107 @@
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /home/prashant/projects/band-work/result/stage-1/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s1/adhoc-g2-20261004T154136-b7ac.junit.xml  (exit 1)
+
+                f"R-1-005/R-1-080b breach (trial {trial_i}): a parked waiter got a 5xx when the entry it was "
+                f"waiting on was wiped out from under it by a reset: {bad_5xx}"
+            )
+    
+            statuses = Counter(s for s, _, _ in responses)
+            winners = [b for s, b, _ in responses if s == 201]
+            assert len(winners) <= 1, f"never two winners even across a reset race (trial {trial_i}): {len(winners)} 201s"
+            replays = [b for s, b, _ in responses if s == 200]
+            if winners:
+                assert all(b == winners[0] for b in replays), f"every 200 must carry the exact winner body (trial {trial_i})"
+            for s, b, _ in responses:
+                if s not in (200, 201):
+                    assert 400 <= s < 500, f"unexpected non-4xx/non-2xx status {s} (trial {trial_i}): {b}"
+                    assert '"error"' in b, f"a {s} response must carry the error envelope (trial {trial_i}): {b}"
+    
+>           bal_new = api_get("/me", headers={"Authorization": f"Bearer {login_token(new_email)}"}).json()["balance"]
+                                                                         ^^^^^^^^^^^^^^^^^^^^^^
+
+stage-1/tests/adversarial/test_n1_10_2_adversarial.py:173: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+email = 'postwipe3e07681b604@example.com', password = 'password123'
+
+    def login_token(email: str, password: str = "password123") -> str:
+        r = login(email, password)
+>       assert r.status_code == 200, f"login failed: {r.status_code} {r.text}"
+E       AssertionError: login failed: 401 {"error": {"code": "unauthenticated", "message": "missing or unknown bearer token"}}
+E       assert 401 == 200
+E        +  where 401 = <Response [401 Unauthorized]>.status_code
+
+stage-1/tests/conftest.py:110: AssertionError
+______ test_import_landing_while_waiters_are_parked_on_an_in_flight_claim ______
+
+    def test_import_landing_while_waiters_are_parked_on_an_in_flight_claim():
+        """Same race, with POST /_test/import (a different fixture, via the
+        export/import round trip) in place of reset — restore() has the same
+        R-1-112a obligation as clear() and the same hazard."""
+    
+        def do_import():
+            new_uid, new_handle = unique("u"), unique_handle("postimp")
+            new_email = f"{new_handle}@example.com"
+            other_fixture = make_fixture([user(new_uid, new_handle, balance=888, email=new_email)])
+            # Build the import document via a real export of a throwaway reset,
+            # so it's a genuine export/import document, not a hand-built one.
+            reset_ok(other_fixture)
+            export_doc = api_get("/_test/export").json()
+            t0 = time.monotonic()
+            r = api_post("/_test/import", json=export_doc)
+            return r.status_code, time.monotonic() - t0, new_email
+    
+        all_responses, wipe_results = _run_waiter_race(do_import)
+    
+        max_elapsed_seen = 0.0
+        for trial_i, (responses, (import_status, import_elapsed, new_email)) in enumerate(zip(all_responses, wipe_results)):
+            assert import_status == 204, f"import must succeed (trial {trial_i}): {import_status}"
+            assert import_elapsed < 10.0, (
+                f"R-1-015: import must finish within 10s even mid-race, took {import_elapsed:.2f}s (trial {trial_i})"
+            )
+    
+            over_budget = [(s, e) for s, _, e in responses if e > _REQUEST_BUDGET_S]
+            assert not over_budget, (
+                f"R-1-015 breach (trial {trial_i}): a parked waiter exceeded {_REQUEST_BUDGET_S}s: {over_budget}"
+            )
+    
+            bad_5xx = [(s, b[:200]) for s, b, _ in responses if s >= 500]
+            assert not bad_5xx, (
+                f"R-1-005/R-1-080b breach (trial {trial_i}): a parked waiter got a 5xx when the entry it was "
+                f"waiting on was wiped out from under it by an import: {bad_5xx}"
+            )
+    
+            statuses = Counter(s for s, _, _ in responses)
+            winners = [b for s, b, _ in responses if s == 201]
+            assert len(winners) <= 1, f"never two winners even across an import race (trial {trial_i}): {len(winners)} 201s"
+            replays = [b for s, b, _ in responses if s == 200]
+            if winners:
+                assert all(b == winners[0] for b in replays), f"every 200 must carry the exact winner body (trial {trial_i})"
+            for s, b, _ in responses:
+                if s not in (200, 201):
+                    assert 400 <= s < 500, f"unexpected non-4xx/non-2xx status {s} (trial {trial_i}): {b}"
+                    assert '"error"' in b, f"a {s} response must carry the error envelope (trial {trial_i}): {b}"
+    
+>           bal_new = api_get("/me", headers={"Authorization": f"Bearer {login_token(new_email)}"}).json()["balance"]
+                                                                         ^^^^^^^^^^^^^^^^^^^^^^
+
+stage-1/tests/adversarial/test_n1_10_2_adversarial.py:230: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+email = 'postimp3e07681b9679@example.com', password = 'password123'
+
+    def login_token(email: str, password: str = "password123") -> str:
+        r = login(email, password)
+>       assert r.status_code == 200, f"login failed: {r.status_code} {r.text}"
+E       AssertionError: login failed: 401 {"error": {"code": "unauthenticated", "message": "missing or unknown bearer token"}}
+E       assert 401 == 200
+E        +  where 401 = <Response [401 Unauthorized]>.status_code
+
+stage-1/tests/conftest.py:110: AssertionError
+=========================== short test summary info ============================
+FAILED stage-1/tests/adversarial/test_n1_10_2_adversarial.py::test_reset_landing_while_waiters_are_parked_on_an_in_flight_claim
+FAILED stage-1/tests/adversarial/test_n1_10_2_adversarial.py::test_import_landing_while_waiters_are_parked_on_an_in_flight_claim
+2 failed, 312 passed in 181.80s (0:03:01)
+
+
+
+RESULT: FAIL — 312 passed, 2 failed, 0 errors, 0 skipped

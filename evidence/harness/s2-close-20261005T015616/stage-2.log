@@ -1,0 +1,68 @@
+$ docker run --rm --network df-run-dbbb6d94cc6040c7898692da0dd3c0cc -v /home/prashant/projects/dark-factory-wearedevs:/work:ro -v /home/prashant/projects/band-work/result/evidence/harness/s2-close-20261005T015616:/out -e PYTHONDONTWRITEBYTECODE=1 -e PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 -e COLUMNS=200 -w /work df-harness-runner python -m pytest pocketful/test/stage_2 --base-url http://df-svc-be3437ea43fe:8080 -p harness.plugin --rootdir pocketful/test -q --previous-base-url http://df-svc-82bcd5fd54bd:8080 --harness-summary /out/stage-2.counts.json
+
+.F.................................                                                                                                                                                              [100%]
+=============================================================================================== FAILURES ===============================================================================================
+_____________________________________________________________________ test_routes_are_directly_navigable[/requests-incoming-list] ______________________________________________________________________
+
+seeded = {'currency': 'EUR', 'minor_units': 2, 'users': [{'id': 'u_ada', 'email': 'ada@example.com', 'password': 'correct horse...'id': 'u_cy', 'email': 'cy@example.com', 'password': 'correct horse', 'display_name': 'Cy', ...}], 'payments': [], ...}
+page = <Page url='http://df-svc-be3437ea43fe:8080/requests'>, route = '/requests', anchor = 'incoming-list'
+
+    @pytest.mark.parametrize("route,anchor", [
+        ("/", "pay-submit"), ("/requests", "incoming-list"), ("/split", "split-submit"),
+        ("/signup", "signup-submit"), ("/login", "login-submit"),
+    ])
+    def test_routes_are_directly_navigable(seeded, page, route, anchor):
+        log_in(page)
+        page.goto(route)
+>       page.wait_for_selector(sel(anchor), state="attached")
+
+pocketful/test/stage_2/test_sample.py:63: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/usr/local/lib/python3.12/site-packages/playwright/sync_api/_generated.py:9061: in wait_for_selector
+    self._sync(
+/usr/local/lib/python3.12/site-packages/playwright/_impl/_page.py:429: in wait_for_selector
+    return await self._main_frame.wait_for_selector(**locals_to_params(locals()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/playwright/_impl/_frame.py:395: in wait_for_selector
+    await self._channel.send(
+/usr/local/lib/python3.12/site-packages/playwright/_impl/_connection.py:76: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <playwright._impl._connection.Connection object at 0x773ee5056a80>, cb = <function Channel.send.<locals>.<lambda> at 0x773ee48d6020>, is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -> Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+>           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Page.wait_for_selector: Timeout 10000ms exceeded.
+E           Call log:
+E             - waiting for locator("[data-testid='incoming-list']")
+
+/usr/local/lib/python3.12/site-packages/playwright/_impl/_connection.py:632: TimeoutError
+=========================================================================================== warnings summary ===========================================================================================
+../usr/local/lib/python3.12/site-packages/_pytest/cacheprovider.py:469
+  /usr/local/lib/python3.12/site-packages/_pytest/cacheprovider.py:469: PytestCacheWarning: could not create cache path /work/pocketful/test/.pytest_cache/v/cache/nodeids: [Errno 30] Read-only file system: '/work/pocketful/test/pytest-cache-files-yob4_l2q'
+    config.cache.set("cache/nodeids", sorted(self.cached_nodeids))
+
+../usr/local/lib/python3.12/site-packages/_pytest/cacheprovider.py:423
+  /usr/local/lib/python3.12/site-packages/_pytest/cacheprovider.py:423: PytestCacheWarning: could not create cache path /work/pocketful/test/.pytest_cache/v/cache/lastfailed: [Errno 30] Read-only file system: '/work/pocketful/test/pytest-cache-files-86pidi19'
+    config.cache.set("cache/lastfailed", self.lastfailed)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================================================================================= short test summary info ========================================================================================
+FAILED pocketful/test/stage_2/test_sample.py::test_routes_are_directly_navigable[/requests-incoming-list] - playwright._impl._errors.TimeoutError: Page.wait_for_selector: Timeout 10000ms exceeded.
+1 failed, 34 passed, 2 warnings in 23.29s
+

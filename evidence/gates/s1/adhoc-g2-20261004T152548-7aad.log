@@ -1,0 +1,53 @@
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /home/prashant/projects/band-work/result/stage-1/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s1/adhoc-g2-20261004T152548-7aad.junit.xml  (exit 1)
+.F...................................................................... [ 23%]
+........................................................................ [ 46%]
+........................................................................ [ 69%]
+........................................................................ [ 92%]
+........................                                                 [100%]
+=================================== FAILURES ===================================
+______________ test_r_1_108_timing_maximum_global_lock_contention ______________
+
+    def test_r_1_108_timing_maximum_global_lock_contention():
+        """Target 1, pushed harder: the single real serialization point every
+        winner contends on is STORE.write_lock() — one global lock, not one
+        per key. So the realistic way to make a winner (and therefore its
+        losers) wait longer is many DIFFERENT keys' winners competing for
+        that same lock at once, not just many losers on one key. 10 distinct
+        32-entry settlements, 50 identical requests each, all 500 requests
+        fired at once."""
+        n_keys = 10
+        per_key = 50
+        jobs = []
+        for k in range(n_keys):
+            op_token, transfers = _settlement_fixture(n_recipients=32, per_transfer=1)
+            key = unique(f"contend{k}")
+            for _ in range(per_key):
+                jobs.append((op_token, transfers, key))
+    
+        def attempt(job):
+            token, transfers, key = job
+            t0 = time.monotonic()
+            r = api_post("/settlements", json={"transfers": transfers}, headers=auth_idem(token, key))
+            return r.status_code, r.text, time.monotonic() - t0
+    
+        with ThreadPoolExecutor(len(jobs)) as pool:
+            responses = list(pool.map(attempt, jobs))
+    
+        over_budget = [e for _, _, e in responses if e > _REQUEST_BUDGET_S]
+        assert not over_budget, (
+            f"R-1-015 breach under {n_keys}x{per_key}-way global lock contention: "
+            f"{len(over_budget)} response(s) exceeded {_REQUEST_BUDGET_S}s, max={max(over_budget, default=None)}"
+        )
+        bad = [s for s, _, _ in responses if s not in (200, 201)]
+>       assert not bad, f"R-1-108/R-1-005 breach under max contention: non-200/201 statuses seen: {Counter(bad)}"
+E       AssertionError: R-1-108/R-1-005 breach under max contention: non-200/201 statuses seen: Counter({401: 450})
+E       assert not [401, 401, 401, 401, 401, 401, ...]
+
+stage-1/tests/adversarial/test_n1_10_adversarial.py:141: AssertionError
+=========================== short test summary info ============================
+FAILED stage-1/tests/adversarial/test_n1_10_adversarial.py::test_r_1_108_timing_maximum_global_lock_contention
+1 failed, 311 passed in 42.16s
+
+
+
+RESULT: FAIL — 311 passed, 1 failed, 0 errors, 0 skipped

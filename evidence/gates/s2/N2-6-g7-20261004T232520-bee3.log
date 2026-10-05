@@ -1,0 +1,7 @@
+axe / @375: serious color-contrast: Elements must meet minimum color contrast ratio thresholds
+axe / @1280: serious color-contrast: Elements must meet minimum color contrast ratio thresholds
+/ @375px: 1 serious axe violation(s) (color-contrast)
+/ @1280px: 1 serious axe violation(s) (color-contrast)
+screenshots: 18 in /home/prashant/projects/band-work/result/evidence/ui/s2
+
+RESULT: FAIL — / @375px: 1 serious axe violation(s) (color-contrast); / @1280px: 1 serious axe violation(s) (color-contrast)

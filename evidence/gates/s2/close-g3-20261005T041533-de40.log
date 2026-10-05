@@ -1,0 +1,14 @@
+$ /home/prashant/projects/dark-factory-wearedevs/.venv/bin/python -m harness run --track pocketful --repo /tmp/redline-wt-jq4olr4_ --stage 2 --mode isolated --out /home/prashant/projects/band-work/result/evidence/harness/s2-close-20261005T041533  (exit 0)
+building /tmp/redline-wt-jq4olr4_/stage-2 ...
+  stage 1: pass  (log: /home/prashant/projects/band-work/result/evidence/harness/s2-close-20261005T041533/stage-1.log)
+building upgrade source /tmp/redline-wt-jq4olr4_/stage-1 ...
+  stage 2: pass  (log: /home/prashant/projects/band-work/result/evidence/harness/s2-close-20261005T041533/stage-2.log)
+  stage 3: fail  (log: /home/prashant/projects/band-work/result/evidence/harness/s2-close-20261005T041533/stage-3.log)
+highest contiguous stage: 2
+claimed stage: 2 on the shipped checks
+report: /home/prashant/projects/band-work/result/evidence/harness/s2-close-20261005T041533/report.json
+NOTE: this run only includes a portion of the full tests that are applied before judging; this is meant to provide directional feedback, and ultimately you may not pass the stage with the full set of tests.
+
+
+
+RESULT: PASS — exit 0; claimed stage 2; suites {'1': 'pass', '2': 'pass', '3': 'fail'}; report /home/prashant/projects/band-work/result/evidence/harness/s2-close-20261005T041533/report.json

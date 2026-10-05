@@ -1,0 +1,106 @@
+$ docker build --label redline-gate=1 -t redline-gate-e6e865100a /tmp/redline-wt-jq4olr4_/stage-2  (exit 0)
+
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 176B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/4] FROM docker.io/library/python:3.12-slim
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 1.89kB done
+#5 DONE 0.0s
+
+#6 [2/4] WORKDIR /app
+#6 CACHED
+
+#7 [3/4] COPY main.py ./main.py
+#7 CACHED
+
+#8 [4/4] COPY service ./service
+#8 CACHED
+
+#9 exporting to image
+#9 exporting layers done
+#9 writing image sha256:6c0ab46bd5f021219bedaae7b940212038a244f6e297e15d4aed8119c8e4b99a done
+#9 naming to docker.io/library/redline-gate-e6e865100a done
+#9 DONE 0.0s
+
+$ docker network create --internal redline-net-70143dc3ea  (exit 0)
+d3ebb45ff081864b334cd2ce9b85b877c1d1d69cda2c3ed4cb07ecc1600fdac5
+
+
+$ docker run -d --network redline-net-70143dc3ea --cpus 2 --memory 2g -e PORT=8080 redline-gate-e6e865100a  (exit 0)
+01dc6980c2c85f8e042e096e92fd48a288c14956e4f474cfd3bea2337c6671b6
+
+
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /tmp/redline-wt-jq4olr4_/stage-1/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s2/close-g5-20261005T041609-febc.junit.xml  (exit 0)
+........................................................................ [ 22%]
+........................................................................ [ 45%]
+........................................................................ [ 68%]
+........................................................................ [ 91%]
+..........................                                               [100%]
+314 passed in 180.60s (0:03:00)
+
+
+$ docker build --label redline-gate=1 -t redline-gate-6110a9b3cf /tmp/redline-wt-jq4olr4_/stage-1  (exit 0)
+
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 176B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/4] FROM docker.io/library/python:3.12-slim
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 1.14kB done
+#5 DONE 0.0s
+
+#6 [3/4] COPY main.py ./main.py
+#6 CACHED
+
+#7 [2/4] WORKDIR /app
+#7 CACHED
+
+#8 [4/4] COPY service ./service
+#8 CACHED
+
+#9 exporting to image
+#9 exporting layers done
+#9 writing image sha256:c705bbc19829da55d08d0e7825a47876ea179dc94ac43cdede3f1e40bd2a847b done
+#9 naming to docker.io/library/redline-gate-6110a9b3cf done
+#9 DONE 0.0s
+
+$ docker network create --internal redline-net-8df3c75a0d  (exit 0)
+f045f0dc0887a8dee8bfb679b98ae78d67f4101eb90dd85f19b689209f6edfd7
+
+
+$ docker run -d --network redline-net-8df3c75a0d --cpus 2 --memory 2g -e PORT=8080 redline-gate-6110a9b3cf  (exit 0)
+9fbcbcc5dbc045fb3222b7b2967c0bdfbb0c022cf2001497d6a55cdaf788cb37
+
+
+upgrade stage-1 -> stage-2: before={'balances': {'alice': 9869, 'bob': 5121, 'carol': 3000, 'dave': 7000, 'erin': 2020, 'frank': 1490}, 'identities': {'alice': ('u-alice', 'alice'), 'bob': ('u-bob', 'bob'), 'carol': ('u-carol', 'carol'), 'dave': ('u-dave', 'dave'), 'erin': ('u-erin', 'erin'), 'frank': ('u-frank', 'frank')}, 'wallets': {'alice': (9869, 0, 9869), 'bob': (5121, 0, 5121), 'carol': (3000, 0, 3000), 'dave': (7000, 0, 7000), 'erin': (2020, 0, 2020), 'frank': (1490, 0, 1490)}, 'requests': [('3g5x2H_yz17dehJLShOmwQ', 'pending', None), ('NCTrDi3oVFOoIW3lyyz9-Q', 'paid', 'kHzo4Vn1gfT7VeaFyhOJiQ'), ('T2Bc5nhjPrbUDmjeMSrS-A', 'paid', '9uOLk0KgUpm6CZSLk8wgnA'), ('r-seed-1', 'pending', None), ('r-seed-2', 'pending', None), ('r-seed-3', 'declined', None), ('r-seed-4', 'cancelled', None), ('r-seed-5', 'paid', None)], 'authorizations': [], 'settlement_id': 'zz4EVybJZVGrXr73y6Cdwg', 'settlement_members': [('Vjg_Vc6VXnJrcc5bLJ02LQ', 10)], 'retry_identity': (200, {'payment_id': 'm8lSnlHRwPDKJ8UcekG2Aw', 'from_user_id': 'u-alice', 'from_handle': 'alice', 'to_user_id': 'u-bob', 'to_handle': 'bob', 'amount': 111, 'currency': 'EUR', 'note': 'populate', 'visibility': 'public', 'request_id': None, 'created_at': '2026-10-05T04:19:12+00:00', 'settlement_id': None}), 'capture_retry_identity': None} after={'balances': {'alice': 9869, 'bob': 5121, 'carol': 3000, 'dave': 7000, 'erin': 2020, 'frank': 1490}, 'identities': {'alice': ('u-alice', 'alice'), 'bob': ('u-bob', 'bob'), 'carol': ('u-carol', 'carol'), 'dave': ('u-dave', 'dave'), 'erin': ('u-erin', 'erin'), 'frank': ('u-frank', 'frank')}, 'wallets': {'alice': (9869, 0, 9869), 'bob': (5121, 0, 5121), 'carol': (3000, 0, 3000), 'dave': (7000, 0, 7000), 'erin': (2020, 0, 2020), 'frank': (1490, 0, 1490)}, 'requests': [('3g5x2H_yz17dehJLShOmwQ', 'pending', None), ('NCTrDi3oVFOoIW3lyyz9-Q', 'paid', 'kHzo4Vn1gfT7VeaFyhOJiQ'), ('T2Bc5nhjPrbUDmjeMSrS-A', 'paid', '9uOLk0KgUpm6CZSLk8wgnA'), ('r-seed-1', 'pending', None), ('r-seed-2', 'pending', None), ('r-seed-3', 'declined', None), ('r-seed-4', 'cancelled', None), ('r-seed-5', 'paid', None)], 'authorizations': [], 'settlement_id': 'zz4EVybJZVGrXr73y6Cdwg', 'settlement_members': [('Vjg_Vc6VXnJrcc5bLJ02LQ', 10)], 'retry_identity': (200, {'payment_id': 'm8lSnlHRwPDKJ8UcekG2Aw', 'from_user_id': 'u-alice', 'from_handle': 'alice', 'to_user_id': 'u-bob', 'to_handle': 'bob', 'amount': 111, 'currency': 'EUR', 'note': 'populate', 'visibility': 'public', 'request_id': None, 'created_at': '2026-10-05T04:19:12+00:00', 'settlement_id': None}), 'capture_retry_identity': None}
+--- service log (tail) ---
+
+
+RESULT: PASS — 314 earlier tests pass; upgrade from stage-1 ok
+--- service log (tail) ---
+

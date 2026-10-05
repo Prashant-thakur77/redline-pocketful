@@ -1,0 +1,54 @@
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /tmp/redline-wt-0i0suela/stage-1/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s1/adhoc-g2-20261004T140217-d950.junit.xml  (exit 1)
+t.py::test_export_shape_unauthenticated
+FAILED ../../../../../tmp/redline-wt-0i0suela/stage-1/tests/test_export_import.py::test_import_unauthenticated_and_full_replace
+FAILED ../../../../../tmp/redline-wt-0i0suela/stage-1/tests/test_export_import.py::test_import_accepts_unmodified_export_regardless_of_origin
+FAILED ../../../../../tmp/redline-wt-0i0suela/stage-1/tests/test_export_import.py::test_import_is_replacement_not_merge_idempotent
+FAILED ../../../../../tmp/redline-wt-0i0suela/stage-1/tests/test_export_import.py::test_import_malformed_and_invalid_body
+FAILED ../../../../../tmp/redline-wt-0i0suela/stage-1/tests/test_export_import.py::test_export_import_preserves_accounts_tokens_balances_requests
+FAILED ../../../../../tmp/redline-wt-0i0suela/stage-1/tests/test_export_import.py::test_export_is_atomic_readonly_snapshot
+FAILED ../../../../../tmp/redline-wt-0i0suela/stage-1/tests/test_export_import.py::test_export_import_preserves_settlement_operator_and_membership
+FAILED ../../../../../tmp/redline-wt-0i0suela/stage-1/tests/test_idempotency.py::test_five_paths_require_idempotency_key
+FAILED ../../../../../tmp/redline-wt-0i0suela/stage-1/tests/test_idempotency.py::test_absent_vs_default_present_is_different_body
+FAILED ../../../../../tmp/redline-wt-0i0suela/stage-1/tests/test_idempotency.py::test_key_reused_after_4xx_failure_is_first_use
+FAILED ../../../../../tmp/redline-wt-0i0suela/stage-1/tests/test_idempotency.py::test_replay_after_resource_changed_still_returns_original
+FAILED ../../../../../tmp/redline-wt-0i0suela/stage-1/tests/test_payments_activity.py::test_split_itself_not_a_feed_item
+FAILED ../../../../../tmp/redline-wt-0i0suela/stage-1/tests/test_payments_activity.py::test_settlement_member_payment_follows_feed_visibility_rule
+FAILED ../../../../../tmp/redline-wt-0i0suela/stage-1/tests/test_requests.py::test_request_lifecycle_terminal_states
+FAILED ../../../../../tmp/redline-wt-0i0suela/stage-1/tests/test_requests.py::test_pay_request_payer_only_shape
+FAILED ../../../../../tmp/redline-wt-0i0suela/stage-1/tests/test_requests.py::test_pay_request_visibility_is_payers_choice
+FAILED ../../../../../tmp/redline-wt-0i0suela/stage-1/tests/test_requests.py::test_pay_body_distinguishes_empty_from_explicit_default
+FAILED ../../../../../tmp/redline-wt-0i0suela/stage-1/tests/test_requests.py::test_replaying_successful_pay_never_409s
+FAILED ../../../../../tmp/redline-wt-0i0suela/stage-1/tests/test_requests.py::test_decline_request
+FAILED ../../../../../tmp/redline-wt-0i0suela/stage-1/tests/test_reset_fixture.py::test_reset_accepts_full_fixture_shape
+FAILED ../../../../../tmp/redline-wt-0i0suela/stage-1/tests/test_settlements.py::test_settlement_requires_operator_and_key
+FAILED ../../../../../tmp/redline-wt-0i0suela/stage-1/tests/test_settlements.py::test_settlement_body_shape_and_defaults
+FAILED ../../../../../tmp/redline-wt-0i0suela/stage-1/tests/test_settlements.py::test_settlement_batch_shape_errors
+FAILED ../../../../../tmp/redline-wt-0i0suela/stage-1/tests/test_settlements.py::test_settlement_per_entry_errors
+FAILED ../../../../../tmp/redline-wt-0i0suela/stage-1/tests/test_settlements.py::test_affordable_net_zero_batch_succeeds_even_if_single_leg_would_not
+FAILED ../../../../../tmp/redline-wt-0i0suela/stage-1/tests/test_settlements.py::test_unaffordable_net_batch_rejected_and_changes_nothing
+FAILED ../../../../../tmp/redline-wt-0i0suela/stage-1/tests/test_settlements.py::test_settlement_atomic_all_or_nothing
+FAILED ../../../../../tmp/redline-wt-0i0suela/stage-1/tests/test_settlements.py::test_failed_settlement_claims_no_key_and_creates_nothing
+FAILED ../../../../../tmp/redline-wt-0i0suela/stage-1/tests/test_settlements.py::test_successful_settlement_response_shape
+FAILED ../../../../../tmp/redline-wt-0i0suela/stage-1/tests/test_settlements.py::test_replaying_settlement_moves_no_additional_money
+FAILED ../../../../../tmp/redline-wt-0i0suela/stage-1/tests/test_settlements.py::test_settlement_ignores_unknown_fields
+FAILED ../../../../../tmp/redline-wt-0i0suela/stage-1/tests/test_settlements.py::test_operator_self_transfer_entries_permitted
+FAILED ../../../../../tmp/redline-wt-0i0suela/stage-1/tests/test_splits.py::test_split_creates_requests_for_everyone_but_caller
+FAILED ../../../../../tmp/redline-wt-0i0suela/stage-1/tests/test_splits.py::test_split_response_shape
+FAILED ../../../../../tmp/redline-wt-0i0suela/stage-1/tests/test_splits.py::test_shares_sum_exactly_to_amount
+FAILED ../../../../../tmp/redline-wt-0i0suela/stage-1/tests/test_splits.py::test_share_arithmetic_matches_spec_examples[1000-3-expected0]
+FAILED ../../../../../tmp/redline-wt-0i0suela/stage-1/tests/test_splits.py::test_share_arithmetic_matches_spec_examples[1-3-expected1]
+FAILED ../../../../../tmp/redline-wt-0i0suela/stage-1/tests/test_splits.py::test_share_arithmetic_matches_spec_examples[10-3-expected2]
+FAILED ../../../../../tmp/redline-wt-0i0suela/stage-1/tests/test_splits.py::test_share_arithmetic_matches_spec_examples[999-3-expected3]
+FAILED ../../../../../tmp/redline-wt-0i0suela/stage-1/tests/test_splits.py::test_share_arithmetic_matches_spec_examples[5-5-expected4]
+FAILED ../../../../../tmp/redline-wt-0i0suela/stage-1/tests/test_splits.py::test_reordering_participants_changes_who_gets_extra_unit
+FAILED ../../../../../tmp/redline-wt-0i0suela/stage-1/tests/test_splits.py::test_zero_share_is_legal_and_still_creates_request
+FAILED ../../../../../tmp/redline-wt-0i0suela/stage-1/tests/test_splits.py::test_split_only_caller_participant
+FAILED ../../../../../tmp/redline-wt-0i0suela/stage-1/tests/test_splits.py::test_split_checks_no_balance_and_moves_no_money
+FAILED ../../../../../tmp/redline-wt-0i0suela/stage-1/tests/test_splits.py::test_split_errors
+FAILED ../../../../../tmp/redline-wt-0i0suela/stage-1/tests/test_splits.py::test_split_participant_handles_type_errors
+FAILED ../../../../../tmp/redline-wt-0i0suela/stage-1/tests/test_splits.py::test_each_split_independent_balances_sum_preserved
+51 failed, 162 passed in 19.11s
+
+
+
+RESULT: FAIL — 162 passed, 51 failed, 0 errors, 0 skipped

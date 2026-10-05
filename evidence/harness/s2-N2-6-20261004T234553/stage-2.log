@@ -1,0 +1,516 @@
+$ docker run --rm --network df-run-9e22944b7d3c432cb12cee47e1789948 -v /home/prashant/projects/dark-factory-wearedevs:/work:ro -v /home/prashant/projects/band-work/result/evidence/harness/s2-N2-6-20261004T234553:/out -e PYTHONDONTWRITEBYTECODE=1 -e PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 -e COLUMNS=200 -w /work df-harness-runner python -m pytest pocketful/test/stage_2 --base-url http://df-svc-e9c0c4c32a59:8080 -p harness.plugin --rootdir pocketful/test -q --previous-base-url http://df-svc-d17a996d737c:8080 --harness-summary /out/stage-2.counts.json
+
+.FF....................FFFF.FFFF...                                                                                                                                                              [100%]
+=============================================================================================== FAILURES ===============================================================================================
+_____________________________________________________________________ test_routes_are_directly_navigable[/requests-incoming-list] ______________________________________________________________________
+
+seeded = {'currency': 'EUR', 'minor_units': 2, 'users': [{'id': 'u_ada', 'email': 'ada@example.com', 'password': 'correct horse...'id': 'u_cy', 'email': 'cy@example.com', 'password': 'correct horse', 'display_name': 'Cy', ...}], 'payments': [], ...}
+page = <Page url='http://df-svc-e9c0c4c32a59:8080/requests'>, route = '/requests', anchor = 'incoming-list'
+
+    @pytest.mark.parametrize("route,anchor", [
+        ("/", "pay-submit"), ("/requests", "incoming-list"), ("/split", "split-submit"),
+        ("/signup", "signup-submit"), ("/login", "login-submit"),
+    ])
+    def test_routes_are_directly_navigable(seeded, page, route, anchor):
+        log_in(page)
+        page.goto(route)
+>       page.wait_for_selector(sel(anchor), state="attached")
+
+pocketful/test/stage_2/test_sample.py:63: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/usr/local/lib/python3.12/site-packages/playwright/sync_api/_generated.py:9061: in wait_for_selector
+    self._sync(
+/usr/local/lib/python3.12/site-packages/playwright/_impl/_page.py:429: in wait_for_selector
+    return await self._main_frame.wait_for_selector(**locals_to_params(locals()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/playwright/_impl/_frame.py:395: in wait_for_selector
+    await self._channel.send(
+/usr/local/lib/python3.12/site-packages/playwright/_impl/_connection.py:76: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <playwright._impl._connection.Connection object at 0x7da215f60bc0>, cb = <function Channel.send.<locals>.<lambda> at 0x7da2155fe980>, is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -> Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+>           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Page.wait_for_selector: Timeout 10000ms exceeded.
+E           Call log:
+E             - waiting for locator("[data-testid='incoming-list']")
+
+/usr/local/lib/python3.12/site-packages/playwright/_impl/_connection.py:632: TimeoutError
+_______________________________________________________________________ test_routes_are_directly_navigable[/split-split-submit] ________________________________________________________________________
+
+seeded = {'currency': 'EUR', 'minor_units': 2, 'users': [{'id': 'u_ada', 'email': 'ada@example.com', 'password': 'correct horse...'id': 'u_cy', 'email': 'cy@example.com', 'password': 'correct horse', 'display_name': 'Cy', ...}], 'payments': [], ...}
+page = <Page url='http://df-svc-e9c0c4c32a59:8080/split'>, route = '/split', anchor = 'split-submit'
+
+    @pytest.mark.parametrize("route,anchor", [
+        ("/", "pay-submit"), ("/requests", "incoming-list"), ("/split", "split-submit"),
+        ("/signup", "signup-submit"), ("/login", "login-submit"),
+    ])
+    def test_routes_are_directly_navigable(seeded, page, route, anchor):
+        log_in(page)
+        page.goto(route)
+>       page.wait_for_selector(sel(anchor), state="attached")
+
+pocketful/test/stage_2/test_sample.py:63: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/usr/local/lib/python3.12/site-packages/playwright/sync_api/_generated.py:9061: in wait_for_selector
+    self._sync(
+/usr/local/lib/python3.12/site-packages/playwright/_impl/_page.py:429: in wait_for_selector
+    return await self._main_frame.wait_for_selector(**locals_to_params(locals()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/playwright/_impl/_frame.py:395: in wait_for_selector
+    await self._channel.send(
+/usr/local/lib/python3.12/site-packages/playwright/_impl/_connection.py:76: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <playwright._impl._connection.Connection object at 0x7da215f60bc0>, cb = <function Channel.send.<locals>.<lambda> at 0x7da2155ff6a0>, is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -> Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+>           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Page.wait_for_selector: Timeout 10000ms exceeded.
+E           Call log:
+E             - waiting for locator("[data-testid='split-submit']")
+
+/usr/local/lib/python3.12/site-packages/playwright/_impl/_connection.py:632: TimeoutError
+__________________________________________________________________________________ test_incoming_request_can_be_paid ___________________________________________________________________________________
+
+seeded = {'currency': 'EUR', 'minor_units': 2, 'users': [{'id': 'u_ada', 'email': 'ada@example.com', 'password': 'correct horse...'id': 'u_cy', 'email': 'cy@example.com', 'password': 'correct horse', 'display_name': 'Cy', ...}], 'payments': [], ...}
+page = <Page url='http://df-svc-e9c0c4c32a59:8080/requests'>, api = <function api.<locals>._api at 0x7da2154e5080>
+
+    def test_incoming_request_can_be_paid(seeded, page, api):
+        bob = api().authenticate(fx.BOB["email"], fx.BOB["password"])
+        rid = bob.post("/requests", json={"payer_handle": "ada", "amount": 1200},
+                       idempotency_key=new_key()).json()["request_id"]
+        log_in(page)
+        page.goto("/requests")
+>       page.wait_for_selector(sel(f"request-item-{rid}"))
+
+pocketful/test/stage_2/test_ui.py:191: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/usr/local/lib/python3.12/site-packages/playwright/sync_api/_generated.py:9061: in wait_for_selector
+    self._sync(
+/usr/local/lib/python3.12/site-packages/playwright/_impl/_page.py:429: in wait_for_selector
+    return await self._main_frame.wait_for_selector(**locals_to_params(locals()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/playwright/_impl/_frame.py:395: in wait_for_selector
+    await self._channel.send(
+/usr/local/lib/python3.12/site-packages/playwright/_impl/_connection.py:76: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <playwright._impl._connection.Connection object at 0x7da215f60bc0>, cb = <function Channel.send.<locals>.<lambda> at 0x7da2154e4ae0>, is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -> Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+>           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Page.wait_for_selector: Timeout 10000ms exceeded.
+E           Call log:
+E             - waiting for locator("[data-testid='request-item-Htf8caYEVqTovuluEjafDA']") to be visible
+
+/usr/local/lib/python3.12/site-packages/playwright/_impl/_connection.py:632: TimeoutError
+________________________________________________________________________________ test_incoming_request_can_be_declined _________________________________________________________________________________
+
+seeded = {'currency': 'EUR', 'minor_units': 2, 'users': [{'id': 'u_ada', 'email': 'ada@example.com', 'password': 'correct horse...'id': 'u_cy', 'email': 'cy@example.com', 'password': 'correct horse', 'display_name': 'Cy', ...}], 'payments': [], ...}
+page = <Page url='http://df-svc-e9c0c4c32a59:8080/requests'>, api = <function api.<locals>._api at 0x7da21546f060>
+
+    def test_incoming_request_can_be_declined(seeded, page, api):
+        bob = api().authenticate(fx.BOB["email"], fx.BOB["password"])
+        rid = bob.post("/requests", json={"payer_handle": "ada", "amount": 100},
+                       idempotency_key=new_key()).json()["request_id"]
+        log_in(page)
+        page.goto("/requests")
+>       page.click(sel(f"request-decline-{rid}"))
+
+pocketful/test/stage_2/test_ui.py:206: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/usr/local/lib/python3.12/site-packages/playwright/sync_api/_generated.py:11102: in click
+    self._sync(
+/usr/local/lib/python3.12/site-packages/playwright/_impl/_page.py:889: in click
+    return await self._main_frame._click(**locals_to_params(locals()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/playwright/_impl/_frame.py:594: in _click
+    await self._channel.send("click", self._timeout, locals_to_params(locals()))
+/usr/local/lib/python3.12/site-packages/playwright/_impl/_connection.py:76: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <playwright._impl._connection.Connection object at 0x7da215f60bc0>, cb = <function Channel.send.<locals>.<lambda> at 0x7da215400ae0>, is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -> Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+>           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Page.click: Timeout 10000ms exceeded.
+E           Call log:
+E             - waiting for locator("[data-testid='request-decline-yy5brTaV8oeiJgKzNXbc8w']")
+
+/usr/local/lib/python3.12/site-packages/playwright/_impl/_connection.py:632: TimeoutError
+________________________________________________________________________________ test_outgoing_request_can_be_cancelled ________________________________________________________________________________
+
+seeded = {'currency': 'EUR', 'minor_units': 2, 'users': [{'id': 'u_ada', 'email': 'ada@example.com', 'password': 'correct horse...'id': 'u_cy', 'email': 'cy@example.com', 'password': 'correct horse', 'display_name': 'Cy', ...}], 'payments': [], ...}
+page = <Page url='http://df-svc-e9c0c4c32a59:8080/requests'>, api = <function api.<locals>._api at 0x7da2154e6700>
+
+    def test_outgoing_request_can_be_cancelled(seeded, page, api):
+        ada = api().authenticate(fx.ADA["email"], fx.ADA["password"])
+        rid = ada.post("/requests", json={"payer_handle": "bob", "amount": 100},
+                       idempotency_key=new_key()).json()["request_id"]
+        log_in(page)
+        page.goto("/requests")
+>       page.wait_for_selector(sel(f"request-item-{rid}"))
+
+pocketful/test/stage_2/test_ui.py:216: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/usr/local/lib/python3.12/site-packages/playwright/sync_api/_generated.py:9061: in wait_for_selector
+    self._sync(
+/usr/local/lib/python3.12/site-packages/playwright/_impl/_page.py:429: in wait_for_selector
+    return await self._main_frame.wait_for_selector(**locals_to_params(locals()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/playwright/_impl/_frame.py:395: in wait_for_selector
+    await self._channel.send(
+/usr/local/lib/python3.12/site-packages/playwright/_impl/_connection.py:76: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <playwright._impl._connection.Connection object at 0x7da215f60bc0>, cb = <function Channel.send.<locals>.<lambda> at 0x7da2154e7880>, is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -> Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+>           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Page.wait_for_selector: Timeout 10000ms exceeded.
+E           Call log:
+E             - waiting for locator("[data-testid='request-item-fySO_yN6YAmWvTOYNyxL8w']") to be visible
+
+/usr/local/lib/python3.12/site-packages/playwright/_impl/_connection.py:632: TimeoutError
+_______________________________________________________________________ test_paying_a_request_without_funds_shows_request_error ________________________________________________________________________
+
+seeded = {'currency': 'EUR', 'minor_units': 2, 'users': [{'id': 'u_ada', 'email': 'ada@example.com', 'password': 'correct horse...'id': 'u_cy', 'email': 'cy@example.com', 'password': 'correct horse', 'display_name': 'Cy', ...}], 'payments': [], ...}
+page = <Page url='http://df-svc-e9c0c4c32a59:8080/requests'>, api = <function api.<locals>._api at 0x7da2153f89a0>
+
+    def test_paying_a_request_without_funds_shows_request_error(seeded, page, api):
+        ada = api().authenticate(fx.ADA["email"], fx.ADA["password"])
+        rid = ada.post("/requests", json={"payer_handle": "cy", "amount": 90_000},
+                       idempotency_key=new_key()).json()["request_id"]
+        log_in(page, email=fx.CY["email"])
+        page.goto("/requests")
+>       page.click(sel(f"request-pay-{rid}"))
+
+pocketful/test/stage_2/test_ui.py:229: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/usr/local/lib/python3.12/site-packages/playwright/sync_api/_generated.py:11102: in click
+    self._sync(
+/usr/local/lib/python3.12/site-packages/playwright/_impl/_page.py:889: in click
+    return await self._main_frame._click(**locals_to_params(locals()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/playwright/_impl/_frame.py:594: in _click
+    await self._channel.send("click", self._timeout, locals_to_params(locals()))
+/usr/local/lib/python3.12/site-packages/playwright/_impl/_connection.py:76: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <playwright._impl._connection.Connection object at 0x7da215f60bc0>, cb = <function Channel.send.<locals>.<lambda> at 0x7da2153fb7e0>, is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -> Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+>           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Page.click: Timeout 10000ms exceeded.
+E           Call log:
+E             - waiting for locator("[data-testid='request-pay-ZfKY9A_k3XADzXvtEdsMog']")
+
+/usr/local/lib/python3.12/site-packages/playwright/_impl/_connection.py:632: TimeoutError
+______________________________________________________________________________ test_split_preview_matches_the_server_rule ______________________________________________________________________________
+
+seeded = {'currency': 'EUR', 'minor_units': 2, 'users': [{'id': 'u_ada', 'email': 'ada@example.com', 'password': 'correct horse...'id': 'u_cy', 'email': 'cy@example.com', 'password': 'correct horse', 'display_name': 'Cy', ...}], 'payments': [], ...}
+page = <Page url='http://df-svc-e9c0c4c32a59:8080/split'>
+
+    def test_split_preview_matches_the_server_rule(seeded, page):
+        """10.00 among three is 334, 333, 333 -- computed before anything is posted."""
+        log_in(page)
+        page.goto("/split")
+>       page.fill(sel("split-amount"), "10.00")
+
+pocketful/test/stage_2/test_ui.py:245: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/usr/local/lib/python3.12/site-packages/playwright/sync_api/_generated.py:11332: in fill
+    self._sync(
+/usr/local/lib/python3.12/site-packages/playwright/_impl/_page.py:930: in fill
+    return await self._main_frame.fill(**locals_to_params(locals()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/playwright/_impl/_frame.py:637: in fill
+    await self._fill(**locals_to_params(locals()))
+/usr/local/lib/python3.12/site-packages/playwright/_impl/_frame.py:649: in _fill
+    await self._channel.send("fill", self._timeout, locals_to_params(locals()))
+/usr/local/lib/python3.12/site-packages/playwright/_impl/_connection.py:76: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <playwright._impl._connection.Connection object at 0x7da215f60bc0>, cb = <function Channel.send.<locals>.<lambda> at 0x7da2153faf20>, is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -> Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+>           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Page.fill: Timeout 10000ms exceeded.
+E           Call log:
+E             - waiting for locator("[data-testid='split-amount']")
+
+/usr/local/lib/python3.12/site-packages/playwright/_impl/_connection.py:632: TimeoutError
+_______________________________________________________________________________ test_split_preview_follows_handle_order ________________________________________________________________________________
+
+seeded = {'currency': 'EUR', 'minor_units': 2, 'users': [{'id': 'u_ada', 'email': 'ada@example.com', 'password': 'correct horse...'id': 'u_cy', 'email': 'cy@example.com', 'password': 'correct horse', 'display_name': 'Cy', ...}], 'payments': [], ...}
+page = <Page url='http://df-svc-e9c0c4c32a59:8080/split'>
+
+    def test_split_preview_follows_handle_order(seeded, page):
+        log_in(page)
+        page.goto("/split")
+>       page.fill(sel("split-amount"), "10.00")
+
+pocketful/test/stage_2/test_ui.py:256: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/usr/local/lib/python3.12/site-packages/playwright/sync_api/_generated.py:11332: in fill
+    self._sync(
+/usr/local/lib/python3.12/site-packages/playwright/_impl/_page.py:930: in fill
+    return await self._main_frame.fill(**locals_to_params(locals()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/playwright/_impl/_frame.py:637: in fill
+    await self._fill(**locals_to_params(locals()))
+/usr/local/lib/python3.12/site-packages/playwright/_impl/_frame.py:649: in _fill
+    await self._channel.send("fill", self._timeout, locals_to_params(locals()))
+/usr/local/lib/python3.12/site-packages/playwright/_impl/_connection.py:76: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <playwright._impl._connection.Connection object at 0x7da215f60bc0>, cb = <function Channel.send.<locals>.<lambda> at 0x7da215889ee0>, is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -> Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+>           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Page.fill: Timeout 10000ms exceeded.
+E           Call log:
+E             - waiting for locator("[data-testid='split-amount']")
+
+/usr/local/lib/python3.12/site-packages/playwright/_impl/_connection.py:632: TimeoutError
+_______________________________________________________________________________ test_split_submits_and_creates_requests ________________________________________________________________________________
+
+seeded = {'currency': 'EUR', 'minor_units': 2, 'users': [{'id': 'u_ada', 'email': 'ada@example.com', 'password': 'correct horse...'id': 'u_cy', 'email': 'cy@example.com', 'password': 'correct horse', 'display_name': 'Cy', ...}], 'payments': [], ...}
+page = <Page url='http://df-svc-e9c0c4c32a59:8080/split'>, api = <function api.<locals>._api at 0x7da215777380>
+
+    def test_split_submits_and_creates_requests(seeded, page, api):
+        log_in(page)
+        page.goto("/split")
+>       page.fill(sel("split-amount"), "10.00")
+
+pocketful/test/stage_2/test_ui.py:266: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/usr/local/lib/python3.12/site-packages/playwright/sync_api/_generated.py:11332: in fill
+    self._sync(
+/usr/local/lib/python3.12/site-packages/playwright/_impl/_page.py:930: in fill
+    return await self._main_frame.fill(**locals_to_params(locals()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/playwright/_impl/_frame.py:637: in fill
+    await self._fill(**locals_to_params(locals()))
+/usr/local/lib/python3.12/site-packages/playwright/_impl/_frame.py:649: in _fill
+    await self._channel.send("fill", self._timeout, locals_to_params(locals()))
+/usr/local/lib/python3.12/site-packages/playwright/_impl/_connection.py:76: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <playwright._impl._connection.Connection object at 0x7da215f60bc0>, cb = <function Channel.send.<locals>.<lambda> at 0x7da215776de0>, is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -> Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+>           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Page.fill: Timeout 10000ms exceeded.
+E           Call log:
+E             - waiting for locator("[data-testid='split-amount']")
+
+/usr/local/lib/python3.12/site-packages/playwright/_impl/_connection.py:632: TimeoutError
+________________________________________________________________________________ test_split_error_on_an_unknown_handle _________________________________________________________________________________
+
+seeded = {'currency': 'EUR', 'minor_units': 2, 'users': [{'id': 'u_ada', 'email': 'ada@example.com', 'password': 'correct horse...'id': 'u_cy', 'email': 'cy@example.com', 'password': 'correct horse', 'display_name': 'Cy', ...}], 'payments': [], ...}
+page = <Page url='http://df-svc-e9c0c4c32a59:8080/split'>
+
+    def test_split_error_on_an_unknown_handle(seeded, page):
+        log_in(page)
+        page.goto("/split")
+>       page.fill(sel("split-amount"), "10.00")
+
+pocketful/test/stage_2/test_ui.py:283: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/usr/local/lib/python3.12/site-packages/playwright/sync_api/_generated.py:11332: in fill
+    self._sync(
+/usr/local/lib/python3.12/site-packages/playwright/_impl/_page.py:930: in fill
+    return await self._main_frame.fill(**locals_to_params(locals()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/site-packages/playwright/_impl/_frame.py:637: in fill
+    await self._fill(**locals_to_params(locals()))
+/usr/local/lib/python3.12/site-packages/playwright/_impl/_frame.py:649: in _fill
+    await self._channel.send("fill", self._timeout, locals_to_params(locals()))
+/usr/local/lib/python3.12/site-packages/playwright/_impl/_connection.py:76: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <playwright._impl._connection.Connection object at 0x7da215f60bc0>, cb = <function Channel.send.<locals>.<lambda> at 0x7da2155fdf80>, is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -> Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+>           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Page.fill: Timeout 10000ms exceeded.
+E           Call log:
+E             - waiting for locator("[data-testid='split-amount']")
+
+/usr/local/lib/python3.12/site-packages/playwright/_impl/_connection.py:632: TimeoutError
+=========================================================================================== warnings summary ===========================================================================================
+../usr/local/lib/python3.12/site-packages/_pytest/cacheprovider.py:469
+  /usr/local/lib/python3.12/site-packages/_pytest/cacheprovider.py:469: PytestCacheWarning: could not create cache path /work/pocketful/test/.pytest_cache/v/cache/nodeids: [Errno 30] Read-only file system: '/work/pocketful/test/pytest-cache-files-ajsfbym3'
+    config.cache.set("cache/nodeids", sorted(self.cached_nodeids))
+
+../usr/local/lib/python3.12/site-packages/_pytest/cacheprovider.py:423
+  /usr/local/lib/python3.12/site-packages/_pytest/cacheprovider.py:423: PytestCacheWarning: could not create cache path /work/pocketful/test/.pytest_cache/v/cache/lastfailed: [Errno 30] Read-only file system: '/work/pocketful/test/pytest-cache-files-3k14pwh1'
+    config.cache.set("cache/lastfailed", self.lastfailed)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================================================================================= short test summary info ========================================================================================
+FAILED pocketful/test/stage_2/test_sample.py::test_routes_are_directly_navigable[/requests-incoming-list] - playwright._impl._errors.TimeoutError: Page.wait_for_selector: Timeout 10000ms exceeded.
+FAILED pocketful/test/stage_2/test_sample.py::test_routes_are_directly_navigable[/split-split-submit] - playwright._impl._errors.TimeoutError: Page.wait_for_selector: Timeout 10000ms exceeded.
+FAILED pocketful/test/stage_2/test_ui.py::test_incoming_request_can_be_paid - playwright._impl._errors.TimeoutError: Page.wait_for_selector: Timeout 10000ms exceeded.
+FAILED pocketful/test/stage_2/test_ui.py::test_incoming_request_can_be_declined - playwright._impl._errors.TimeoutError: Page.click: Timeout 10000ms exceeded.
+FAILED pocketful/test/stage_2/test_ui.py::test_outgoing_request_can_be_cancelled - playwright._impl._errors.TimeoutError: Page.wait_for_selector: Timeout 10000ms exceeded.
+FAILED pocketful/test/stage_2/test_ui.py::test_paying_a_request_without_funds_shows_request_error - playwright._impl._errors.TimeoutError: Page.click: Timeout 10000ms exceeded.
+FAILED pocketful/test/stage_2/test_ui.py::test_split_preview_matches_the_server_rule - playwright._impl._errors.TimeoutError: Page.fill: Timeout 10000ms exceeded.
+FAILED pocketful/test/stage_2/test_ui.py::test_split_preview_follows_handle_order - playwright._impl._errors.TimeoutError: Page.fill: Timeout 10000ms exceeded.
+FAILED pocketful/test/stage_2/test_ui.py::test_split_submits_and_creates_requests - playwright._impl._errors.TimeoutError: Page.fill: Timeout 10000ms exceeded.
+FAILED pocketful/test/stage_2/test_ui.py::test_split_error_on_an_unknown_handle - playwright._impl._errors.TimeoutError: Page.fill: Timeout 10000ms exceeded.
+10 failed, 25 passed, 2 warnings in 114.05s (0:01:54)
+

@@ -1,0 +1,3 @@
+item N1-1: attempts 6.0 > cap 4
+
+RESULT: FAIL — item N1-1: attempts 6.0 > cap 4 — return the item to @planner

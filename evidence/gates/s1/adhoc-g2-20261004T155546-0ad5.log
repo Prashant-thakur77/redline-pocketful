@@ -1,0 +1,60 @@
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /home/prashant/projects/band-work/result/stage-1/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s1/adhoc-g2-20261004T155546-0ad5.junit.xml  (exit 1)
+........................................................................ [ 22%]
+........................................................................ [ 45%]
+.......F................................................................ [ 68%]
+........................................................................ [ 91%]
+..........................                                               [100%]
+=================================== FAILURES ===================================
+_______________________ test_over_long_request_line_400 ________________________
+
+    def test_over_long_request_line_400():
+        """R-1-079, R-1-060: an over-long request line is a client-caused
+        framing error, never a dropped connection and never a framework's own
+        error page — and the envelope's message must be a non-empty string like
+        every other error response."""
+        long_path = "/" + ("a" * 100_000)
+        request = f"GET {long_path} HTTP/1.1\r\nHost: test\r\nConnection: close\r\n\r\n".encode()
+        raw = _send_raw(request)
+        assert _status_code(raw) == 400
+        assert b"<html" not in raw.lower(), "no HTML error page may ever be emitted"
+>       body = _error_body(raw)
+               ^^^^^^^^^^^^^^^^
+
+stage-1/tests/test_http_framing.py:68: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+stage-1/tests/test_http_framing.py:55: in _error_body
+    return json.loads(body.decode("utf-8"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.13-linux-x86_64-gnu/lib/python3.12/json/__init__.py:346: in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.13-linux-x86_64-gnu/lib/python3.12/json/decoder.py:338: in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <json.decoder.JSONDecoder object at 0x7f9da79c1730>, s = '', idx = 0
+
+    def raw_decode(self, s, idx=0):
+        """Decode a JSON document from ``s`` (a ``str`` beginning with
+        a JSON document) and return a 2-tuple of the Python
+        representation and the index in ``s`` where the document ended.
+    
+        This can be used to decode a JSON document from a string that may
+        have extraneous data at the end.
+    
+        """
+        try:
+            obj, end = self.scan_once(s, idx)
+        except StopIteration as err:
+>           raise JSONDecodeError("Expecting value", s, err.value) from None
+E           json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+
+../../../.local/share/uv/python/cpython-3.12.13-linux-x86_64-gnu/lib/python3.12/json/decoder.py:356: JSONDecodeError
+=========================== short test summary info ============================
+FAILED stage-1/tests/test_http_framing.py::test_over_long_request_line_400 - ...
+1 failed, 313 passed in 185.05s (0:03:05)
+
+
+
+RESULT: FAIL — 313 passed, 1 failed, 0 errors, 0 skipped

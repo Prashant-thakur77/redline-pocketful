@@ -1,0 +1,202 @@
+$ docker build --label redline-gate=1 -t redline-mut-30040ac4-base /tmp/redline-mut-5x8zmq5b/stage-1  (exit 0)
+
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 176B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/4] FROM docker.io/library/python:3.12-slim
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 3.94kB done
+#5 DONE 0.0s
+
+#6 [2/4] WORKDIR /app
+#6 CACHED
+
+#7 [3/4] COPY main.py ./main.py
+#7 CACHED
+
+#8 [4/4] COPY service ./service
+#8 CACHED
+
+#9 exporting to image
+#9 exporting layers done
+#9 writing image sha256:c66e748797902782e3432de50687b194864383b08a1fdbd6653198eaa3ae6406 done
+#9 naming to docker.io/library/redline-mut-30040ac4-base done
+#9 DONE 0.0s
+
+$ docker network create --internal redline-net-b7eacd7e4d  (exit 0)
+b281817a2d80603a75920a25748ed0fad681264bff7130d2c593a0b0c823cbfd
+
+
+$ docker run -d --network redline-net-b7eacd7e4d --cpus 2 --memory 2g -e PORT=8080 redline-mut-30040ac4-base  (exit 0)
+98eab055d9b7cfde61f35566a151938845f84c04cae13ea35bda1b2362694309
+
+
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /tmp/redline-mut-5x8zmq5b/stage-1/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s1/N1-T.8-g6-20261004T154001-8d54.junit.xml  (exit 0)
+........................................................................ [ 22%]
+........................................................................ [ 45%]
+........................................................................ [ 68%]
+........................................................................ [ 91%]
+..........................                                               [100%]
+314 passed in 62.74s (0:01:02)
+
+
+--- service log (tail) ---
+
+$ docker build --label redline-gate=1 -t redline-mut-30040ac4-1 /tmp/redline-mut-5x8zmq5b/stage-1  (exit 0)
+
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 176B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/4] FROM docker.io/library/python:3.12-slim
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 9.21kB done
+#5 DONE 0.0s
+
+#6 [2/4] WORKDIR /app
+#6 CACHED
+
+#7 [3/4] COPY main.py ./main.py
+#7 CACHED
+
+#8 [4/4] COPY service ./service
+#8 CACHED
+
+#9 exporting to image
+#9 exporting layers done
+#9 writing image sha256:20de8051750acb9f80b1c4bf85af35d664c50e6775f1120cb0d556d07b90a01d done
+#9 naming to docker.io/library/redline-mut-30040ac4-1 done
+#9 DONE 0.0s
+
+$ docker network create --internal redline-net-ca3b5ece81  (exit 0)
+417312c8206b57d89cfbaa21ea4fcb03435b7144404c8e7d9b2fbc6e17a00d42
+
+
+$ docker run -d --network redline-net-ca3b5ece81 --cpus 2 --memory 2g -e PORT=8080 redline-mut-30040ac4-1  (exit 0)
+34b19c80f7c194d1b574b4229936e0c7bd507b194d4e6dd34077f228c5e00b1e
+
+
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /tmp/redline-mut-5x8zmq5b/stage-1/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s1/N1-T.8-g6-20261004T154001-8d54.junit.xml -x  (exit 1)
+........................................................................ [ 22%]
+........................................................................ [ 45%]
+........................................................................ [ 68%]
+.........................................................F
+=================================== FAILURES ===================================
+________________ test_settlement_entry_missing_from_handle_422 _________________
+
+    def test_settlement_entry_missing_from_handle_422():
+        """R-1-225a: an entry missing only from_handle is validation_failed, a
+        valid to_handle and amount do not excuse it."""
+        fixture, ids, handles, tokens = _setup(n=2)
+>       _assert_entry_rejected_unchanged(fixture, handles, tokens, {"to_handle": handles[1], "amount": 100},
+                                          422, "validation_failed")
+
+stage-1/tests/test_settlements.py:112: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+stage-1/tests/test_settlements.py:103: in _assert_entry_rejected_unchanged
+    assert_error(r, status, code)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+resp = <Response [500 Internal Server Error]>, status = 422
+code = 'validation_failed'
+
+    def assert_error(resp: httpx.Response, status: int, code: str):
+>       assert resp.status_code == status, f"expected {status} got {resp.status_code}: {resp.text}"
+E       AssertionError: expected 422 got 500: {"error": {"code": "internal_error", "message": "unexpected server error"}}
+E       assert 500 == 422
+E        +  where 500 = <Response [500 Internal Server Error]>.status_code
+
+stage-1/tests/conftest.py:188: AssertionError
+=========================== short test summary info ============================
+FAILED ../../../../../tmp/redline-mut-5x8zmq5b/stage-1/tests/test_settlements.py::test_settlement_entry_missing_from_handle_422
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+1 failed, 273 passed in 54.21s
+
+
+--- service log (tail) ---
+Traceback (most recent call last):
+  File "/app/service/server.py", line 139, in _dispatch
+    status, body = endpoint.handle(ctx)
+                   ^^^^^^^^^^^^^^^^^^^^
+  File "/app/service/pipeline.py", line 93, in handle
+    fields = self.validate_fields(ctx)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/service/routes/settlements.py", line 76, in validate_fields
+    resolved = [_validate_entry(entry) for entry in transfers]
+                ^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/service/routes/settlements.py", line 32, in _validate_entry
+    from_raw, to_raw = entry["from_handle"], entry["to_handle"]
+                       ~~~~~^^^^^^^^^^^^^^^
+KeyError: 'from_handle'
+
+#1 service/routes/settlements.py:29 [or to and]: killed
+   - if "from_handle" not in entry or "to_handle" not in entry or "amount" not in entry:
+   + if "from_handle" not in entry and "to_handle" not in entry or "amount" not in entry:
+$ docker build --label redline-gate=1 -t redline-mut-30040ac4-2 /tmp/redline-mut-5x8zmq5b/stage-1  (exit 0)
+
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 176B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/4] FROM docker.io/library/python:3.12-slim
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 13.31kB done
+#5 DONE 0.0s
+
+#6 [3/4] COPY main.py ./main.py
+#6 CACHED
+
+#7 [2/4] WORKDIR /app
+#7 CACHED
+
+#8 [4/4] COPY service ./service
+#8 CACHED
+
+#9 exporting to image
+#9 exporting layers done
+#9 writing image sha256:23e9c2bbd2ded0696d6136ad80e129d1db91dc38bc78bf6c4f707ddea281d694 done
+#9 naming to docker.io/library/redline-mut-30040ac4-2 done
+#9 DONE 0.0s
+
+$ docker network create --internal redline-net-2a7c099ce9  (exit 0)
+51a77585fd11c7e73cdc18128bfc5a9d9468650779f1174be6bd9296000bb8b4
+
+
+$ docker run -d --network redline-net-2a7c099ce9 --cpus 2 --memory 2g -e PORT=8080 redline-mut-30040ac4-2  (exit 0)
+39cd7cb17a035eebc70d8259a2fe9107e81b4e57faf20924b8b2489369793e2d
+
+

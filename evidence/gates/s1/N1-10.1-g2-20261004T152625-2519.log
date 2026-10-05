@@ -1,0 +1,98 @@
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /home/prashant/projects/band-work/result/stage-1/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s1/N1-10.1-g2-20261004T152625-2519.junit.xml  (exit 1)
+.F...................................................................... [ 23%]
+........................................................................ [ 46%]
+......F................................................................. [ 69%]
+........................................................................ [ 92%]
+........................                                                 [100%]
+=================================== FAILURES ===================================
+______________ test_r_1_108_timing_maximum_global_lock_contention ______________
+
+    def test_r_1_108_timing_maximum_global_lock_contention():
+        """Target 1, pushed harder: the single real serialization point every
+        winner contends on is STORE.write_lock() — one global lock, not one
+        per key. So the realistic way to make a winner (and therefore its
+        losers) wait longer is many DIFFERENT keys' winners competing for
+        that same lock at once, not just many losers on one key. 10 distinct
+        32-entry settlements, 50 identical requests each, all 500 requests
+        fired at once."""
+        n_keys = 10
+        per_key = 50
+        jobs = []
+        for k in range(n_keys):
+            op_token, transfers = _settlement_fixture(n_recipients=32, per_transfer=1)
+            key = unique(f"contend{k}")
+            for _ in range(per_key):
+                jobs.append((op_token, transfers, key))
+    
+        def attempt(job):
+            token, transfers, key = job
+            t0 = time.monotonic()
+            r = api_post("/settlements", json={"transfers": transfers}, headers=auth_idem(token, key))
+            return r.status_code, r.text, time.monotonic() - t0
+    
+        with ThreadPoolExecutor(len(jobs)) as pool:
+            responses = list(pool.map(attempt, jobs))
+    
+        over_budget = [e for _, _, e in responses if e > _REQUEST_BUDGET_S]
+        assert not over_budget, (
+            f"R-1-015 breach under {n_keys}x{per_key}-way global lock contention: "
+            f"{len(over_budget)} response(s) exceeded {_REQUEST_BUDGET_S}s, max={max(over_budget, default=None)}"
+        )
+        bad = [s for s, _, _ in responses if s not in (200, 201)]
+>       assert not bad, f"R-1-108/R-1-005 breach under max contention: non-200/201 statuses seen: {Counter(bad)}"
+E       AssertionError: R-1-108/R-1-005 breach under max contention: non-200/201 statuses seen: Counter({401: 450})
+E       assert not [401, 401, 401, 401, 401, 401, ...]
+
+stage-1/tests/adversarial/test_n1_10_adversarial.py:141: AssertionError
+_______________________ test_over_long_header_block_400 ________________________
+
+    def test_over_long_header_block_400():
+        """R-1-079, R-1-060: an over-long header block is a client-caused
+        framing error, with the same non-empty-message requirement."""
+        padding = "".join(f"X-Pad-{i}: {'a' * 1000}\r\n" for i in range(200))
+        request = f"GET /health HTTP/1.1\r\nHost: test\r\n{padding}Connection: close\r\n\r\n".encode()
+        raw = _send_raw(request)
+        assert _status_code(raw) == 400
+        assert b"<html" not in raw.lower()
+>       body = _error_body(raw)
+               ^^^^^^^^^^^^^^^^
+
+stage-1/tests/test_http_framing.py:81: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+stage-1/tests/test_http_framing.py:55: in _error_body
+    return json.loads(body.decode("utf-8"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.13-linux-x86_64-gnu/lib/python3.12/json/__init__.py:346: in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.13-linux-x86_64-gnu/lib/python3.12/json/decoder.py:338: in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <json.decoder.JSONDecoder object at 0x7c0283a6f020>, s = '', idx = 0
+
+    def raw_decode(self, s, idx=0):
+        """Decode a JSON document from ``s`` (a ``str`` beginning with
+        a JSON document) and return a 2-tuple of the Python
+        representation and the index in ``s`` where the document ended.
+    
+        This can be used to decode a JSON document from a string that may
+        have extraneous data at the end.
+    
+        """
+        try:
+            obj, end = self.scan_once(s, idx)
+        except StopIteration as err:
+>           raise JSONDecodeError("Expecting value", s, err.value) from None
+E           json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+
+../../../.local/share/uv/python/cpython-3.12.13-linux-x86_64-gnu/lib/python3.12/json/decoder.py:356: JSONDecodeError
+=========================== short test summary info ============================
+FAILED stage-1/tests/adversarial/test_n1_10_adversarial.py::test_r_1_108_timing_maximum_global_lock_contention
+FAILED stage-1/tests/test_http_framing.py::test_over_long_header_block_400 - ...
+2 failed, 310 passed in 43.06s
+
+
+
+RESULT: FAIL — 310 passed, 2 failed, 0 errors, 0 skipped

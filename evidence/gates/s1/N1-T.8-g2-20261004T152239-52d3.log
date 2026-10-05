@@ -1,0 +1,57 @@
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /home/prashant/projects/band-work/result/stage-1/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s1/N1-T.8-g2-20261004T152239-52d3.junit.xml  (exit 1)
+........................................................................ [ 23%]
+........................................................................ [ 47%]
+........................F............................................... [ 70%]
+........................................................................ [ 94%]
+..................                                                       [100%]
+=================================== FAILURES ===================================
+___________ test_r_1_108_concurrent_losers_get_winner_body_payments ____________
+
+    def test_r_1_108_concurrent_losers_get_winner_body_payments():
+        """R-1-108, stated strictly: for N concurrent identical requests with an
+        unused key, exactly one returns 201 and the REST return 200 with the
+        IDENTICAL body — not merely "one 201 and the rest aren't 201". A
+        service that gave up waiting on the in-flight winner and answered a
+        loser with a timeout, a 409, a 503 or an empty body would violate this
+        and a looser assertion (checking only the 201 count) would miss it."""
+        fixture, token_a, _ = _two_user_fixture(balance_a=10_000)
+        b_handle = fixture["users"][1]["handle"]
+        key = unique("concurrent-strict")
+        body = {"to_handle": b_handle, "amount": 37, "note": "strict-108"}
+        n = 8
+        results = [None] * n
+        lock = threading.Lock()
+    
+        def go(i):
+            r = api_post("/payments", json=body, headers={**auth(token_a), **idem(key)})
+            with lock:
+                results[i] = r
+    
+        threads = [threading.Thread(target=go, args=(i,)) for i in range(n)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+    
+        statuses = Counter(r.status_code for r in results)
+        assert statuses == Counter({201: 1, 200: n - 1}), \
+            f"expected exactly {{201: 1, 200: {n - 1}}}, got {dict(statuses)}"
+    
+        winner_body = next(r.json() for r in results if r.status_code == 201)
+        for r in results:
+            assert r.json() == winner_body, f"every response must carry the identical body: {r.json()} vs {winner_body}"
+    
+        balance_a = api_get("/me", headers=auth(token_a)).json()["balance"]
+        balance_b = api_get("/me", headers=auth(login_token(fixture["users"][1]["email"]))).json()["balance"]
+        assert balance_a == 10_000 - 37
+>       assert balance_b == 37
+E       assert 10037 == 37
+
+stage-1/tests/test_idempotency.py:349: AssertionError
+=========================== short test summary info ============================
+FAILED stage-1/tests/test_idempotency.py::test_r_1_108_concurrent_losers_get_winner_body_payments
+1 failed, 305 passed in 34.85s
+
+
+
+RESULT: FAIL — 305 passed, 1 failed, 0 errors, 0 skipped

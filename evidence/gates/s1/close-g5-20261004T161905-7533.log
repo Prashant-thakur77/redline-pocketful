@@ -1,0 +1,49 @@
+$ docker build --label redline-gate=1 -t redline-gate-e64819d4c4 /tmp/redline-wt-soumoxal/stage-1  (exit 0)
+
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 176B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/4] FROM docker.io/library/python:3.12-slim
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 1.14kB done
+#5 DONE 0.0s
+
+#6 [3/4] COPY main.py ./main.py
+#6 CACHED
+
+#7 [2/4] WORKDIR /app
+#7 CACHED
+
+#8 [4/4] COPY service ./service
+#8 CACHED
+
+#9 exporting to image
+#9 exporting layers done
+#9 writing image sha256:c705bbc19829da55d08d0e7825a47876ea179dc94ac43cdede3f1e40bd2a847b done
+#9 naming to docker.io/library/redline-gate-e64819d4c4 done
+#9 DONE 0.0s
+
+$ docker network create --internal redline-net-9ec4113d76  (exit 0)
+7f1ce331090d7aef9c20dfb129f6b84654155abb96d1df4c821191ecb3cee0b6
+
+
+$ docker run -d --network redline-net-9ec4113d76 --cpus 2 --memory 2g -e PORT=8080 redline-gate-e64819d4c4  (exit 0)
+5c891916a0dd7d7cf0d9f8b9a9c0598550218cf97441e3f6a9eb9a770a07823f
+
+
+
+RESULT: PASS — no earlier stage folder; nothing to regress
+--- service log (tail) ---
+
