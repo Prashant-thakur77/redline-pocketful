@@ -122,7 +122,7 @@ def test_correct_double_click_on_unchanged_form_hits_idempotency_key_reuse_r_u_0
     )
     page.wait_for_timeout(2000)
 
-    assert responses == [201], (
+    assert responses == [201, 200], (
         f"R-U-042: a genuinely unchanged double-click must replay cleanly (one 201, the rest 200), "
         f"never a same-key-different-body conflict -- got {responses!r}"
     )
