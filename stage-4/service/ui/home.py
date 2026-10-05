@@ -14,6 +14,8 @@ client-side `fetch()` gives) — the form markup here only has to be
 """
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 from ..routes.activity import ActivityEndpoint
 from ..routes.me import MeEndpoint
 from .calls import call_authed as _call_authed
@@ -66,11 +68,14 @@ def _field(label: str, testid: str, *, name: str, type_: str = "text", required:
 
 
 def _pay_form_html() -> str:
-    return f"""<section class="form-card" id="pay-form">
+    # R-U-012: amount first (large type), then recipient, then note. Every
+    # field keeps its existing data-testid/name — only the layout order of
+    # the *same* elements changes, so a locator-by-testid test is unaffected.
+    return f"""<section class="form-card primary-panel" id="pay-form" data-panel="pay">
   <h2>Pay</h2>
-  <form data-testid="pay-form" data-state="idle" class="form" novalidate>
-    {_field("To (handle)", "pay-handle", name="handle")}
+  <form data-testid="pay-form" data-state="idle" class="form form-amount-first" novalidate>
     {_field("Amount", "pay-amount", name="amount")}
+    {_field("To (handle)", "pay-handle", name="handle")}
     {_field("Note", "pay-note", name="note", required=False)}
     <label class="field">
       <span class="field-label">Visibility</span>
@@ -79,6 +84,7 @@ def _pay_form_html() -> str:
         <option value="private">Private</option>
       </select>
     </label>
+    <div data-testid="pay-review" class="form-review" aria-live="polite" hidden></div>
     <button type="submit" data-testid="pay-submit" class="btn btn-primary">Pay</button>
   </form>
   <div data-testid="pay-error-slot" class="form-slot"></div>
@@ -86,24 +92,47 @@ def _pay_form_html() -> str:
 
 
 def _request_form_html() -> str:
-    return f"""<section class="form-card">
+    return f"""<section class="form-card secondary-panel" data-panel="request">
   <h2>Request</h2>
-  <form data-testid="request-form" data-state="idle" class="form" novalidate>
-    {_field("From (handle)", "request-handle", name="handle")}
+  <form data-testid="request-form" data-state="idle" class="form form-amount-first" novalidate>
     {_field("Amount", "request-amount", name="amount")}
+    {_field("From (handle)", "request-handle", name="handle")}
     {_field("Note", "request-note", name="note", required=False)}
+    <div data-testid="request-review" class="form-review" aria-live="polite" hidden></div>
     <button type="submit" data-testid="request-submit" class="btn btn-primary">Request</button>
   </form>
   <div data-testid="request-error-slot" class="form-slot"></div>
 </section>"""
 
 
+def _primary_action_html() -> str:
+    # R-U-012: one PRIMARY action (Pay, by default) with a toggle to swap
+    # which of Pay/Request is visually emphasised. Both forms, and every
+    # field inside them, stay rendered and reachable at all times (R-U-005
+    # forbids gating an existing element behind a click/display:none) --
+    # the toggle only swaps which `.form-card` carries the `primary-panel`
+    # styling (bigger card, prominent button) via the wrapper's
+    # `data-active` attribute; no element is ever removed or display:none'd.
+    return f"""<div class="primary-action" data-active="pay">
+  <div class="primary-toggle" role="tablist" aria-label="Choose an action">
+    <button type="button" data-testid="primary-toggle-pay" class="toggle-btn toggle-btn-active"
+            role="tab" aria-selected="true" data-target="pay">Pay</button>
+    <button type="button" data-testid="primary-toggle-request" class="toggle-btn"
+            role="tab" aria-selected="false" data-target="request">Request</button>
+  </div>
+  {_pay_form_html()}
+  {_request_form_html()}
+</div>"""
+
+
 def _authorize_form_html() -> str:
-    return f"""<section class="form-card">
+    # R-U-013: a secondary action, its own panel -- always reachable, never
+    # behind the Pay/Request toggle above.
+    return f"""<section class="form-card secondary-panel" data-panel="authorize">
   <h2>Authorize a hold</h2>
-  <form data-testid="authorize-form" data-state="idle" class="form" novalidate>
-    {_field("To (handle)", "authorize-handle", name="handle")}
+  <form data-testid="authorize-form" data-state="idle" class="form form-amount-first" novalidate>
     {_field("Amount", "authorize-amount", name="amount")}
+    {_field("To (handle)", "authorize-handle", name="handle")}
     {_field("Note", "authorize-note", name="note", required=False)}
     <label class="field">
       <span class="field-label">Visibility</span>
@@ -118,27 +147,96 @@ def _authorize_form_html() -> str:
 </section>"""
 
 
-def _activity_item_html(p: dict, minor_units: int) -> str:
+def _initials(handle: str | None) -> str:
+    return esc((handle or "?")[:2].upper())
+
+
+def _relative_time(created_at: str) -> str:
+    try:
+        then = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+    except ValueError:
+        return ""
+    delta = datetime.now(timezone.utc) - then
+    seconds = max(0, int(delta.total_seconds()))
+    if seconds < 60:
+        return "now"
+    if seconds < 3600:
+        return f"{seconds // 60}m"
+    if seconds < 86400:
+        return f"{seconds // 3600}h"
+    return f"{seconds // 86400}d"
+
+
+def _day_label(created_at: str) -> str:
+    try:
+        then = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+    except ValueError:
+        return "Earlier"
+    today = datetime.now(timezone.utc).date()
+    then_date = then.astimezone(timezone.utc).date()
+    if then_date == today:
+        return "Today"
+    if (today - then_date).days == 1:
+        return "Yesterday"
+    return then_date.isoformat()
+
+
+def _activity_item_html(p: dict, minor_units: int, me_user_id: str) -> str:
+    """R-U-015: the human-readable summary line, avatar initials and
+    in/out direction are ALL additional elements alongside the existing
+    `activity-parties-{id}`/`activity-amount-{id}`/`activity-note-{id}`
+    (R-U-011) -- those three keep their exact current text untouched; the
+    sign/colour live in a sibling span, never inside `activity-amount-{id}`
+    itself, since that element's text is `"<decimal> <CODE>"` exactly."""
     pid = p["payment_id"]
     amount_fmt = esc(format_amount(p["amount"], p["currency"], minor_units))
     from_h, to_h = p.get("from_handle") or "?", p.get("to_handle") or "?"
+    is_outgoing = p["from_user_id"] == me_user_id
+    direction_cls = "activity-direction-out" if is_outgoing else "activity-direction-in"
+    direction_sign = "−" if is_outgoing else "+"
+    verb = "You paid" if is_outgoing else f"{esc(from_h)} paid you" if p["to_user_id"] == me_user_id else f"{esc(from_h)} paid"
+    counterpart = esc(to_h) if is_outgoing else ""
+    summary = f"{verb} {counterpart}".strip()
+    note = p["note"]
+    if note:
+        summary += f" · {esc(note)}"
+    summary += f" · {esc(_relative_time(p['created_at']))}"
     return f"""<article data-testid="activity-item-{esc(pid)}" data-visibility="{esc(p["visibility"])}"
          class="activity-item">
-  <p data-testid="activity-parties-{esc(pid)}" class="activity-parties">{esc(from_h)} &rarr; {esc(to_h)}</p>
-  <p data-testid="activity-amount-{esc(pid)}" class="activity-amount">{amount_fmt}</p>
-  <p data-testid="activity-note-{esc(pid)}" class="activity-note">{esc(p["note"])}</p>
+  <div class="activity-avatar" aria-hidden="true">{_initials(to_h if is_outgoing else from_h)}</div>
+  <div class="activity-body">
+    <p class="activity-summary">{summary}</p>
+    <p data-testid="activity-parties-{esc(pid)}" class="activity-parties">{esc(from_h)} &rarr; {esc(to_h)}</p>
+    <p data-testid="activity-note-{esc(pid)}" class="activity-note">{esc(note)}</p>
+  </div>
+  <p class="activity-amount-wrap">
+    <span class="activity-direction {direction_cls}" aria-hidden="true">{direction_sign}</span>
+    <span data-testid="activity-amount-{esc(pid)}" class="activity-amount">{amount_fmt}</span>
+  </p>
 </article>"""
 
 
-def _activity_html(payments: list[dict], minor_units: int) -> str:
+def _activity_html(payments: list[dict], minor_units: int, me_user_id: str) -> str:
     if not payments:
         inner = empty_state_html("empty-activity", "No activity yet.",
                                   cta_label="Send your first payment", cta_href="#pay-form")
     else:
         # R-2-132: already newest-first (ActivityEndpoint sorts by seq
         # descending) — rendered in the order given, never re-sorted here.
-        items = "".join(_activity_item_html(p, minor_units) for p in payments)
-        inner = f'<div data-testid="activity-list">{items}</div>'
+        # R-U-015 day headers are flat siblings alongside each
+        # `activity-item-{id}` inside `activity-list`, never wrapping it,
+        # so a frozen test walking `activity-list > *` for item ids by
+        # data-testid still finds every item at its original relative
+        # position (headers simply don't match that attribute).
+        parts = []
+        last_day = None
+        for p in payments:
+            day = _day_label(p["created_at"])
+            if day != last_day:
+                parts.append(f'<p class="activity-day-header">{esc(day)}</p>')
+                last_day = day
+            parts.append(_activity_item_html(p, minor_units, me_user_id))
+        inner = f'<div data-testid="activity-list">{"".join(parts)}</div>'
     return f"""<section class="activity-card" data-testid="activity-host" aria-label="Activity">
   <h2>Activity</h2>
   <div class="activity-mount">{inner}</div>
@@ -150,8 +248,8 @@ def render_home_body(token: str) -> str:
     _, activity = _call_authed(_ACTIVITY_ENDPOINT, "GET", "/activity", token, query={"limit": "50"})
     return "".join([
         _wallet_html(me),
-        '<div class="forms-grid">', _pay_form_html(), _request_form_html(), _authorize_form_html(), "</div>",
-        _activity_html(activity["payments"], me["minor_units"]),
+        '<div class="forms-grid">', _primary_action_html(), _authorize_form_html(), "</div>",
+        _activity_html(activity["payments"], me["minor_units"], me["user_id"]),
     ])
 
 

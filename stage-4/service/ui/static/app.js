@@ -108,6 +108,8 @@
     }
   }
 
+  var SLOT_CLASS = {uncertain: "form-uncertain", success: "form-success", error: "form-error"};
+
   function showSlot(prefix, kind, message) {
     var slot = slotEl(prefix);
     if (!slot) {
@@ -116,8 +118,8 @@
     slot.innerHTML = "";
     var el = document.createElement("p");
     el.setAttribute("data-testid", prefix + "-" + kind);
-    el.setAttribute("data-state", kind === "uncertain" ? "uncertain" : "error");
-    el.className = kind === "uncertain" ? "form-uncertain" : "form-error";
+    el.setAttribute("data-state", kind);
+    el.className = SLOT_CLASS[kind] || "form-error";
     el.textContent = message;
     slot.appendChild(el);
   }
@@ -184,17 +186,55 @@
       });
   }
 
+  function relativeTime(createdAt) {
+    var then = new Date(createdAt).getTime();
+    var seconds = Math.max(0, Math.floor((Date.now() - then) / 1000));
+    if (seconds < 60) { return "now"; }
+    if (seconds < 3600) { return Math.floor(seconds / 60) + "m"; }
+    if (seconds < 86400) { return Math.floor(seconds / 3600) + "h"; }
+    return Math.floor(seconds / 86400) + "d";
+  }
+
+  function dayLabel(createdAt) {
+    var then = new Date(createdAt);
+    var now = new Date();
+    var sameDay = then.toDateString() === now.toDateString();
+    if (sameDay) { return "Today"; }
+    var yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    if (then.toDateString() === yesterday.toDateString()) { return "Yesterday"; }
+    return then.toISOString().slice(0, 10);
+  }
+
+  // R-U-015: summary/avatar/direction are additional elements alongside
+  // the existing activity-parties/activity-amount/activity-note testids,
+  // which keep their exact current text (R-U-011) -- mirrors the
+  // server-rendered markup in service/ui/home.py so a client refresh
+  // after a write never regresses to the plainer pre-U2 layout.
   function renderActivityItem(p) {
     var amountText = escHtml(Pocketful.formatAmount(p.amount, p.currency, SESSION.minor_units));
+    var isOutgoing = p.from_user_id === SESSION.user_id;
+    var directionCls = isOutgoing ? "activity-direction-out" : "activity-direction-in";
+    var directionSign = isOutgoing ? "−" : "+";
+    var counterpartHandle = isOutgoing ? (p.to_handle || "?") : (p.from_handle || "?");
+    var verb = isOutgoing ? "You paid " + escHtml(p.to_handle || "?") :
+      (p.to_user_id === SESSION.user_id ? escHtml(p.from_handle || "?") + " paid you" :
+        escHtml(p.from_handle || "?") + " paid " + escHtml(p.to_handle || "?"));
+    var summary = verb + (p.note ? " · " + escHtml(p.note) : "") + " · " + relativeTime(p.created_at);
     return (
       '<article data-testid="activity-item-' + escHtml(p.payment_id) + '" data-visibility="' +
       escHtml(p.visibility) + '" class="activity-item">' +
+      '<div class="activity-avatar" aria-hidden="true">' + escHtml(counterpartHandle.slice(0, 2).toUpperCase()) + '</div>' +
+      '<div class="activity-body">' +
+      '<p class="activity-summary">' + summary + '</p>' +
       '<p data-testid="activity-parties-' + escHtml(p.payment_id) + '" class="activity-parties">' +
       escHtml(p.from_handle || "?") + " → " + escHtml(p.to_handle || "?") + "</p>" +
-      '<p data-testid="activity-amount-' + escHtml(p.payment_id) + '" class="activity-amount">' +
-      amountText + "</p>" +
       '<p data-testid="activity-note-' + escHtml(p.payment_id) + '" class="activity-note">' +
-      escHtml(p.note) + "</p></article>"
+      escHtml(p.note) + "</p></div>" +
+      '<p class="activity-amount-wrap"><span class="activity-direction ' + directionCls +
+      '" aria-hidden="true">' + directionSign + '</span>' +
+      '<span data-testid="activity-amount-' + escHtml(p.payment_id) + '" class="activity-amount">' +
+      amountText + "</span></p></article>"
     );
   }
 
@@ -208,7 +248,17 @@
       mount.innerHTML = '<p data-testid="empty-activity" class="empty-state">No activity yet.</p>';
       return;
     }
-    mount.innerHTML = '<div data-testid="activity-list">' + payments.map(renderActivityItem).join("") + "</div>";
+    var parts = [];
+    var lastDay = null;
+    payments.forEach(function (p) {
+      var day = dayLabel(p.created_at);
+      if (day !== lastDay) {
+        parts.push('<p class="activity-day-header">' + escHtml(day) + '</p>');
+        lastDay = day;
+      }
+      parts.push(renderActivityItem(p));
+    });
+    mount.innerHTML = '<div data-testid="activity-list">' + parts.join("") + "</div>";
   }
 
   function refreshAll() {
@@ -245,6 +295,30 @@
     }
   ];
 
+  // R-U-014: a live, non-blocking review of what a submit would do.
+  // Updates as the fields change; the submit button itself still performs
+  // the write on a single click (R-2-151/157 fill the form and click
+  // pay-submit exactly once) -- this is informational, not a gate.
+  function updateReview(cfg, fieldEls) {
+    var review = document.querySelector('[data-testid="' + cfg.prefix + '-review"]');
+    if (!review) {
+      return;
+    }
+    var handle = fieldEls.handle ? fieldEls.handle.value.trim() : "";
+    var amountMinor = fieldEls.amount ?
+      Pocketful.parseAmountToMinorUnits(fieldEls.amount.value, SESSION.minor_units) : null;
+    if (!handle || amountMinor === null) {
+      review.hidden = true;
+      review.textContent = "";
+      return;
+    }
+    var amountText = Pocketful.formatAmount(amountMinor, SESSION.currency, SESSION.minor_units);
+    var verb = cfg.prefix === "request" ? "Request " + amountText + " from " : "Pay " + amountText + " to ";
+    var note = fieldEls.note ? fieldEls.note.value.trim() : "";
+    review.textContent = verb + handle + (note ? " · " + note : "");
+    review.hidden = false;
+  }
+
   function bindForm(cfg) {
     var form = document.querySelector('[data-testid="' + cfg.prefix + '-form"]');
     if (!form) {
@@ -260,9 +334,13 @@
     var key = randomKey();
     cfg.fields.forEach(function (f) {
       if (fieldEls[f]) {
-        fieldEls[f].addEventListener("input", function () { key = randomKey(); });
+        fieldEls[f].addEventListener("input", function () {
+          key = randomKey();
+          updateReview(cfg, fieldEls);
+        });
       }
     });
+    updateReview(cfg, fieldEls);
 
     form.addEventListener("submit", function (e) {
       e.preventDefault();
@@ -291,7 +369,7 @@
       }).then(function (result) {
         if (result.status >= 200 && result.status < 300) {
           form.dataset.state = "idle";
-          clearSlot(cfg.prefix);
+          showSlot(cfg.prefix, "success", "Sent.");
           // R-2-150: form values are never cleared on success.
         } else {
           form.dataset.state = "error";
@@ -325,6 +403,36 @@
   }
 
   FORMS.forEach(bindForm);
+
+  // ---- R-U-012: the Pay/Request primary-action toggle. Both panels stay
+  // rendered at all times (R-U-005); this only swaps which one carries the
+  // "primary" emphasis via the wrapper's data-active attribute. ----
+  (function bindPrimaryToggle() {
+    var wrap = document.querySelector(".primary-action");
+    if (!wrap) {
+      return;
+    }
+    var buttons = wrap.querySelectorAll(".toggle-btn");
+    buttons.forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var target = btn.getAttribute("data-target");
+        wrap.setAttribute("data-active", target);
+        buttons.forEach(function (b) {
+          var active = b === btn;
+          b.classList.toggle("toggle-btn-active", active);
+          b.setAttribute("aria-selected", active ? "true" : "false");
+        });
+        var payPanel = wrap.querySelector('[data-panel="pay"]');
+        var requestPanel = wrap.querySelector('[data-panel="request"]');
+        if (payPanel && requestPanel) {
+          payPanel.classList.toggle("primary-panel", target === "pay");
+          payPanel.classList.toggle("secondary-panel", target !== "pay");
+          requestPanel.classList.toggle("primary-panel", target === "request");
+          requestPanel.classList.toggle("secondary-panel", target !== "request");
+        }
+      });
+    });
+  })();
 
   // ---- /requests: incoming/outgoing lists, pay/decline/cancel (R-2-133,
   // R-2-134, R-2-156) — same endpoint-object-via-fetch discipline as the
@@ -509,13 +617,46 @@
     var handlesEl = document.querySelector('[data-testid="split-handles"]');
     var noteEl = document.querySelector('[data-testid="split-note"]');
     var previewEl = document.querySelector('[data-testid="split-preview"]');
+    var chipsEl = document.querySelector('[data-testid="split-chips"]');
     var key = randomKey();
 
     function parsedHandles() {
       return handlesEl.value.split(",").map(function (h) { return h.trim(); }).filter(function (h) { return h; });
     }
 
+    // R-U-018: removable chips are an ADDITIONAL affordance layered over
+    // `split-handles`, which stays a plain fillable comma-separated text
+    // input (R-U-005) -- removing a chip just rewrites that input's value
+    // and dispatches "input" so the existing preview/key logic reacts to
+    // it exactly as if the user had edited the text themselves.
+    function renderChips() {
+      if (!chipsEl) {
+        return;
+      }
+      var handles = parsedHandles();
+      chipsEl.innerHTML = handles.map(function (h, i) {
+        return '<span class="split-chip">' + escHtml(h) +
+          '<button type="button" class="split-chip-remove" data-index="' + i +
+          '" aria-label="Remove ' + escHtml(h) + '">&times;</button></span>';
+      }).join("");
+    }
+
+    if (chipsEl) {
+      chipsEl.addEventListener("click", function (e) {
+        var btn = e.target.closest(".split-chip-remove");
+        if (!btn) {
+          return;
+        }
+        var index = parseInt(btn.getAttribute("data-index"), 10);
+        var handles = parsedHandles();
+        handles.splice(index, 1);
+        handlesEl.value = handles.join(", ");
+        handlesEl.dispatchEvent(new Event("input", {bubbles: true}));
+      });
+    }
+
     function updatePreview() {
+      renderChips();
       var handles = parsedHandles();
       var amountMinor = Pocketful.parseAmountToMinorUnits(amountEl.value, SESSION.minor_units);
       if (amountMinor === null || handles.length === 0) {

@@ -19,6 +19,7 @@ def render_split_body() -> str:
       <span class="field-label">Participants (handles, comma-separated)</span>
       <input type="text" name="handles" data-testid="split-handles">
     </label>
+    <div data-testid="split-chips" class="split-chips" aria-live="polite"></div>
     <label class="field">
       <span class="field-label">Note</span>
       <input type="text" name="note" data-testid="split-note">
