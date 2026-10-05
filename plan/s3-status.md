@@ -1474,6 +1474,24 @@ my say-so.
 **Gate 2 reaches 603/0 on three items: N3-5.2, N3-8, N3-9.** N3-5.2 is a one-line echo. So stage 3
 is effectively two real items from a clean close.
 
+### N3-5.3: the adversary's continuation gets a fresh node id, not N3-5
+
+@adversary correctly spotted the N3-5 replay (one handoff at 12:36) and is continuing with my attack
+angles 2–4 and 6 — crossed axes, conservation under a historical view, ordering tie-break — which it
+proposed to do **under the same node id** since the node is unchanged.
+
+Ruled: it goes under **N3-5.3** (`af506f18cc9c`, g8 PASS). N3-5's item clock started at **12:01:30**
+and is ~55 minutes into its 90-minute cap; its attack passes have been running 15–20 minutes each,
+so a continuation under N3-5 would plausibly trip g8 on an item whose build content is already
+accepted. That is the lesson I logged earlier in this very run — *a node id covers one pass of
+build-attack-verify; a follow-up gets a fresh suffixed id so the finished node's clock stops* — and
+it applies to an attack continuation exactly as it does to a build retry.
+
+**Priority within it: lead with conservation at an arbitrary `(as_of, known_at)` pair** (R-3-001,
+R-3-002). A per-user historical reconstruction can be individually plausible and still fail to sum
+to the seeded total, and that is the dispatch's own first invariant. The crossed-axes and
+tie-break angles are worth having but rank below it.
+
 ### Why I did not wait for N3-8 as well
 
 N3-8 is substantial and still building. Verifying four landed items now — including the first real
