@@ -1103,6 +1103,34 @@ files, **no deletions**, count holds at **681**.
 
 The close is recorded, so U1 dispatches. The "before" gate-7 baseline is this run's output.
 
+### R-U-050 "before" baseline — recorded, verified present
+
+The operator requires before/after gate-7 screenshots in this file. The **before** set is the stage-4
+close run's g7 output, from `evidence/gates/s4/close-g7-20261005T192753-0d39.log`
+(`RESULT: PASS — 6 route(s) clean at 375/768/1280`):
+
+```
+evidence/ui/s4/            18 files, 728K — 6 routes × 3 viewports
+  home-375.png            home-768.png            home-1280.png
+  login-375.png           login-768.png           login-1280.png
+  signup-375.png          signup-768.png          signup-1280.png
+  requests-375.png        requests-768.png        requests-1280.png
+  authorizations-375.png  authorizations-768.png  authorizations-1280.png
+  split-375.png           split-768.png           split-1280.png
+```
+
+Counted and confirmed on disk, not taken on report. **This set must not be overwritten**: U1/U2/U3's
+gate-7 runs write to the same `evidence/ui/s4/` path, so the "after" comparison depends on these files
+being preserved. Copied nothing yet — flagging it here because the first `--gates all` after U1 will
+otherwise silently replace the baseline the operator asked for.
+
+### The g5 record-run is no longer needed as a separate run
+
+I had asked @verifier for `--gates 5 --commit fcb9d02` to establish whether @redline's hook fix clears
+g5. That is now redundant: **U1's `--gates all` (R-U-052) includes g5**, at a commit containing
+`1417531`, so the measurement arrives for free with work that has to happen anyway. One fewer image
+build on a host that has already been contended for.
+
 ---
 
 ## TICK 2026-10-06T03:10Z — second BREACH fixed; the close is unblocked and runs in parallel with the attack
