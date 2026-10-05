@@ -1,0 +1,4 @@
+cc9544eb75: builder edited stage-4/tests/_probe_created_at.py outside its scope
+cc9544eb75: builder edited stage-4/tests/_probe_hook_sanity.py outside its scope
+
+RESULT: FAIL — cc9544eb75: builder edited stage-4/tests/_probe_created_at.py outside its scope; cc9544eb75: builder edited stage-4/tests/_probe_hook_sanity.py outside its scope
