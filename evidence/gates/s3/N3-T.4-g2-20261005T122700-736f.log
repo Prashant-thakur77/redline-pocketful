@@ -1,0 +1,91 @@
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /tmp/redline-wt-11i62jo4/stage-3/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s3/N3-T.4-g2-20261005T122700-736f.junit.xml  (exit 1)
+sertionError
+_________________ test_known_at_malformed_timestamp_422_on_me __________________
+
+    def test_known_at_malformed_timestamp_422_on_me():
+        """R-3-076: unlike /revisions, GET /me DOES recognize known_at, so a
+        malformed value there must be validated and rejected."""
+        fixture, token_a, _ = two_user_fixture()
+        r = api_get("/me", headers=auth(token_a), params={"known_at": "not-a-timestamp"})
+>       assert r.status_code == 422, r.text
+E       AssertionError: {"user_id": "u9d39358a22643", "display_name": "A9D39358A22645", "handle": "a9d39358a22645", "balance": 10000, "total": 10000, "available": 10000, "held": 0, "currency": "EUR", "minor_units": 2}
+E       assert 200 == 422
+E        +  where 200 = <Response [200 OK]>.status_code
+
+/tmp/redline-wt-11i62jo4/stage-3/tests/test_known_at.py:144: AssertionError
+____ test_as_of_never_negative_across_two_corrections_at_different_instants ____
+
+    def test_as_of_never_negative_across_two_corrections_at_different_instants():
+        """R-3-027: two corrections with different effective_at values must
+        each be independently reflected — as_of between them shows the first,
+        as_of after shows the second, neither shows a negative balance."""
+        fixture, token_a, token_b = two_user_fixture(balance_a=10_000, balance_b=0)
+        b_handle = fixture["users"][1]["handle"]
+        pay = api_post("/payments", json={"to_handle": b_handle, "amount": 100},
+                       headers={**auth(token_a), **idem(unique("k"))})
+        assert pay.status_code == 201, pay.text
+        pay_id = pay.json()["payment_id"]
+    
+        t1 = datetime.now(timezone.utc) + timedelta(seconds=1)
+        c1 = api_post(f"/payments/{pay_id}/corrections",
+                     json={"expected_revision": 1, "amount": 300, "effective_at": _iso(t1), "reason": "step1"},
+                     headers={**auth(token_a), **idem(unique("k"))})
+>       assert c1.status_code == 201, c1.text
+E       AssertionError: {"error": {"code": "validation_failed", "message": "effective_at cannot be later than now"}}
+E       assert 422 == 201
+E        +  where 422 = <Response [422 Unprocessable Entity]>.status_code
+
+/tmp/redline-wt-11i62jo4/stage-3/tests/test_me_as_of.py:116: AssertionError
+________________ test_export_import_preserves_revision_history _________________
+
+    def test_export_import_preserves_revision_history():
+        """R-3-100: a payment's corrections, applied before export, must still
+        be visible (same revision numbers, amounts, reasons) after an
+        import — the revision history is part of the state, not derived
+        fresh from the payment's current fields."""
+        a_id, b_id = unique("u"), unique("u")
+        a_handle, b_handle = unique_handle("a"), unique_handle("b")
+        fixture = make_fixture([user(a_id, a_handle, balance=5000), user(b_id, b_handle, balance=0)])
+        reset_ok(fixture)
+        token_a = login_token(fixture["users"][0]["email"])
+    
+        pay = api_post("/payments", json={"to_handle": b_handle, "amount": 100},
+                       headers={**auth(token_a), **idem(unique("k"))})
+        assert pay.status_code == 201, pay.text
+        pay_id = pay.json()["payment_id"]
+        corr = api_post(f"/payments/{pay_id}/corrections",
+                        json={"expected_revision": 1, "amount": 250,
+                              "effective_at": "2026-01-01T00:00:00+00:00", "reason": "pre-export-correction"},
+                        headers={**auth(token_a), **idem(unique("k"))})
+        assert corr.status_code == 201, corr.text
+    
+        before_revisions = api_get(f"/payments/{pay_id}/revisions", headers=auth(token_a)).json()
+    
+        document = api_get("/_test/export").json()
+        imported = api_post("/_test/import", json=document)
+        assert imported.status_code == 204, imported.text
+    
+        token_a_after = login_token(fixture["users"][0]["email"])
+        after_revisions = api_get(f"/payments/{pay_id}/revisions", headers=auth(token_a_after)).json()
+>       assert after_revisions == before_revisions
+E       AssertionError: assert {'revisions':...00:00', ...}]} == {'revisions':...00:00', ...}]}
+E         
+E         Differing items:
+E         {'revisions': [{'revision': 1, 'amount': 100, 'effective_at': '2026-10-05T12:31:55.300780+00:00', 'recorded_at': '2026-10-05T12:31:55.300780+00:00', ...}]} != {'revisions': [{'revision': 1, 'amount': 100, 'effective_at': '2026-10-05T12:31:55.300780+00:00', 'recorded_at': '2026..., 'amount': 250, 'effective_at': '2026-01-01T00:00:00+00:00', 'recorded_at': '2026-10-05T12:31:55.304889+00:00', ...}]}
+E         Use -v to get more diff
+
+/tmp/redline-wt-11i62jo4/stage-3/tests/test_upgrade_stage1_stage2.py:55: AssertionError
+=========================== short test summary info ============================
+FAILED ../../../../../tmp/redline-wt-11i62jo4/stage-3/tests/test_historical_holds.py::test_as_of_before_hold_opened_shows_zero_held
+FAILED ../../../../../tmp/redline-wt-11i62jo4/stage-3/tests/test_historical_holds.py::test_as_of_between_open_and_void_still_shows_held
+FAILED ../../../../../tmp/redline-wt-11i62jo4/stage-3/tests/test_historical_overdraft.py::test_historical_overdraft_rejection_reports_the_distinct_error_code
+FAILED ../../../../../tmp/redline-wt-11i62jo4/stage-3/tests/test_known_at.py::test_known_at_on_me_excludes_a_not_yet_recorded_payment_from_balance
+FAILED ../../../../../tmp/redline-wt-11i62jo4/stage-3/tests/test_known_at.py::test_known_at_on_statement_excludes_a_not_yet_recorded_entry
+FAILED ../../../../../tmp/redline-wt-11i62jo4/stage-3/tests/test_known_at.py::test_known_at_malformed_timestamp_422_on_me
+FAILED ../../../../../tmp/redline-wt-11i62jo4/stage-3/tests/test_me_as_of.py::test_as_of_never_negative_across_two_corrections_at_different_instants
+FAILED ../../../../../tmp/redline-wt-11i62jo4/stage-3/tests/test_upgrade_stage1_stage2.py::test_export_import_preserves_revision_history
+8 failed, 593 passed in 296.53s (0:04:56)
+
+
+
+RESULT: FAIL — 593 passed, 8 failed, 0 errors, 0 skipped
