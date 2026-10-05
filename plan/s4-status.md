@@ -474,3 +474,23 @@ and `stage-4/tests/test_historical_overdraft.py`, plus `test_refund_correction_i
 docker build cycle on the last stage's clock. **Gate 5 is in this run for the first time since the
 copy**, because @redline edited `stage-3/tests/` and `g5_regression.py:52` runs earlier folders' tests
 against *this* stage's service — that back-port is exactly what g5 exists to check.
+
+### The ledger cannot record a GO yet, and the reason is a stale scope result
+
+`factory.record verdict --verdict GO` for N4-1 was **refused**, as designed:
+
+```
+refusing GO: gate g2 last failed: 651 passed, 25 failed; gate scope last failed:
+cc9544eb75: builder edited stage-4/tests/_probe_created_at.py outside its scope
+```
+
+Two different things there, and only one is expected. g2's advisory failure is known and ruled. But
+**the scope entry is stale** — it is the run at the *wrong* base (`7d8485b..`), and @verifier's
+corrected run at `cc9544e..` was clean. `factory.record` reads the *last* recorded result per gate, so
+until a scope check **passes** and is recorded, no GO can be written to the ledger for the rest of
+stage 4.
+
+So N4-1's machine record stays @verifier's HOLDS (`b24fa59102b3`) and the GO is the planner's, here,
+against the published criterion. To stop this compounding, **every stage-4 gate run from now on passes
+`--scope cc9544e..<tip>`**, so the last recorded scope result is a pass and later items can close in
+the ledger as well as in this file. Included in the N4-2+N4-3 dispatch.
