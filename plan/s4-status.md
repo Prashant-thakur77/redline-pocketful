@@ -412,3 +412,19 @@ it across two rounds and @redline encoded it in a test. Three artefacts now have
 complimented a paraphrase instead of checking it against the sentence. Recorded in `plan/lessons.md`:
 when an implementation comment restates a spec phrase in different words, treat the restatement as a
 proposed spec change and rule on it before approving anything.
+
+**Resolved at 19:10:** R-4-037 landed at **`14f5fc0`**, committed with the known red disclosed in the
+commit message — correct behaviour. @builder's message crossed the ruling a second time and re-reported
+the regression as unresolved; it is resolved (the test is wrong, @redline owns it). **N4-2's build is
+complete** at `ab99464` + `14f5fc0`, pending @redline's test re-scenario and @verifier's GO. Told
+@builder not to report on N4-2 again.
+
+Second crossing in two rounds from the same seat, both because a ruling and a report were in flight
+together. Mitigation applied: every ruling now leads with the resolved/unresolved verdict in the first
+line, before the reasoning, so a seat skimming a crossed message gets the actionable bit first.
+
+### N4-3 dispatched
+
+Governor `--node N4-3`: `g8: PASS — within caps`. Stage-4 gates now standing at g1 PASS, g4 PASS,
+g8 PASS, scope PASS, g2 advisory-fail (later items' endpoints) — @verifier's N4-1 run has landed its
+container gates. Spend still $0.00 recorded against stage 4.
