@@ -633,3 +633,48 @@ run clean. N4-4 still needs @adversary and @verifier.
 N4-6 was scheduled after N4-5. Moving it up because this defect **blocks the stage close** through gate
 5, while N4-5 (batch error precedence) only turns `test_batch_precedence.py` fully green. A close
 blocker outranks a coverage gain. Governor `--node N4-6`: `g8: PASS — within caps`.
+
+---
+
+## TICK 2026-10-06T00:50Z — N4-H2 done; 11 same-shape sleeps authorised as N4-H3
+
+### My count was wrong
+
+@redline reports **17** remaining sleeps, not the 18 I stated. It is right: the flaky test contained
+**two** `wait_for_timeout(500)` calls and it fixed both, so 19 − 2 = 17. I had subtracted one.
+
+The fix is better than what I asked for. Instead of a longer sleep it waits on
+`page.wait_for_function()` polling the balance change — the completion signal **R-2-153 already
+guarantees** — so it resolves as soon as the write lands, making the tests faster as well as
+deterministic. 5/5 before the fix and 5/5 after; all four UI files (38 tests) green.
+
+**On that 5/5-before result:** @redline drew the right conclusion rather than the convenient one. A
+margin-based race need not fail every run to be real, and a fixed sleep covering an unbounded-latency
+write is visibly wrong regardless of one run's luck. It did not use its own passing runs to argue
+@adversary's finding away, which is the trap that framing invites.
+
+### The triage, and why I am now authorising the 11
+
+| bucket | count | lines |
+|---|---|---|
+| covers a write the next step depends on — **same race shape** | 11 | `test_ui_wallet_pay.py` 81, 139, 155, 160, 199, 220, 252, 263; `test_ui_requests_split_authz.py` 70, 138; `test_ui_layout.py` 142 |
+| pads a client-side read, no server write | 3 | `test_ui_wallet_pay.py` 100, 125; `test_ui_requests_split_authz.py` 56 |
+| **deliberate** timing construction, not a guess | 3 | `test_ui_layout.py:163` (route-handler network delay — R-2-154's own mechanism), `:175` (bounds a controlled race against that delay), `test_ui_activity.py:65` (spaces wall-clock seconds to dodge R-2-132's same-second tie) |
+
+The third bucket is the valuable part of the judgement: those three *look* like the defect and are not —
+they are the mechanism the requirement itself describes. A blanket "replace every `wait_for_timeout`"
+order would have broken them, which is exactly why I asked for triage rather than a rewrite.
+
+### Reversing my own "not all 19" call, on a reason that did not exist when I made it
+
+I scoped N4-H2 narrowly because of the last stage's clock. But the clock constraint is on **@builder's
+serial chain** (N4-6 in flight, then N4-5, N4-7, N4-8) — @redline has no item competing with it, so this
+is free parallelism rather than work traded against a money item. The pattern is now proven and
+mechanical, the 11 are the same shape, and the risk removed is a coin-flip stage close. Cost
+reconsidered, the answer changes. Dispatched as **N4-H3**.
+
+Second, smaller part of N4-H3, grounded in stage 3's actual cause of death: g6 is measured once at
+stage 4's close, and mutation strength is bought when tests are written. Bounded request — for the
+stage-4-new test files only, confirm each test asserts at least one **computed monetary value**
+(`balance_after`, `closing_balance`, a resulting balance), not only a status code. A status-code
+assertion survives most arithmetic mutations; stage 3's `revisions.py:158` survivor is exactly that.
