@@ -108,6 +108,8 @@ This stage's checks are mostly hidden. Where the spec is silent, the rows marked
 | R-3-075 | An invalid or empty `known_at` is `422 validation_failed`, by the same rule as `as_of` (R-3-020). | s3 §Corrections | error |
 | R-3-076 | A supplied `known_at` is echoed back **exactly as given**. | s3 §Corrections | behaviour |
 | R-3-077 | A `known_at` earlier than a payment's original `recorded_at` excludes that payment entirely from the view — it is not merely reduced to zero. | s3 §Corrections | behaviour |
+| R-3-078 | **PLANNER DECISION.** Exactly two endpoints accept temporal parameters: `GET /me` (`as_of`, `known_at`) and `GET /statement` (`from`, `to`, `known_at`). `GET /payments/{id}/revisions` accepts **none**. A `known_at` or `as_of` on it is an unknown query parameter and is therefore **ignored** under R-1-023, returning the complete revision list unchanged. It is never `404` for a temporal reason — `404` on that endpoint means only unknown payment or non-party (R-3-064). Rationale: R-3-070 names the two endpoints that gain `known_at`, and the revisions endpoint is a record of what was recorded, so filtering it by recording time would hide the very history it exists to expose. | s3 §Corrections, §4 | behaviour |
+| R-3-079 | **PLANNER DECISION.** The statement pagination token is spelled exactly `snapshot` — both as the response field (R-3-032) and as the request query parameter (R-3-082, R-3-083). Not `snapshot_token`, not `snapshotToken`. The spec's wording ("returns an opaque `snapshot` token", `GET /statement?snapshot=<token>`) names the field, not merely the concept. | s3 §Stable pagination | behaviour |
 
 ## G. Stable statement pagination
 
