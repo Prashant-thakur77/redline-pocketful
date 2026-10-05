@@ -150,9 +150,21 @@ screens anyway, which is theirs to require. Both statements stand.
 
 | item | content | result |
 |---|---|---|
-| U1 | design system, shell, wallet figures, 375 px tab bar, empty states | landed `d6efb05`; @adversary HOLDS; @verifier ran g1/g2/g4/g5/g7/g8 |
-| U2 | primary Pay/Request toggle, review step, signed activity lines with day grouping, split chips | landed `3995d78`; @adversary HOLDS (g5 pre-flight 92/92, suite 681/0, four Playwright probes); **@verifier's pinned `--gates all` `[PENDING]`** |
-| U3 | statement screen, payment detail + revision timeline, refund, correct, operator batch table | landed `7f94146`, **BREACHED**; repair U3.1 in flight; **`[PENDING]` gate 2** |
+| U1 | design system, shell, wallet figures, 375 px tab bar, empty states | landed `d6efb05`; @adversary HOLDS; **@verifier GO on all eight gates** (ledger `8765d4a51231`) |
+| U2 | primary Pay/Request toggle, review step, signed activity lines with day grouping, split chips | landed `3995d78`; @adversary HOLDS (g5 pre-flight 92/92, suite 681/0, four Playwright probes); no separate gate run — **covered by the final run at the tip, which contains U2** |
+| U3 | statement screen, payment detail + revision timeline, refund, correct, operator batch table | landed `7f94146`, **BREACHED**, repaired at `3c68b52`; **`[PENDING]`** one final g2+g5 at the tip |
+
+**U1's gate result is the strongest single data point in the post-close scope**, and it deserves full
+strength because it was reported after the cap and is easy to lose: `scope PASS (cc9544eb75..d6efb05)`,
+g1 PASS, **g2 PASS 681/0**, **g3 PASS — claimed stage 4 with suites 1/2/3/4 all passing, the same
+strength as the stage close itself**, g4 PASS, **g5 PASS — 1,427 earlier tests pass and the stage-3
+upgrade is ok**, g7 PASS (6 routes clean at 375/768/1280), g8 PASS, and **g6 PASS at 90%** with one
+survivor (`snapshot.py:296`, `or`→`and` in a `created_at` validation). g6's first attempt timed out
+mid-mutant at 50 minutes with no orphaned containers and was re-run alone.
+
+So rebuilding the entire shell cost **not one gate**: the harness still claims stage 4 and every earlier
+stage's suite still passes afterwards. That measured fact is what makes the operator's post-close scope
+defensible rather than reckless — and note it is also the only stage-4 g6 result above 70%, at 90%.
 
 **The U3 BREACH, and the root cause is mine.** `app.js`'s key derivation called
 `crypto.subtle.digest(...)`. `window.crypto.subtle` exists **only in a secure context** — `https:`, or
