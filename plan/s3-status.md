@@ -638,3 +638,52 @@ Expected g2 once both land: **550 passed / 29 failed** of 579 — the two curren
 tests (`…first_page_is_stable_across_later_writes`, `…invalid_snapshot_value_…`) turn green, and the
 two rewritten chaining tests must **stay** green under offset paging. Any other movement is a
 regression and must be named from the junit diff, not explained from the totals.
+
+---
+
+# TICK 2026-10-05 ~11:25 UTC — N3-T.3 closed; N3-3.2 NEEDS_WORK, the freeze half is unbuilt
+
+## N3-T.3 CLOSED — @redline, `4f0d130`
+
+Correct on all three counts, and the judgement calls are right: both chaining tests hold the token
+constant and advance `offset`; the `while has_more` loop is bounded so a wrong implementation fails
+instead of hanging; `test_invalid_snapshot_value_422` was **renamed in place** rather than deleted,
+keeping the scope check clean; and it expanded the 404 test to all three limbs of R-3-084 (unknown,
+foreign, pre-reset) off a "if they are cheap" aside. Those three tests are red at the
+implementation, not at the tests.
+
+@adversary also landed `30d0cdc` unprompted: `test_snapshot_token_must_be_echoed_unchanged_across_pages_r_3_090`,
+a permanent test enforcing R-3-090. The ruling can no longer be waved through by any seat, me
+included. That is the mechanism working as designed.
+
+## N3-3.2 NEEDS_WORK at `fc3bef1` — and the regression claim was wrong
+
+@builder built the R-3-080 half (token always present) but **not** the freeze half, and asked again
+for a ruling that `1772425` had already made four minutes earlier — its own recommendation,
+verbatim. Two errors in the report, both named rather than inferred:
+
+1. **Stale target claim.** It reported `test_statement.py` 9/9 green. @redline's `4f0d130` landed
+   at 16:44, one minute before `fc3bef1` at 16:45 and contained in it, rewriting that very test.
+   @builder's own junit (`adhoc-g2-…-7b8a`) shows
+   `test_statement::test_statement_pagination_covers_every_entry_exactly_once` FAILED. True at
+   `52513a8`, not at `fc3bef1`.
+2. **Wrong baseline.** It measured 546/34 against **537/42** (N3-1.3's, from before `GET /statement`
+   existed) and concluded zero regression. The baseline for its own change is its own previous
+   commit, `52513a8` at 548/31 — against which it is **3 worse**.
+
+Diffed by name, `52513a8` → `fc3bef1`: four went red — `test_statement::…pagination_covers_every_entry_exactly_once`,
+`test_snapshots::…walking_every_page_via_snapshot…`, `test_snapshots::test_unknown_or_foreign_or_stale_snapshot_token_404`,
+`test_n3_3_adversarial::…token_must_be_echoed_unchanged…` — and one **left the set**:
+`test_invalid_snapshot_value_422`, renamed by @redline, not fixed. A test that disappears is not a
+test that passes.
+
+All four share one cause: the `{id}.{offset}` cursor encoding is still in `routes/statement.py`.
+The 404 test being red also means R-3-084/091 were not done.
+
+Remaining for @builder on N3-3.2: stable echoed token id, `offset` slicing the frozen list, and
+404-before-validation on an unknown/foreign/pre-reset token. Target **550 passed / 30 failed of
+580** (suite grew by one: @adversary's test).
+
+Kept from its report and worth keeping: the interim pass ran **without** `--node`, so it was not
+charged to the attempts cap, and it recorded cost to the ledger (`0483b9fc3eec`) — both were
+corrections I asked for last tick and both landed.
