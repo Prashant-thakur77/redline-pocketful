@@ -19,6 +19,7 @@ from ..errors import (forbidden, insufficient_funds, malformed_request, not_foun
 from ..holds import available_for
 from ..json_utils import now_rfc3339
 from ..pipeline import Endpoint, RequestCtx
+from ..revisions import make_revision_1
 from .payments import serialize_payment
 from .requests_read import serialize_request
 from ..store import STORE
@@ -120,6 +121,8 @@ class PayRequestEndpoint(Endpoint):
             "created_at": now_rfc3339(), "seq": STORE.next_seq(),
         }
         STORE.payments[payment_id] = payment
+        # R-3-003: revision 1 exists from the instant the payment does.
+        STORE.payment_revisions[payment_id] = [make_revision_1(amount, payment["created_at"])]
         request["status"] = "paid"
         request["payment_id"] = payment_id
         return 201, serialize_payment(payment)

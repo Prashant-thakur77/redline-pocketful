@@ -11,8 +11,9 @@ import time
 
 from .errors import validation_failed
 from .invariants import check_holds_within_balance, check_nonnegative_balances
-from .json_utils import parse_rfc3339
+from .json_utils import now_rfc3339, parse_rfc3339
 from .passwords import hash_password
+from .revisions import compute_opening_balances, validate_payment_history_nonnegative
 from .validation import HANDLE_RE, parse_amount, validate_note, validate_visibility
 
 VALID_MINOR_UNITS = {0, 2, 3}
@@ -83,6 +84,12 @@ def validate_fixture(body: dict) -> dict:
         }
         users_by_handle[handle] = uid
 
+    # R-3-012: a seeded payment's created_at is server time unless the
+    # fixture supplies one; one shared instant for every omission, so two
+    # omitted payments tie deterministically with each other too (R-3-019).
+    seeded_at = now_rfc3339()
+    seeded_epoch = parse_rfc3339(seeded_at)
+
     payments: dict[str, dict] = {}
     for raw in body.get("payments") or []:
         if not isinstance(raw, dict):
@@ -97,10 +104,24 @@ def validate_fixture(body: dict) -> dict:
         amount = parse_amount(raw.get("amount"))
         note = validate_note(raw)
         visibility = validate_visibility(raw)
+
+        if "created_at" in raw:
+            try:
+                created_epoch = parse_rfc3339(raw["created_at"])
+            except (ValueError, TypeError):
+                raise validation_failed("payment.created_at must be an RFC 3339 timestamp")
+            # R-3-013: a future seeded created_at is 422, no state change.
+            if created_epoch > seeded_epoch:
+                raise validation_failed("payment.created_at must not be in the future")
+            created_at = raw["created_at"]
+        else:
+            created_at = seeded_at
+
         payments[pid] = {
             "id": pid, "from_user_id": from_user_id, "to_user_id": to_user_id,
             "amount": amount, "note": note, "visibility": visibility,
             "request_id": None, "settlement_id": None, "authorization_id": None,
+            "created_at": created_at,
         }
 
     requests: dict[str, dict] = {}
@@ -194,6 +215,10 @@ def validate_fixture(body: dict) -> dict:
     # not merely this endpoint's own fixture-shape rules.
     check_nonnegative_balances(wallets)
     check_holds_within_balance(wallets, authorizations, time.time())
+    # R-3-018: the seeded payment history itself must never imply a
+    # negative balance at any point between the opening balance and now.
+    validate_payment_history_nonnegative(wallets, payments)
+    opening_balances = compute_opening_balances(wallets, payments)
 
     return {
         "currency": currency,
@@ -206,4 +231,5 @@ def validate_fixture(body: dict) -> dict:
         "settlement_operator_ids": operator_ids,
         "authorizations": authorizations,
         "authorization_ttl_seconds": authorization_ttl_seconds,
+        "opening_balances": opening_balances,
     }

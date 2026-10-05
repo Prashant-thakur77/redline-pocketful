@@ -14,6 +14,7 @@ from ..errors import forbidden, insufficient_funds, malformed_request, not_found
 from ..holds import available_for
 from ..json_utils import now_rfc3339
 from ..pipeline import Endpoint, RequestCtx
+from ..revisions import make_revision_1
 from ..store import STORE
 from ..validation import HANDLE_RE, parse_amount, validate_note, validate_visibility
 from .payments import serialize_payment
@@ -111,6 +112,10 @@ class SettlementsEndpoint(Endpoint):
                 "created_at": committed_at, "seq": STORE.next_seq(),
             }
             STORE.payments[payment_id] = payment
+            # R-3-101: revision 1 uses the shared committed_at as both
+            # effective_at and recorded_at, same as this payment's own
+            # created_at.
+            STORE.payment_revisions[payment_id] = [make_revision_1(t["amount"], committed_at)]
             payments_out.append(serialize_payment(payment))
             payment_ids.append(payment_id)
 

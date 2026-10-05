@@ -20,6 +20,7 @@ from ..errors import (authorization_expired, authorization_not_open, capture_exc
 from ..holds import effective_status, remaining_amount
 from ..json_utils import now_rfc3339
 from ..pipeline import Endpoint, RequestCtx
+from ..revisions import make_revision_1
 from ..store import STORE
 from ..validation import parse_amount
 from .authorizations_read import serialize_authorization
@@ -97,6 +98,9 @@ class CaptureEndpoint(Endpoint):
             "created_at": now_rfc3339(), "seq": STORE.next_seq(),
         }
         STORE.payments[payment_id] = payment
+        # R-3-003/R-3-103: a capture-produced payment carries a revision 1
+        # like any other payment.
+        STORE.payment_revisions[payment_id] = [make_revision_1(amount, payment["created_at"])]
         authorization.setdefault("payment_ids", []).append(payment_id)
 
         # R-2-056/058/059: final, or the remainder fully captured, closes
