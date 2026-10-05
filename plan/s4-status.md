@@ -851,3 +851,59 @@ recording it as satisfied-by-evidence, not assuming it.
 
 That is the whole remaining stage. Everything else has either landed or turned out not to be a
 requirement.
+
+---
+
+## TICK 2026-10-06T02:10Z — @verifier's g5 FAIL is explained: it gated pre-fix code. BUILD PHASE COMPLETE. Stage close dispatched.
+
+### The g5 mystery dissolves — no debug hunt needed
+
+@verifier reported g5 failing at `640dd90` with the snapshot-token 404, read the whole export/import
+path, found "every piece structurally correct in isolation", could not reproduce it live, and asked for
+@builder's eyes with a debug repro. **That would have spent the stage's last clock chasing a bug that no
+longer exists.**
+
+The gate result and the code reading came from two different trees. Proof:
+
+```
+git merge-base --is-ancestor 40cc5c0 640dd90   ->  false   (fix NOT in the gated commit)
+git show 640dd90:stage-4/service/snapshot.py | grep -c statement_snapshots  ->  0
+git show 40cc5c0:stage-4/service/snapshot.py | grep -c statement_snapshots  ->  8
+```
+
+`640dd90` predates N4-6's fix. The gate ran code in which `statement_snapshots` is **absent from the
+export module entirely**, while @verifier's static reading was of the working tree, which contains the
+fix — which is precisely why every piece looked right. A green-looking code read against a red gate is
+the signature of reading the wrong tree. Lesson recorded against @verifier: read the code **at the
+commit the gate ran** (`git show <gated-sha>:<path>`), and confirm containment with
+`git merge-base --is-ancestor`.
+
+Worth saying the rest plainly: that run was otherwise excellent — scope PASS at the corrected base, g1,
+g4 (1300 ops), g8 PASS, g2 677/1, and all three frozen earlier-stage suites clean at 314/314, 497/497,
+616/616. It also correctly declined a GO rather than waving the failure through.
+
+### The build phase of stage 4 is complete
+
+| item | state | commit |
+|---|---|---|
+| N4-1 refunds | closed | `c18a18e` |
+| N4-2 floor + two-sided available debit | done | `ab99464`, `14f5fc0` |
+| N4-3 correction-batches validation | done | `571aec7` |
+| N4-3.1 cross-item historical (BREACH fix) | done | `05565a3` |
+| N4-4 batch commit semantics | done | `f16dd5e` |
+| N4-5 historical walk covers **available** | done | `b6715d7` |
+| N4-6 snapshots survive import | done | `40cc5c0` |
+| N4-H hook verification | closed, no change needed | — |
+| N4-H2 / N4-H3 part 1 UI condition waits | done | `1af8134`, `47a03e8` |
+| N4-8 concurrency | **satisfied by evidence** (678/1 at N4-3's run; the 1 was the BREACH test) | — |
+| N4-7, N4-C5 | **cancelled — never requirements** | — |
+
+Ten requirements-bearing items, two cancelled as invented, one satisfied without an item.
+
+### The close is pinned to a commit, deliberately
+
+Dispatched with **`--commit <tip>`** so the run gates a fixed sha in its own worktree. That isolates it
+from @redline's in-flight N4-H3 part 2 (the computed-value sweep), which may still touch test files:
+without the pin, a test edit landing mid-run would change the suite underneath a 30-minute g6. @redline
+therefore continues in parallel rather than blocking the close — and if part 2 lands before the run
+starts, so much the better for g6.
