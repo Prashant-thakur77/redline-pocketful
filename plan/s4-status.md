@@ -1040,6 +1040,71 @@ clears its own with `git clean -f -- <explicit paths>`, and **nothing under `sta
 
 ---
 
+## >>> STAGE 4 RECORDED `partial`. 2026-10-06. Ledger `6c95e66e1c89` at `fcb9d02`. <<<
+
+g6 **completed** — it never hung, and I was twice wrong about its state:
+
+```
+RESULT: FAIL — killed 7/10 valid mutants (70%, need 80%); 0 stillborn; 0 timed out; 455 candidates;
+  survivors: #5 service/revisions.py:308 [cmp < to <=]
+             #7 service/snapshot.py:374 [or to and]
+             #9 service/routes/refunds.py:37 [true to false]
+```
+
+**Per the rule I pre-committed before the run, this is the draw: accept it, no re-run, record partial
+with g6 named. Nothing returns to a seat.** That pre-commitment is the only reason this decision is
+clean — had I set the rule after seeing 70%, deciding not to re-roll would have been indistinguishable
+from deciding to re-roll, and stage 3 showed what chasing a resampled score costs.
+
+It also matters that g6 reported `0 timed out` and `455 candidates`: the gate worked correctly and the
+score is a real measurement, so the report says **partial with g6 at 70%**, not the weaker
+"partial with g6 unmeasured" I had prepared for.
+
+### The final close record
+
+| gate | result |
+|---|---|
+| scope | PASS `cc9544eb75..5c99bb4` |
+| g1 | PASS — built and healthy offline |
+| g2 | PASS — 681 passed, 0 failed, 0 errors, 0 skipped |
+| **g3** | **PASS — claimed stage 4; suites `{1: pass, 2: pass, 3: pass, 4: pass}`** |
+| g4 | PASS — invariant held over 1300 ops |
+| g7 | PASS — 6 routes clean at 375/768/1280 |
+| g8 | PASS |
+| g5 | FAIL → ruled test-side, hook fixed at `1417531`, re-run dispatched for the record |
+| **g6** | **FAIL — 70% (7/10), three survivors above** |
+
+Service content is byte-identical from `5c99bb4` through `fcb9d02`
+(`git diff --name-only 5c99bb4..fcb9d02 -- stage-4/service stage-4/main.py stage-4/Dockerfile` → empty),
+so every behaviour gate above describes the recorded tree.
+
+### Two things I got wrong about g6, both recorded
+
+1. I read "no RESULT" plus a `.junit.xml` as completion and told @verifier to **abandon and restart** it.
+   It was alive at mutant 6 with four verdicts banked; a restart would have discarded them. Corrected
+   before @verifier acted.
+2. I then read three consecutive checks stalled at mutant 7 as possible death, and **held anyway** on
+   the grounds that the gate's own timeout is the arbiter rather than my impatience. That was right: it
+   finished with a real score. The lesson is the same in both directions — read the artefact's contents,
+   not its existence, and let a tool's own timeout decide a tool's own liveness.
+
+### N4-A1 closed clean — `fcb9d02`
+
+@adversary found a legitimate no-docker route (`g2_spec_tests --base-url`, verified from
+`factory/gates/common.py` that it skips `service.build()` entirely), fixed the demonstrated flake with a
+condition wait on the observable outcome while **leaving R-2-154's engineered delay intact**, and
+triaged the other 8. Its conclusion differs from @redline's for `test_ui_*.py` — it found **no**
+deliberate-timing cases among its 8, because each was a settle-wait after an already-ordered action
+rather than a race construction, and it reasoned each one individually. Different files, different
+answer, both defensible. Validated 5/5 identical passes. Verified by me: scope touches only its two
+files, **no deletions**, count holds at **681**.
+
+### Next: the operator's browser-product item is now unblocked
+
+The close is recorded, so U1 dispatches. The "before" gate-7 baseline is this run's output.
+
+---
+
 ## TICK 2026-10-06T03:10Z — second BREACH fixed; the close is unblocked and runs in parallel with the attack
 
 ### The BREACH: a malformed imported snapshot 500'd a plain read
