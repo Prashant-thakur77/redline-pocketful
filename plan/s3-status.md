@@ -65,6 +65,15 @@ corrected the fixture at `336c7e7` per ruling R-3-018c, raising the receiver's s
 replay detection survives unchanged. @redline's three fixtures were already fixed at `6435664`
 (verified ancestor of `1d5f29a`).
 
+**Expected g2 number, measured by @adversary at `336c7e7` (identical service content to HEAD):
+`537 passed, 42 failed`, every failure in the later-item set.** Treat that as the target. A
+materially different pass count, or any failure outside the set, is a real defect.
+
+@adversary also swept the rest of `stage-3/tests/adversarial/` for the R-3-018c pattern and found
+no other instance: `test_n1_10_adversarial.py`'s 500-payment ring uses amount=1 against balances
+of 1000, and `test_n3_1_adversarial.py` / `test_n3_1_import_adversarial.py` construct the illegal
+state deliberately — those are the BREACH tests proving it gets rejected and must stay as they are.
+
 **So: every g2 failure at `ec0c6b2` must be in the later-item set only** — `test_corrections*.py`,
 `test_historical_holds.py`, `test_historical_overdraft.py`, `test_known_at.py`,
 `test_snapshots.py`, `test_statement.py`, the 2 `test_me_as_of.py` corrections cases, and the
