@@ -13,7 +13,7 @@ from conftest import auth, make_fixture, reset_ok, tid, ui_login, unique, unique
 import httpx  # noqa: E402
 
 
-def test_refund_correct_batch_are_dead_on_any_non_localhost_origin_r_u_036_037_039():
+def test_refund_correct_batch_are_dead_on_any_non_localhost_origin_r_u_036_037_039(page):
     """R-U-036/037/039/042: the refund, correct and operator-batch submit
     handlers all derive their Idempotency-Key via
     `crypto.subtle.digest(...)` (`app.js`'s `sha256Hex16`). `window.crypto.
@@ -54,26 +54,21 @@ def test_refund_correct_batch_are_dead_on_any_non_localhost_origin_r_u_036_037_0
     assert pay.status_code == 201, pay.text
     pid = pay.json()["payment_id"]
 
-    from playwright.sync_api import sync_playwright
-    with sync_playwright() as p:
-        browser = p.chromium.launch()
-        page = browser.new_page()
-        errors = []
-        page.on("pageerror", lambda exc: errors.append(str(exc)))
-        ui_login(page, emails[0], "password123")
-        page.goto(url(f"/payments/{pid}"), wait_until="load")
+    errors = []
+    page.on("pageerror", lambda exc: errors.append(str(exc)))
+    ui_login(page, emails[0], "password123")
+    page.goto(url(f"/payments/{pid}"), wait_until="load")
 
-        is_secure = page.evaluate("() => window.isSecureContext")
-        has_subtle = page.evaluate("() => !!(window.crypto && window.crypto.subtle)")
-        assert not is_secure and not has_subtle, (
-            "this assumption changed -- if the served origin is now a secure context, re-examine whether "
-            "the underlying defect is still reachable before treating this test as green"
-        )
+    is_secure = page.evaluate("() => window.isSecureContext")
+    has_subtle = page.evaluate("() => !!(window.crypto && window.crypto.subtle)")
+    assert not is_secure and not has_subtle, (
+        "this assumption changed -- if the served origin is now a secure context, re-examine whether "
+        "the underlying defect is still reachable before treating this test as green"
+    )
 
-        page.fill(tid("correct-reason"), "typo fix")
-        page.click(tid("correct-submit"))
-        page.wait_for_timeout(1500)
-        browser.close()
+    page.fill(tid("correct-reason"), "typo fix")
+    page.click(tid("correct-submit"))
+    page.wait_for_timeout(1500)
 
     revisions = httpx.get(url(f"/payments/{pid}/revisions"), headers=auth(token_a), timeout=5).json()["revisions"]
     assert len(revisions) == 2 and not errors, (
