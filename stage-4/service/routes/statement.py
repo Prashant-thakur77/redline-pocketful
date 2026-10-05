@@ -50,7 +50,19 @@ class StatementEndpoint(Endpoint):
             # before limit/offset so a token's existence is never leaked by
             # which error code comes back.
             candidate = STORE.statement_snapshots.get(snapshot_param)
-            if candidate is None or candidate["user_id"] != ctx.user["id"]:
+            if candidate is None or candidate.get("user_id") != ctx.user["id"]:
+                raise not_found("no such snapshot")
+            # R-1-005: defensive, in addition to import-side validation --
+            # a stored snapshot this read path cannot safely serve (missing
+            # or wrong-typed entries/opening_balance/closing_balance, from
+            # a future field this check wasn't updated for, or any other
+            # unforeseen shape problem) must never crash a plain read; it
+            # is unresolvable the same way an unknown token is (R-3-084).
+            if (not isinstance(candidate.get("entries"), list)
+                    or isinstance(candidate.get("opening_balance"), bool)
+                    or not isinstance(candidate.get("opening_balance"), int)
+                    or isinstance(candidate.get("closing_balance"), bool)
+                    or not isinstance(candidate.get("closing_balance"), int)):
                 raise not_found("no such snapshot")
             frozen = candidate
 
