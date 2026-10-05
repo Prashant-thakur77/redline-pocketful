@@ -1,8 +1,10 @@
 """GET /me — R-1-120, R-2-010, R-2-011, R-3-020..027."""
 from __future__ import annotations
 
+import time
+
 from ..errors import validation_failed
-from ..holds import held_for
+from ..holds import held_at, held_for
 from ..json_utils import parse_rfc3339
 from ..pipeline import Endpoint, RequestCtx
 from ..revisions import balance_for_view
@@ -32,16 +34,23 @@ class MeEndpoint(Endpoint):
 
     def apply(self, ctx: RequestCtx, resource, fields: dict):
         user = ctx.user
-        held = held_for(STORE, user["id"])
         if fields["as_of_epoch"] is None and fields["known_at_epoch"] is None:
-            # R-3-021/072: no temporal parameter keeps the existing shape
-            # and the current, fully-corrected balance — stage-2
-            # behaviour does not shift.
+            # R-3-021/072/115: no temporal parameter keeps the existing
+            # shape, the current balance and the live `held` — stage-2
+            # behaviour does not shift, and "no as_of" means "the instant
+            # the request began", i.e. now.
             total = STORE.wallets.get(user["id"], 0)
+            held = held_for(STORE, user["id"])
         else:
+            # R-3-110: total and held must come from the SAME view, so a
+            # self-consistent `available` is never a historical total
+            # paired with a live held. R-3-114: an as_of query (including
+            # one in the future) expires open holds at their deadline.
+            view_epoch = fields["as_of_epoch"] if fields["as_of_epoch"] is not None else time.time()
             total = balance_for_view(STORE.opening_balances, STORE.payments, STORE.payment_revisions,
                                       user["id"], as_of_epoch=fields["as_of_epoch"],
                                       known_at_epoch=fields["known_at_epoch"])
+            held = held_at(STORE, user["id"], view_epoch)
         body = {
             "user_id": user["id"],
             "display_name": user["display_name"],

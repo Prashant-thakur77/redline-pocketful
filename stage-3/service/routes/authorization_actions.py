@@ -87,8 +87,14 @@ class CaptureEndpoint(Endpoint):
         STORE.wallets[payer_id] = STORE.wallets.get(payer_id, 0) - amount
         STORE.wallets[receiver_id] = STORE.wallets.get(receiver_id, 0) + amount
 
+        capture_at = now_rfc3339()
         authorization["captured_amount"] = authorization.get("captured_amount", 0) + amount
         new_remaining = authorization["amount"] - authorization["captured_amount"]
+        # R-3-111: a nonfinal capture reduces the hold AT CAPTURE TIME, not
+        # retroactively -- each capture needs its own recorded instant so a
+        # historical `held` view can reconstruct what was captured by a
+        # given as_of, not just the current running total.
+        authorization.setdefault("capture_events", []).append({"amount": amount, "at": capture_at})
 
         payment_id = secrets.token_urlsafe(16)
         payment = {
@@ -109,7 +115,7 @@ class CaptureEndpoint(Endpoint):
         # is excluded from held_for() from this point on.
         if fields["final"] or new_remaining == 0:
             authorization["status"] = "captured"
-            authorization["closed_at"] = now_rfc3339()
+            authorization["closed_at"] = capture_at
 
         return 201, serialize_payment(payment)
 

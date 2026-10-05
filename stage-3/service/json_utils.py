@@ -69,5 +69,12 @@ def parse_rfc3339(value: str) -> float:
 def epoch_to_rfc3339(epoch_seconds: float) -> str:
     """The inverse of `parse_rfc3339`, for echoing a stored `expires_at`
     back out with the same explicit-offset convention as every other
-    timestamp (R-1-021)."""
-    return datetime.fromtimestamp(epoch_seconds, tz=timezone.utc).isoformat(timespec="seconds")
+    timestamp (R-1-021). Microsecond precision, not seconds -- the same
+    same-second-truncation trap `now_rfc3339()` already had to fix
+    (R-3-022/023): authorizations.py uses this to build an
+    authorization's `created_at` from a raw epoch float, and truncating
+    to whole seconds can round that string DOWN past a caller-captured
+    `as_of` instant taken a fraction of a second earlier in real time,
+    wrongly treating the hold as already open at an as_of from before it
+    existed."""
+    return datetime.fromtimestamp(epoch_seconds, tz=timezone.utc).isoformat(timespec="microseconds")

@@ -12,6 +12,8 @@ from __future__ import annotations
 
 import time
 
+from .json_utils import parse_rfc3339
+
 
 def remaining_amount(authorization: dict) -> int:
     return authorization["amount"] - authorization.get("captured_amount", 0)
@@ -47,3 +49,40 @@ def available_for(store, user_id: str, now: float | None = None) -> int:
     """R-2-002: available = total - held, never negative."""
     total = store.wallets.get(user_id, 0)
     return total - held_for(store, user_id, now)
+
+
+def remaining_at(authorization: dict, as_of_epoch: float) -> int:
+    """R-3-110..115: what this one authorization contributed to `held` as
+    of `as_of_epoch` -- never the current/live state. Three ways a hold
+    stops contributing, in the order checked: it hadn't been opened yet
+    (R-3-110); it was closed (captured-final or voided) by a RECORDED
+    event at or before as_of (R-3-111/112 -- release needs an event);
+    or its clock deadline had passed by as_of regardless of any recorded
+    event (R-3-112/113/114 -- expiry needs no event, only creation).
+    Otherwise, the amount already captured by recorded events at or
+    before as_of is subtracted (R-3-111: each nonfinal capture reduces
+    the hold at its OWN instant, not retroactively)."""
+    created_epoch = parse_rfc3339(authorization["created_at"])
+    if as_of_epoch < created_epoch:
+        return 0
+
+    closed_at = authorization.get("closed_at")
+    if closed_at is not None and parse_rfc3339(closed_at) <= as_of_epoch:
+        return 0
+    if authorization["expires_at"] <= as_of_epoch:
+        return 0
+
+    captured_before = sum(
+        event["amount"] for event in authorization.get("capture_events", [])
+        if parse_rfc3339(event["at"]) <= as_of_epoch
+    )
+    return authorization["amount"] - captured_before
+
+
+def held_at(store, user_id: str, as_of_epoch: float) -> int:
+    """R-3-110: the historical twin of `held_for`, using `remaining_at`
+    per authorization instead of the live/current remainder."""
+    return sum(
+        remaining_at(a, as_of_epoch) for a in store.authorizations.values()
+        if a["from_user_id"] == user_id
+    )

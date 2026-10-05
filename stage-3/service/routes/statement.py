@@ -80,7 +80,8 @@ class StatementEndpoint(Endpoint):
 
         return {
             "frozen": frozen, "snapshot_param": snapshot_param,
-            "from_epoch": from_epoch, "to_epoch": to_epoch, "known_at_epoch": known_at_epoch,
+            "from_epoch": from_epoch, "to_epoch": to_epoch,
+            "known_at_epoch": known_at_epoch, "known_at_raw": known_at_raw,
             "limit": limit, "offset": offset,
         }
 
@@ -172,7 +173,8 @@ class StatementEndpoint(Endpoint):
             # R-3-080: a token is issued unconditionally, even for a
             # zero-entry or single-page result.
             snapshot_id = secrets.token_urlsafe(16)
-            frozen = {"user_id": ctx.user["id"], **self._compute_window(ctx, fields)}
+            frozen = {"user_id": ctx.user["id"], "known_at_raw": fields["known_at_raw"],
+                      **self._compute_window(ctx, fields)}
             STORE.statement_snapshots[snapshot_id] = frozen
 
         limit, offset = fields["limit"], fields["offset"]
@@ -189,6 +191,10 @@ class StatementEndpoint(Endpoint):
             # was given; it never changes between pages.
             "snapshot": snapshot_id,
         }
+        # R-3-076: a supplied known_at is echoed back exactly as given,
+        # including when replayed from a frozen snapshot on a later page.
+        if frozen.get("known_at_raw") is not None:
+            body["known_at"] = frozen["known_at_raw"]
         return 200, body
 
 
