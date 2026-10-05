@@ -1005,3 +1005,57 @@ without checking whether the elapsed time was *work* time. About 4.5 h of stage 
 downtime and an operator pause with every seat idle, which the operator could see and I could not —
 but I had the outage evidence in my own record and never reconciled it against the clock before
 spending the stage's remaining life on a close. Both are in `plan/lessons.md`.
+
+## >>> TICK 2026-10-05T12:40Z — THE 11 ARE NAMED. GATE 2 GREEN IS THREE ITEMS AWAY. LIVE BLOCK. <<<
+
+Two reports landed that together resolve the biggest open question of this stage.
+
+**1. @adversary's 11 tests are not a breach.** It measured gate 2 itself at `438723b`
+(`evidence/gates/s3/N3-4-g2-20261005T120956-3e42.log`, `RESULT: FAIL — 589 passed, 11 failed, 0
+errors, 0 skipped`), and I have read that log. The arithmetic is the point: its 11 new tests from
+`41d13a7` were **inside** that 600, and the total failing set is still 11 and fully accounted for
+by known items. So **every one of @adversary's 11 passes against N3-4's closed content.** The
+N3-4.1 reopen risk I was holding open is closed, and N3-4 stands closed on content that has now
+survived a purpose-built attack suite.
+
+`438723b` itself is @adversary fixing its own R-3-057 replay test, which computed `effective_at`
+fresh per call so the "identical retry" sent a different body — the **third** instance of that same
+defect shape in this stage, after the two in @redline's suite. No production code touched.
+
+**2. @verifier recorded N3-T.4 HOLDS at `cfe7329`** (`6f5ae2c`): all three test-construction bugs
+fixed, zero regression. @redline's side of the corrections work is done.
+
+### The 11, by name, and which item owns each
+
+| failing test | owner |
+|---|---|
+| `test_correction_stale_expected_revision_is_409` | N3-T.4 — **fixed** at `cfe7329` |
+| `test_correction_idempotent_retry_same_key_same_body` | N3-T.4 — **fixed** at `cfe7329` |
+| `test_concurrent_identical_retries_of_the_same_key_apply_exactly_once` | N3-T.4 — **fixed** at `cfe7329` |
+| `test_known_at_*` ×3 | N3-5 — **built** at `938b569`, ungated |
+| `test_historical_overdraft_*` | **N3-6** — dispatched to @builder |
+| `test_as_of_never_negative_across_two_corrections_at_different_instants` (`test_me_as_of.py`) | **N3-6** — @adversary read this one right, it is overdraft scope, not `as_of` scope |
+| `test_historical_holds_*` | **N3-8** |
+| `test_export_import_preserves_revision_history` (`test_upgrade_stage1_stage2.py`) | **N3-9** |
+
+One correction to @adversary's grouping, for the record and because it changes who builds what:
+it put the `historical_holds` tests under N3-6. They are **N3-8** (R-3-110…120, the hold timeline
+and the four-field historical view); **N3-6** is historical overdraft (R-3-002, R-3-059, R-3-060,
+R-3-118, R-3-133). Adjacent requirement text, two different items.
+
+### This changes the ambition for stage 3, not just its order
+
+Six of the 11 are already built. **Gate 2 reaches 600/0 — fully green — on exactly three items:
+N3-6, N3-8, N3-9.** Not six. Stage 3 is a candidate for a clean close, which it was not an hour
+ago, and the tail priority I set on spend grounds (N3-6 → N3-8 → N3-9) turns out to be exactly the
+shortest path to green. N3-7, N3-10 and N3-11 carry **no failing test** and are the ones to drop to
+stage 4 if the $35.87 runs out.
+
+### Live assignments
+
+| seat | action |
+|---|---|
+| @verifier | N3-5 + N3-T.4 at `938b569`, `--gates 1,2,4,8 --scope 7d8405b..938b569`. Holds the only gate run. Expect ~5 failures, all named above. |
+| @builder | N3-6 (`df7999ccf668`, g8 PASS) |
+| @adversary | attack **N3-5** `known_at` (R-3-070…077) — built, never gated, never attacked. Write now, run only after @verifier reports. |
+| @redline | stand by |
