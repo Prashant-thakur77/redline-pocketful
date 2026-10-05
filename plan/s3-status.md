@@ -936,3 +936,72 @@ mid-item. The governor reports the stage cap in the same call I was already maki
 line and not the stage line. That is the lesson, written up as a planner fault.
 
 Stage 4 opens with its own status file, `plan/s4-status.md`.
+
+## >>> TICK 2026-10-05T12:35Z — THE CLOSE ABOVE IS REVERSED. STAGE 3 IS OPEN. THIS IS THE LIVE BLOCK. <<<
+
+The operator landed `62901b5` — `factory/budget.yaml`, stage `minutes: 480 → 900` — because three
+host network outages and the operator's snapshot pause cost stage 3 about 4.5 h in which no seat
+was working. Re-checked against the new config:
+
+```
+governor check --stage 3 --node N3-5  →  g8: PASS — within caps
+  evidence/gates/s3/N3-5-g8-20261005T123231-018b.log
+```
+
+The 12:30 close was correct against the 480 cap in force when I made it and is wrong now, so it is
+withdrawn. Ledger: `stage_closed --result open` (`5dd1ab06ce46`) supersedes the partial
+(`2f080b8e7ea5`); `factory.report --summary` now reads **stage 3: open**. Both events stay in the
+chain — the partial is a true record of what I decided at 12:30 under the cap that existed then.
+
+**Stage 3 continues: 495.5 of 900 minutes, ~404 left.** Stage 4 is **not** started. `stage_copy`
+was stopped before it ran and `stage-4/` does not exist — confirmed. It must not, until stage 3
+actually ends: `stage_copy` refuses to overwrite, so a premature `stage-4/` would poison the real
+copy-forward, and clearing it would mean deleting tests, which the scope check flags for good.
+
+Withdrawn: **N4-copy, N4-T, N4-C1**. N4-C1 returns to its stage-3 id **N3-6**, same content, same
+requirement ids. `plan/s4-status.md` is marked not-live.
+
+### What survived the round, and it is worth having
+
+Both seats committed before the copy, which was the right move under either cap:
+
+| commit | seat | content |
+|---|---|---|
+| `cfe7329` | @redline | N3-T.4 — the three corrections tests repaired (construction only) |
+| `938b569` | @builder | N3-5 — `known_at` selection across `/me` and `/statement` (R-3-070…077) |
+
+So the run is further ahead than before the false close, and **neither of those was ever gated**.
+
+### The binding constraint has changed, and this is what to plan around
+
+It is no longer the clock, it is **spend: $84.13 of $120, $35.87 left**. That does not cover N3-6
+through N3-11. The stage-3 tail is therefore explicitly prioritized, and I will record stage 3
+partial the moment the spend cap trips rather than leave six items half-landed:
+
+1. **N3-6** — historical overdraft (R-3-002, R-3-059, R-3-060, R-3-118, R-3-133) — dispatched to @builder
+2. **N3-8** — historical holds (R-3-110…120)
+3. **N3-9** — import of stage-1/stage-2 exports (R-3-100, R-3-102)
+4. then N3-7, N3-10, N3-11 as spend allows
+
+Money-conservation items outrank new surface area: they are the dispatch's own invariants.
+
+### Live assignments
+
+| seat | action |
+|---|---|
+| @verifier | N3-5 at `938b569`, `--gates 1,2,4,8 --scope 7d8405b..938b569`. **First run to measure 600 tests** — @adversary's 11 from `41d13a7` have never been measured. Holds the only gate run. |
+| @builder | N3-6, tests already in `stage-3/tests/test_historical_overdraft.py` (4 tests). No container gates while @verifier holds the run. |
+| @redline | stand by; N4-T withdrawn, N3-T.4 is in and good |
+
+Expected shape of @verifier's run, to be judged **by name and not by totals**: of the previous 11
+failures, 3 should go green on `cfe7329` and 4 more (`known_at` ×3, `me_as_of` ×1) on `938b569`;
+the remaining 4 belong to N3-6/N3-8/N3-9 and are expected red. Any of @adversary's 11 that fails
+is a real breach against N3-4's closed content and reopens as **N3-4.1**.
+
+### Second planner fault in one hour, and it is the more interesting one
+
+The first was reading the item cap and not the stage cap. The second: I closed a stage on a cap
+without checking whether the elapsed time was *work* time. About 4.5 h of stage 3's clock was host
+downtime and an operator pause with every seat idle, which the operator could see and I could not —
+but I had the outage evidence in my own record and never reconciled it against the clock before
+spending the stage's remaining life on a close. Both are in `plan/lessons.md`.

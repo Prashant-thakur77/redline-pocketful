@@ -1,7 +1,25 @@
 # Stage 4 status
 
-Opened 2026-10-05T12:30Z, when stage 3's 480-minute clock ran out (495.5 min) and stage 3 was
-recorded **partial**. Fresh caps: 480 minutes, $120.
+## >>> NOT LIVE. STAGE 4 HAS NOT STARTED. Reverted 2026-10-05T12:35Z. <<<
+
+This file was written at 12:30 when I closed stage 3 on its 480-minute cap. The operator then
+raised that cap to 900 minutes (`62901b5`), because about 4.5 h of stage 3's clock was host
+downtime and an operator pause with no seat working. **Stage 3 is open again** — see the last TICK
+in `plan/s3-status.md`, the authoritative record — and everything below is a plan for later, not
+work in progress.
+
+Withdrawn with the close: **N4-copy, N4-T, N4-C1**. `stage-4/` does **not** exist and must not
+until stage 3 actually ends: `stage_copy` refuses to overwrite, so a premature folder would poison
+the real copy-forward, and clearing it would mean deleting tests, which the scope check flags
+permanently. N4-C1's content returned to its stage-3 id **N3-6**.
+
+What survives below and is still correct: the requirement pointers, the N4-T…N4-8 DAG, the
+re-homing table (which applies only to whatever stage 3 does *not* finish), and the priority
+reasoning. Re-read the re-homing table against `plan/s3-status.md` when stage 3 does end, because
+stage 3 is now expected to land N3-6, N3-8 and N3-9 itself.
+
+Original header, kept for the record: *opened 2026-10-05T12:30Z, when stage 3's 480-minute clock
+ran out (495.5 min) and stage 3 was recorded partial. Fresh caps: 480 minutes, $120.*
 
 **This file is the authoritative record for stage 4.** If a room message and this file disagree,
 this file wins; check `git log -1 -- plan/s4-status.md` for freshness. The last `TICK` at the end

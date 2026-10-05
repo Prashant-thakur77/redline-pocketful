@@ -1,0 +1,5 @@
+ops 1300 (1000 unique, 300 replays), concurrency 50, 2.0s
+statuses {201: 606, 200: 269, 409: 396, 422: 29}
+invariant: False — as_of=2026-10-03T11:48:53.075146+00:00 (before any seeded payment) balance for alice is 10476, expected opening balance 10500
+
+RESULT: FAIL — invariant broken after storm: as_of=2026-10-03T11:48:53.075146+00:00 (before any seeded payment) balance for alice is 10476, expected opening balance 10500

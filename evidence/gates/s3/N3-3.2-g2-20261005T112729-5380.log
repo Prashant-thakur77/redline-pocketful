@@ -1,0 +1,66 @@
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /tmp/redline-wt-axa1v0xr/stage-3/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s3/N3-3.2-g2-20261005T112729-5380.junit.xml  (exit 1)
+   +  where 404 = <Response [404 Not Found]>.status_code
+
+/tmp/redline-wt-axa1v0xr/stage-3/tests/test_revisions.py:134: AssertionError
+________________ test_export_import_preserves_revision_history _________________
+
+    def test_export_import_preserves_revision_history():
+        """R-3-100: a payment's corrections, applied before export, must still
+        be visible (same revision numbers, amounts, reasons) after an
+        import — the revision history is part of the state, not derived
+        fresh from the payment's current fields."""
+        a_id, b_id = unique("u"), unique("u")
+        a_handle, b_handle = unique_handle("a"), unique_handle("b")
+        fixture = make_fixture([user(a_id, a_handle, balance=5000), user(b_id, b_handle, balance=0)])
+        reset_ok(fixture)
+        token_a = login_token(fixture["users"][0]["email"])
+    
+        pay = api_post("/payments", json={"to_handle": b_handle, "amount": 100},
+                       headers={**auth(token_a), **idem(unique("k"))})
+        assert pay.status_code == 201, pay.text
+        pay_id = pay.json()["payment_id"]
+        corr = api_post(f"/payments/{pay_id}/corrections",
+                        json={"expected_revision": 1, "amount": 250,
+                              "effective_at": "2026-01-01T00:00:00+00:00", "reason": "pre-export-correction"},
+                        headers={**auth(token_a), **idem(unique("k"))})
+>       assert corr.status_code == 201, corr.text
+E       AssertionError: {"error": {"code": "not_found", "message": "no such endpoint: POST /payments/jubFrBwZnichbQDRHbV3Jg/corrections"}}
+E       assert 404 == 201
+E        +  where 404 = <Response [404 Not Found]>.status_code
+
+/tmp/redline-wt-axa1v0xr/stage-3/tests/test_upgrade_stage1_stage2.py:45: AssertionError
+=========================== short test summary info ============================
+FAILED ../../../../../tmp/redline-wt-axa1v0xr/stage-3/tests/test_corrections.py::test_correction_by_payer_succeeds_and_updates_balances
+FAILED ../../../../../tmp/redline-wt-axa1v0xr/stage-3/tests/test_corrections.py::test_correction_by_non_payer_is_403
+FAILED ../../../../../tmp/redline-wt-axa1v0xr/stage-3/tests/test_corrections.py::test_correction_stale_expected_revision_is_409
+FAILED ../../../../../tmp/redline-wt-axa1v0xr/stage-3/tests/test_corrections.py::test_correction_insufficient_funds_rejected
+FAILED ../../../../../tmp/redline-wt-axa1v0xr/stage-3/tests/test_corrections.py::test_correction_zero_amount_is_legal_and_distinct_from_rejection
+FAILED ../../../../../tmp/redline-wt-axa1v0xr/stage-3/tests/test_corrections.py::test_correction_idempotent_retry_same_key_same_body
+FAILED ../../../../../tmp/redline-wt-axa1v0xr/stage-3/tests/test_corrections.py::test_correction_negative_amount_rejected_422
+FAILED ../../../../../tmp/redline-wt-axa1v0xr/stage-3/tests/test_corrections.py::test_correction_missing_required_fields_422
+FAILED ../../../../../tmp/redline-wt-axa1v0xr/stage-3/tests/test_corrections.py::test_correction_missing_idempotency_key_is_400
+FAILED ../../../../../tmp/redline-wt-axa1v0xr/stage-3/tests/test_corrections.py::test_correction_precedence_403_before_422_validation
+FAILED ../../../../../tmp/redline-wt-axa1v0xr/stage-3/tests/test_corrections.py::test_correction_linked_settlement_payment_is_immutable
+FAILED ../../../../../tmp/redline-wt-axa1v0xr/stage-3/tests/test_corrections_concurrency.py::test_two_concurrent_corrections_from_the_same_base_revision_exactly_one_wins
+FAILED ../../../../../tmp/redline-wt-axa1v0xr/stage-3/tests/test_corrections_concurrency.py::test_concurrent_identical_retries_of_the_same_key_apply_exactly_once
+FAILED ../../../../../tmp/redline-wt-axa1v0xr/stage-3/tests/test_corrections_concurrency.py::test_concurrent_corrections_never_leave_a_negative_balance
+FAILED ../../../../../tmp/redline-wt-axa1v0xr/stage-3/tests/test_historical_holds.py::test_as_of_before_hold_opened_shows_zero_held
+FAILED ../../../../../tmp/redline-wt-axa1v0xr/stage-3/tests/test_historical_holds.py::test_as_of_between_open_and_void_still_shows_held
+FAILED ../../../../../tmp/redline-wt-axa1v0xr/stage-3/tests/test_historical_overdraft.py::test_correction_illegal_at_an_intermediate_instant_even_if_final_state_is_fine
+FAILED ../../../../../tmp/redline-wt-axa1v0xr/stage-3/tests/test_historical_overdraft.py::test_correction_illegal_between_two_existing_payments_even_though_final_balance_is_nonnegative
+FAILED ../../../../../tmp/redline-wt-axa1v0xr/stage-3/tests/test_historical_overdraft.py::test_correction_legal_when_every_intermediate_instant_stays_non_negative
+FAILED ../../../../../tmp/redline-wt-axa1v0xr/stage-3/tests/test_historical_overdraft.py::test_historical_overdraft_rejection_reports_the_distinct_error_code
+FAILED ../../../../../tmp/redline-wt-axa1v0xr/stage-3/tests/test_known_at.py::test_revisions_endpoint_ignores_known_at_between_two_revisions
+FAILED ../../../../../tmp/redline-wt-axa1v0xr/stage-3/tests/test_known_at.py::test_known_at_on_me_excludes_a_not_yet_recorded_payment_from_balance
+FAILED ../../../../../tmp/redline-wt-axa1v0xr/stage-3/tests/test_known_at.py::test_known_at_on_statement_excludes_a_not_yet_recorded_entry
+FAILED ../../../../../tmp/redline-wt-axa1v0xr/stage-3/tests/test_known_at.py::test_known_at_malformed_timestamp_422_on_me
+FAILED ../../../../../tmp/redline-wt-axa1v0xr/stage-3/tests/test_known_at.py::test_zero_amount_revision_is_present_not_absent_once_recorded
+FAILED ../../../../../tmp/redline-wt-axa1v0xr/stage-3/tests/test_me_as_of.py::test_as_of_reflects_a_backdated_correction
+FAILED ../../../../../tmp/redline-wt-axa1v0xr/stage-3/tests/test_me_as_of.py::test_as_of_never_negative_across_two_corrections_at_different_instants
+FAILED ../../../../../tmp/redline-wt-axa1v0xr/stage-3/tests/test_revisions.py::test_revisions_are_consecutive_and_recorded_at_strictly_increases
+FAILED ../../../../../tmp/redline-wt-axa1v0xr/stage-3/tests/test_upgrade_stage1_stage2.py::test_export_import_preserves_revision_history
+29 failed, 551 passed in 271.59s (0:04:31)
+
+
+
+RESULT: FAIL — 551 passed, 29 failed, 0 errors, 0 skipped

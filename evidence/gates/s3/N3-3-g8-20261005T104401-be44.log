@@ -1,0 +1,3 @@
+item N3-3: minutes 210.2 > cap 90
+
+RESULT: FAIL — item N3-3: minutes 210.2 > cap 90 — return the item to @planner
