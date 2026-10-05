@@ -38,8 +38,26 @@ grep -rn validate_payment_history_nonnegative stage-3/service/
 negative opening balance is still accepted. This is the exact half I predicted would be
 forgotten, and @redline's `test_reset_fixture.py:254` is the test that catches it.
 
-**Do not GO on `e481fcd`.** Wait for the import-side commit, then gate N3-1 and N3-2 together
-against that sha with `--commit <sha> --scope 8dfcc60..HEAD`.
+**Do not GO on `e481fcd` or `4bf2b1c`.** Wait for the import-side commit, then gate N3-1 and N3-2
+together against that sha with `--commit <sha> --scope 8dfcc60..HEAD`.
+
+**R-3-018b confirmed BREACH by @adversary at `4bf2b1c`, with a live repro.** Export a clean
+two-user doc (both at 1000), inject a payment A→B of 50000 leaving wallets untouched, re-import →
+`204` instead of `422`; then `GET /me?as_of=1970-01-01T00:00:00+00:00` for B returns
+**`balance: -49000`**. That is the same R-3-002 violation BREACH `0dfd763` closed, reopened on the
+import side — no longer a prediction but a demonstrated negative balance handed back by the API.
+Cause as it found it: `store.apply_import` computes `opening_balances` but never calls
+`validate_payment_history_nonnegative`, and `snapshot.validate_import_document` only runs
+`check_nonnegative_balances(wallets)`, i.e. ending balances only.
+
+**Three independent confirmations of the same gap:** my `grep` of the call sites, @redline's
+`test_reset_fixture.py:254` written before the code existed, and @adversary's live repro. Two
+permanent tests now fail on it (`:254` and
+`test_n3_1_import_adversarial.py::test_import_rejects_a_document_whose_payment_implies_a_negative_opening_balance`).
+
+@adversary's other two targets both **hold** at `e481fcd`: opening exactly `0` is accepted
+(`204`), and a fixture negative strictly *between* two seeded payments but fine at both ends is
+still rejected (`422`) by the original forward-replay check.
 
 @adversary persisted the microsecond `as_of` boundary at `49f4bca` and verified it green — that
 test now guards @builder's `now_rfc3339()` precision fix, which nothing else covered.
