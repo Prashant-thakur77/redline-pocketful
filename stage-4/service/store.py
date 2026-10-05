@@ -136,7 +136,14 @@ class Store:
         # payment that never had one. Nothing to resynthesize here.
         self.payment_revisions = fields["payment_revisions"]
         self.opening_balances = compute_opening_balances(fields["wallets"], fields["payments"])
-        self.statement_snapshots = {}
+        # R-4-070/072: unlike apply_reset (which starts a fresh
+        # generation and must clear every pre-reset token), import is a
+        # state REPLACEMENT -- a snapshot token issued before export
+        # must still resolve, and for the same user it was issued to
+        # (R-3-084's foreign-token 404 depends on user_id surviving the
+        # round trip), so this restores the parsed map rather than
+        # clearing it.
+        self.statement_snapshots = fields["statement_snapshots"]
         IDEMPOTENCY.restore(fields["idempotency_records"])
 
 

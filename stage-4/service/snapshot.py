@@ -54,6 +54,13 @@ def export_state(store) -> dict:
             # export must still be visible after import, not collapsed
             # back to a synthesized revision 1 from the current fields.
             "payment_revisions": {pid: list(revs) for pid, revs in store.payment_revisions.items()},
+            # R-4-070/072: a statement snapshot token is a frozen, fully
+            # materialized result (entries/balances by value, never a
+            # live reference into payment_revisions) -- it round-trips
+            # through export/import exactly like any other durable
+            # record, so a token taken before export still resolves and
+            # pages the same frozen page after import.
+            "statement_snapshots": {sid: dict(snap) for sid, snap in store.statement_snapshots.items()},
         },
     }
 
@@ -427,6 +434,22 @@ def validate_import_document(body: dict) -> dict:
         for pid, p in payments.items():
             if pid not in payment_revisions:
                 payment_revisions[pid] = [make_revision_1(p["amount"], p["created_at"])]
+
+        # R-4-070/072: a stage-1/2/3 export has no "statement_snapshots"
+        # key at all (the endpoint didn't exist yet) -- absent means
+        # zero tokens, the same absent-means-empty rule already applied
+        # to "authorizations" and "payment_revisions" above, never a
+        # 422. Each token's owner (user_id) must still reference a known
+        # user, the same way every other user-scoped record is checked.
+        statement_snapshots: dict[str, dict] = {}
+        raw_snapshots_map = state.get("statement_snapshots")
+        if raw_snapshots_map is not None:
+            if not isinstance(raw_snapshots_map, dict):
+                raise validation_failed("statement_snapshots must be an object")
+            for sid, raw_snapshot in raw_snapshots_map.items():
+                if not isinstance(raw_snapshot, dict) or raw_snapshot.get("user_id") not in users:
+                    raise validation_failed("statement_snapshots entries must reference a known user")
+                statement_snapshots[sid] = dict(raw_snapshot)
     except (KeyError, TypeError, AttributeError, ValueError) as exc:
         raise validation_failed(f"state is malformed: {exc}")
 
@@ -451,4 +474,5 @@ def validate_import_document(body: dict) -> dict:
         "tokens": tokens, "next_seq": next_seq, "idempotency_records": idempotency_records,
         "authorizations": authorizations, "authorization_ttl_seconds": authorization_ttl_seconds,
         "payment_revisions": payment_revisions,
+        "statement_snapshots": statement_snapshots,
     }
