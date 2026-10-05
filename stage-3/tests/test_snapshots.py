@@ -3,9 +3,7 @@ R-3-080..091.
 
 Builds on the same assumed GET /statement contract as test_statement.py.
 The field/query-param name is "snapshot" (CONFIRMED by @planner, commit
-900d36d, R-3-079 — an earlier version of this file called it
-"snapshot_token", which is wrong and is why it's "snapshot" everywhere
-below). The point of a snapshot is stability: once a client has it, the
+900d36d, R-3-079). The point of a snapshot is stability: once a client has it, the
 pages addressed through it must keep returning exactly what existed at the
 instant the first page was taken, even if the underlying ledger gains new
 entries in the meantime — a fresh (tokenless) call, by contrast, must see
@@ -94,7 +92,7 @@ def test_walking_every_page_via_snapshot_stays_consistent_despite_writes():
     assert len({e["payment_id"] for e in walked}) == 5, "no duplicate entries across pages"
 
 
-def test_invalid_snapshot_token_422():
+def test_invalid_snapshot_value_422():
     """R-3-091"""
     fixture, token_a, _ = two_user_fixture()
     r = api_get("/statement", headers=auth(token_a), params={"snapshot": "not-a-real-token"})

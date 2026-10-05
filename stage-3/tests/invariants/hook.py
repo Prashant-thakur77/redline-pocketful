@@ -88,14 +88,14 @@ def setup(base_url: str) -> dict:
     # real R-3-080 violation, not a capability absence, and invariant()
     # below must FAIL on it, never silently skip it.
     statement_available = False
-    statement_snapshot_token = None
+    statement_snapshot = None
     statement_first_page = None
     primary = users[0]
     init = _get(base_url, "/statement", headers=_auth(primary["token"]), params={"limit": 5})
     if init.status_code == 200:
         statement_available = True
         body = init.json()
-        statement_snapshot_token = body.get("snapshot")
+        statement_snapshot = body.get("snapshot")
         statement_first_page = body
 
     return {
@@ -111,7 +111,7 @@ def setup(base_url: str) -> dict:
         "correction_targets": correction_targets,
         "statement_snapshot_user": primary["handle"],
         "statement_available": statement_available,
-        "statement_snapshot_token": statement_snapshot_token,
+        "statement_snapshot": statement_snapshot,
         "statement_first_page": statement_first_page,
         "n": len(users),
         "lock": threading.Lock(),
@@ -501,11 +501,11 @@ def invariant(base_url: str, ctx: dict) -> tuple[bool, str]:
     # existing at all (statement_available) but returning no "snapshot" field
     # is a real R-3-080 violation, not a capability absence — fail, never skip.
     if ctx.get("statement_available"):
-        if not ctx.get("statement_snapshot_token"):
+        if not ctx.get("statement_snapshot"):
             return False, "GET /statement is available but returned no 'snapshot' token (R-3-080)"
         token = next(u["token"] for u in ctx["users"] if u["handle"] == ctx["statement_snapshot_user"])
         r = _get(base_url, "/statement", headers=_auth(token),
-                 params={"limit": 5, "snapshot": ctx["statement_snapshot_token"]})
+                 params={"limit": 5, "snapshot": ctx["statement_snapshot"]})
         if r.status_code == 200 and r.json() != ctx["statement_first_page"]:
             return False, (f"statement page re-fetched with the pre-storm snapshot changed: "
                             f"before={ctx['statement_first_page']} after={r.json()}")
@@ -716,7 +716,7 @@ def populate(base_url: str) -> dict:
     _UPGRADE["remembered_correction_payment_id"] = None
     _UPGRADE["remembered_correction_caller_handle"] = None
     _UPGRADE["statement_snapshot_handle"] = None
-    _UPGRADE["statement_snapshot_token"] = None
+    _UPGRADE["statement_snapshot"] = None
     _UPGRADE["statement_first_page"] = None
 
     if supports_corrections:
@@ -765,7 +765,7 @@ def populate(base_url: str) -> dict:
         # The capability probe above already confirmed GET /statement is
         # live on this side, so this call succeeding and carrying a
         # "snapshot" field is not optional — assert both rather than
-        # silently leaving statement_snapshot_token as None, which is
+        # silently leaving statement_snapshot as None, which is
         # exactly the "probe concludes nothing to check" hazard planner
         # flagged: it would make snapshot()'s R-3-080/R-3-005 fingerprint
         # degrade to a no-op without ever failing.
@@ -775,7 +775,7 @@ def populate(base_url: str) -> dict:
         snap_body = snap.json()
         assert "snapshot" in snap_body, f"GET /statement is live but carries no 'snapshot' field (R-3-079/080): {snap_body}"
         _UPGRADE["statement_snapshot_handle"] = users[0]["handle"]
-        _UPGRADE["statement_snapshot_token"] = snap_body.get("snapshot")
+        _UPGRADE["statement_snapshot"] = snap_body.get("snapshot")
         _UPGRADE["statement_first_page"] = snap_body
 
     return {"ctx": ctx, "settlement_id": settlement_id, "pending_request_id": pending_request_id,
@@ -923,11 +923,11 @@ def snapshot(base_url: str) -> dict:
     # hazard planner flagged; by the time we get here it must be present.
     statement_snapshot_page = None
     if _UPGRADE["supports_corrections"]:
-        assert _UPGRADE.get("statement_snapshot_token"), \
+        assert _UPGRADE.get("statement_snapshot"), \
             "populate() captured no statement snapshot token even though corrections/statement are supported (R-3-079/080)"
         snap_token = tokens[_UPGRADE["statement_snapshot_handle"]]
         snap = _get(base_url, "/statement", headers=_auth(snap_token),
-                    params={"limit": 5, "snapshot": _UPGRADE["statement_snapshot_token"]})
+                    params={"limit": 5, "snapshot": _UPGRADE["statement_snapshot"]})
         assert snap.status_code == 200, f"remembered statement snapshot stopped resolving: " \
                                          f"{snap.status_code} {snap.text}"
         statement_snapshot_page = snap.json()
