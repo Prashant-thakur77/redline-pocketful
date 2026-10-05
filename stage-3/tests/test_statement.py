@@ -83,8 +83,16 @@ def test_statement_opening_plus_deltas_equals_closing():
 
 
 def test_statement_pagination_covers_every_entry_exactly_once():
-    """R-3-036..039: walking every page via the "snapshot" token must yield
-    every entry exactly once, in the same order the unpaginated call gives."""
+    """R-3-036..039, R-3-092: the snapshot token identifies one frozen
+    result and never changes between pages — R-3-090 requires it to be
+    echoed back unchanged on every response addressed through it, and
+    R-3-082/086 name `offset` as what actually advances a page. (An
+    earlier version of this test fed the returned token back with no
+    offset, which under R-3-092 just re-requests the first page forever;
+    fixed per planner's ruling.) Take the token from an initial tokenless
+    call, then walk `offset=0,2,4,...` with that same token; the
+    concatenation must equal the unpaginated entry order, every entry
+    exactly once."""
     fixture, token_a, _ = two_user_fixture(balance_a=5000, balance_b=0)
     b_handle = fixture["users"][1]["handle"]
     for amount in range(1, 8):
@@ -95,14 +103,20 @@ def test_statement_pagination_covers_every_entry_exactly_once():
     full = _statement(token_a)
     assert len(full["entries"]) == 7
 
+    token = _statement(token_a, limit=2)["snapshot"]
+    assert token, "a statement page must carry a snapshot token to page against"
+
     paged_ids = []
-    token = None
+    offset = 0
     for _ in range(10):
-        page = _statement(token_a, **({"limit": 2, "snapshot": token} if token else {"limit": 2}))
+        page = _statement(token_a, limit=2, snapshot=token, offset=offset)
+        assert page["snapshot"] == token, "the snapshot token must be echoed unchanged (R-3-090)"
         paged_ids += [e["payment_id"] for e in page["entries"]]
         if not page["has_more"]:
             break
-        token = page["snapshot"]
+        offset += 2
+    else:
+        assert False, "did not terminate within 10 pages advancing offset by limit"
     assert paged_ids == [e["payment_id"] for e in full["entries"]]
 
 
