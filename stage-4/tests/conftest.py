@@ -276,6 +276,56 @@ def tid(name: str) -> str:
     return f'[data-testid="{name}"]'
 
 
+# ---------------------------------------------------------------------------
+# Condition-based UI waits — replace a fixed `page.wait_for_timeout(N)` after
+# an action with a wait on the actual completion signal, so the test is both
+# deterministic and no slower than it has to be. A fixed sleep after a
+# submit races the write it is meant to wait for under load (see N4-H2); use
+# ONE of these instead, matching whatever the test actually depends on:
+#   - the response to the triggering request (wait_for_response_to)
+#   - a DOM element appearing/disappearing (wait_for_present/wait_for_absent)
+#   - an observed value changing, e.g. a balance (wait_for_dom_change)
+# ---------------------------------------------------------------------------
+
+def wait_for_response_to(page, action, method: str = "POST", path_suffix: str = "/payments", timeout_ms: int = 5000):
+    """Run `action()` and wait for the matching HTTP response to complete.
+    Only valid when the browser actually receives a response — a request
+    whose route is deliberately aborted (route.abort()) never fires one;
+    use wait_for_present/absent on the resulting DOM state instead."""
+    with page.expect_response(
+        lambda r: r.request.method == method and r.url.endswith(path_suffix),
+        timeout=timeout_ms,
+    ) as resp_info:
+        action()
+    return resp_info.value
+
+
+def wait_for_present(page, selector: str, timeout_ms: int = 5000) -> None:
+    page.wait_for_function("(sel) => document.querySelector(sel) !== null", arg=selector, timeout=timeout_ms)
+
+
+def wait_for_absent(page, selector: str, timeout_ms: int = 5000) -> None:
+    page.wait_for_function("(sel) => document.querySelector(sel) === null", arg=selector, timeout=timeout_ms)
+
+
+def wait_for_dom_change(page, selector: str, before_value: str, attr: str | None = None, timeout_ms: int = 5000) -> None:
+    """Wait until `selector`'s text (or `attr`, if given) differs from
+    `before_value`. `before_value` must be read BEFORE the triggering
+    action, from the same property this then polls."""
+    if attr:
+        page.wait_for_function(
+            "([sel, name, before]) => document.querySelector(sel)?.getAttribute(name) !== before",
+            arg=[selector, attr, before_value],
+            timeout=timeout_ms,
+        )
+    else:
+        page.wait_for_function(
+            "([sel, before]) => document.querySelector(sel)?.innerText.trim() !== before",
+            arg=[selector, before_value.strip()],
+            timeout=timeout_ms,
+        )
+
+
 def ui_signup(page, email: str, password: str, display_name: str) -> None:
     page.goto(url("/signup"), wait_until="load")
     page.fill(tid("signup-email"), email)

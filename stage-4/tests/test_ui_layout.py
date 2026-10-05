@@ -5,7 +5,7 @@ from __future__ import annotations
 import httpx
 
 from conftest import (api_get, auth, make_fixture, reset_ok, tid, ui_login,
-                      ui_login_demo_user, unique, unique_handle, url, user)
+                      ui_login_demo_user, unique, unique_handle, url, user, wait_for_dom_change)
 from demo_fixture import ALICE_SEEDED_HELD
 
 VIEWPORTS = {375: 812, 768: 1024, 1280: 800}
@@ -139,7 +139,7 @@ def test_refresh_button_updates_available_and_held(page, demo):
     assert new_hold.status_code == 201, new_hold.text
 
     page.locator(tid("wallet-refresh")).click()
-    page.wait_for_timeout(400)
+    wait_for_dom_change(page, tid("wallet-available"), before_available, attr="data-amount")
     after_available = page.locator(tid("wallet-available")).get_attribute("data-amount")
     assert after_available != before_available
     assert int(after_available) == int(before_available) - 500

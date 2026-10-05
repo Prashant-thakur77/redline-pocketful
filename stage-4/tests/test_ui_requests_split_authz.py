@@ -2,7 +2,8 @@
 R-2-130, R-2-133..138."""
 from __future__ import annotations
 
-from conftest import api_get, api_post, auth, idem, login_token, tid, ui_login_demo_user, unique, url
+from conftest import (api_get, api_post, auth, idem, login_token, tid, ui_login_demo_user, unique, url,
+                       wait_for_absent, wait_for_present, wait_for_response_to)
 
 
 def test_request_form_testids(page, demo):
@@ -66,8 +67,7 @@ def test_split_form_testids_and_preview(page, demo):
 
     token = user["token"]
     before = api_get("/requests", headers=auth(token), params={"direction": "outgoing"}).json()["requests"]
-    page.click(tid("split-submit"))
-    page.wait_for_timeout(500)
+    wait_for_response_to(page, lambda: page.click(tid("split-submit")), path_suffix="/splits")
     after = api_get("/requests", headers=auth(token), params={"direction": "outgoing"}).json()["requests"]
     new_requests = [r for r in after if r["request_id"] not in {x["request_id"] for x in before}]
     assert len(new_requests) == 1, f"the split must create exactly one new request for bob: {new_requests}"
@@ -135,7 +135,8 @@ def test_request_cancelled_elsewhere_shows_error_and_removes_stale_pay_button(pa
     assert cancelled.status_code == 200, cancelled.text
 
     pay_button.click()
-    page.wait_for_timeout(500)
+    wait_for_present(page, tid("request-error"))
+    wait_for_absent(page, tid(f"request-pay-{req_id}"))
     assert page.locator(tid("request-error")).count() > 0
     assert page.locator(tid(f"request-pay-{req_id}")).count() == 0, \
         "the list must refresh so the stale pay button disappears"

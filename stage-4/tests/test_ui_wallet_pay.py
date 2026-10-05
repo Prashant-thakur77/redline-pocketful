@@ -6,7 +6,8 @@ from __future__ import annotations
 import httpx
 
 from conftest import (api_get, auth, make_fixture, reset_ok, tid, two_user_fixture,
-                       ui_login, ui_login_demo_user, unique, unique_handle, url, user)
+                       ui_login, ui_login_demo_user, unique, unique_handle, url, user,
+                       wait_for_absent, wait_for_dom_change, wait_for_present, wait_for_response_to)
 
 from demo_fixture import ALICE_SEEDED_HELD
 
@@ -77,8 +78,7 @@ def test_decimal_input_submits_minor_units(page, demo):
     page.fill(tid("pay-handle"), receiver["handle"])
     page.fill(tid("pay-amount"), "15")
     page.fill(tid("pay-note"), "decimal-15")
-    page.click(tid("pay-submit"))
-    page.wait_for_timeout(500)
+    wait_for_response_to(page, lambda: page.click(tid("pay-submit")))
 
     token = user["token"]
     feed = api_get("/activity", headers=auth(token)).json()["payments"]
@@ -135,8 +135,7 @@ def test_pay_form_keeps_values_after_success(page, demo):
     page.fill(tid("pay-handle"), receiver["handle"])
     page.fill(tid("pay-amount"), "3.00")
     page.fill(tid("pay-note"), "keep-after-success")
-    page.click(tid("pay-submit"))
-    page.wait_for_timeout(500)
+    wait_for_response_to(page, lambda: page.click(tid("pay-submit")))
     assert page.input_value(tid("pay-handle")) == receiver["handle"]
     assert page.input_value(tid("pay-amount")) in ("3.00", "3")
     assert page.input_value(tid("pay-note")) == "keep-after-success"
@@ -151,32 +150,15 @@ def test_resubmitting_unchanged_form_sends_no_second_payment(page, demo):
     page.fill(tid("pay-handle"), receiver["handle"])
     page.fill(tid("pay-amount"), "4.00")
     page.fill(tid("pay-note"), "resubmit-test")
-    page.click(tid("pay-submit"))
-    page.wait_for_timeout(500)
+    wait_for_response_to(page, lambda: page.click(tid("pay-submit")))
     before = api_get("/activity", headers=auth(token)).json()["payments"]
     before_count = sum(1 for p in before if p.get("note") == "resubmit-test")
 
-    page.click(tid("pay-submit"))
-    page.wait_for_timeout(500)
+    wait_for_response_to(page, lambda: page.click(tid("pay-submit")))
     assert page.locator(tid("pay-error")).count() == 0
     after = api_get("/activity", headers=auth(token)).json()["payments"]
     after_count = sum(1 for p in after if p.get("note") == "resubmit-test")
     assert after_count == before_count == 1
-
-
-def _wait_for_balance_change(page, before_text: str, timeout_ms: int = 5000) -> None:
-    """Condition-based replacement for a fixed sleep after a submit: R-2-153
-    guarantees the wallet balance updates with no manual reload once a
-    payment commits, so wait for THAT observed DOM change instead of
-    guessing how long the write takes. A fixed sleep here raced the write
-    under load (this is the test @adversary caught flipping green/red
-    under a full g2 run); this waits for the actual signal, however long
-    it takes, up to `timeout_ms`."""
-    page.wait_for_function(
-        "([sel, before]) => document.querySelector(sel)?.innerText.trim() !== before",
-        arg=[tid("wallet-balance"), before_text.strip()],
-        timeout=timeout_ms,
-    )
 
 
 def test_changing_a_field_creates_a_new_payment(page, demo):
@@ -190,12 +172,12 @@ def test_changing_a_field_creates_a_new_payment(page, demo):
     page.fill(tid("pay-note"), "field-change-test")
     balance_before_first = page.locator(tid("wallet-balance")).inner_text()
     page.click(tid("pay-submit"))
-    _wait_for_balance_change(page, balance_before_first)
+    wait_for_dom_change(page, tid("wallet-balance"), balance_before_first)
 
     balance_before_second = page.locator(tid("wallet-balance")).inner_text()
     page.fill(tid("pay-amount"), "4.50")
     page.click(tid("pay-submit"))
-    _wait_for_balance_change(page, balance_before_second)
+    wait_for_dom_change(page, tid("wallet-balance"), balance_before_second)
     assert page.locator(tid("pay-error")).count() == 0
 
     feed = api_get("/activity", headers=auth(token)).json()["payments"]
@@ -213,7 +195,7 @@ def test_action_refreshes_without_manual_reload(page, demo):
     page.fill(tid("pay-handle"), receiver["handle"])
     page.fill(tid("pay-amount"), "2.00")
     page.click(tid("pay-submit"))
-    page.wait_for_timeout(500)
+    wait_for_dom_change(page, tid("wallet-balance"), before_balance)
     after_balance = page.locator(tid("wallet-balance")).inner_text()
     assert after_balance != before_balance, "balance must update after a successful action with no manual reload"
 
@@ -234,7 +216,7 @@ def test_refused_payment_shows_error_refreshes_preserves_inputs(page, demo):
     assert spend.status_code == 201, spend.text
 
     page.click(tid("pay-submit"))
-    page.wait_for_timeout(500)
+    wait_for_present(page, tid("pay-error"))
     assert page.locator(tid("pay-error")).count() > 0
     assert page.input_value(tid("pay-handle")) == receiver["handle"]
     assert page.input_value(tid("pay-note")) == "about-to-be-outspent"
@@ -266,7 +248,10 @@ def test_pay_uncertain_on_response_lost_after_commit(page, demo):
 
     page.route("**/payments", intercept)
     page.click(tid("pay-submit"))
-    page.wait_for_timeout(800)
+    # the route is aborted, so the browser never receives a response --
+    # wait_for_response_to would hang forever; wait for the resulting DOM
+    # state instead.
+    wait_for_present(page, tid("pay-uncertain"))
 
     assert committed.get("status") == 201, f"the server must have committed: {committed}"
     assert page.locator(tid("pay-error")).count() == 0, "a lost response must never be shown as a confirmed rejection"
@@ -277,7 +262,9 @@ def test_pay_uncertain_on_response_lost_after_commit(page, demo):
     page.unroute("**/payments")
     before = api_get("/me", headers=auth(token)).json()["balance"]
     page.click(tid("pay-submit"))
-    page.wait_for_timeout(500)
+    # this retry replays the same idempotency key, so the balance does NOT
+    # change -- wait for the uncertain marker to clear instead.
+    wait_for_absent(page, tid("pay-uncertain"))
     assert page.locator(tid("pay-uncertain")).count() == 0
     assert page.locator(tid("pay-error")).count() == 0
     after = api_get("/me", headers=auth(token)).json()["balance"]
