@@ -994,3 +994,23 @@ same-key simultaneous contention to `operation()` and a direct test that fails w
 idempotency lock is removed. Recorded here because it is exactly the kind of gap that a green
 suite hides and only mutation testing surfaces — the gate did its job the first time it was
 able to run.
+
+## Stage 2 recorded PARTIAL (planner, 2026-10-05, `172af36f7bca`)
+
+Final close at `bc6a8cc`: **scope, g1, g2 (497/0), g3, g4, g5, g7 all PASS.** The public harness
+itself claims stage 2 cleanly — `g3: exit 0; claimed stage 2` — which is the measure that matters
+most, and it confirms the empty-container ruling was the right reading.
+
+Two open, both recorded honestly rather than dressed up:
+- **g6: 70%, below the 80% bar.** Up from 60% once the operator's tool fix let it measure
+  properly, 0 timed out. Three real survivors, all genuine test gaps, all `or`/`and` or boundary
+  shapes our suite never feeds: single-field-missing on `POST /authorizations`; `_require_int`'s
+  bool-vs-int check in `snapshot.py:62`, where the mutant makes the check **unable to reject
+  anything** so a non-integer `seq`/`next_seq` would import uncaught; and an id at exactly
+  `MAX_ID_LEN`.
+- **g8: the stage clock, 523.7 > 480.** Spent. I overran it deliberately once, for the capture
+  typo that silently moved the full remaining hold, and I would make that trade again.
+
+Stage 3 and stage 4 therefore do not start. Their requirements (`plan/s3-requirements.md`
+R-3-001…133, `plan/s4-requirements.md` R-4-001…083) and work plans are written and committed, so
+the next run begins at N3-T rather than at a blank page.
