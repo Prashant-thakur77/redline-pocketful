@@ -56,6 +56,39 @@ Ids are `R-U-nnn`. Every R-1-*, R-2-*, R-3-* and R-4-* requirement continues to 
 | R-U-041 | **PLANNER DECISION.** New routes are additive and must serve HTML for `Accept: text/html` and JSON otherwise **only if** they shadow an existing API path. A screen with no API twin (e.g. a statement screen at `/statement` shares the path with `GET /statement`) must preserve the JSON response for non-HTML callers exactly — that endpoint is tested by the frozen suites. | R-U-003 |
 | R-U-042 | **PLANNER DECISION.** Every browser write reuses the idempotency discipline the API already requires: a key derived from the form's content so an unchanged resubmit replays rather than duplicates (R-2-151), and a changed field produces a new key (R-2-152). This applies to refunds, corrections and batches exactly as it already does to payments. | R-U-002 |
 
+## C2. The exact set R-U-005 protects — enumerated, not described
+
+Derived from the **frozen** suites, which gate 5 executes against `stage-4/`'s service:
+
+```
+grep -rhoE 'tid\("[^"]*"\)|data-testid="[^"]*"' stage-2/tests stage-3/tests
+   ->  52 distinct ids
+```
+
+Every one of these must stay **present in the DOM and directly interactable on its documented route,
+with no preceding click, tab change or `display: none`** (R-U-005):
+
+`activity-list` · `activity-item-{id}` · `activity-parties-{id}` · `auth-error` ·
+`authorization-capture-{id}` · `authorization-capture-amount-{id}` · `authorization-error-slot` ·
+`authorization-list` · `authorization-void-{id}` · `current-handle` · `current-user` ·
+`empty-activity` · `empty-authorizations` · `empty-requests` · `incoming-list` · `login-email` ·
+`login-password` · `login-submit` · `logout-button` · `outgoing-list` · `pay-amount` · `pay-error` ·
+`pay-handle` · `pay-note` · `pay-submit` · `pay-uncertain` · `pay-visibility` ·
+`request-cancel-{id}` · `request-decline-{id}` · `request-error` · `request-pay-{id}` ·
+`signup-display-name` · `signup-email` · `signup-password` · `signup-submit` · `split-amount` ·
+`split-handles` · `split-preview` · `split-submit` · `wallet-available` · `wallet-balance` ·
+`wallet-held` · `wallet-refresh`
+
+Note what this list implies for the operator's A2 ("one primary Pay / Request action with a toggle"):
+`pay-handle`, `pay-amount`, `pay-note`, `pay-visibility`, `pay-submit` **and** the request and
+authorize controls all appear in frozen tests that fill them directly. A toggle that hides any of them
+behind an interaction fails gate 5, which is why R-U-005 rules prominence free and availability fixed.
+
+Of these, the ones whose **text is compared character for character** — and so may not gain a currency
+symbol (R-U-011) — are `wallet-balance`, `wallet-available`, `wallet-held`, `activity-amount-{id}`,
+`request-amount-{id}`, `split-share-{handle}`, `authorization-amount-{id}`, and `current-handle`
+(exactly the handle, no `@`, no surrounding words).
+
 ## D. Evidence
 
 | id | requirement |
