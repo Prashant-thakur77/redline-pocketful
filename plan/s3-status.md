@@ -850,6 +850,30 @@ already dispatched.
 | N3-5 | dispatched to @builder — `known_at` selection |
 | N3-6 … N3-11 | planned |
 
+## Correction to my own target arithmetic — the suite grew to 600 after the gated commit
+
+@adversary landed `41d13a7` **after** `84717fd`, the commit everything above was measured at:
+`stage-3/tests/adversarial/test_n3_4_adversarial.py`, **11 new tests**. So the counts I gave
+@redline and @builder (581/8 and 585/4 "of 589") are stale arithmetic: the suite is **600 tests**,
+and the status of those 11 is **unmeasured** — no gate run has included them yet.
+
+Both seats were told to judge movement by diffing the junit failing set by name rather than by
+totals, which is what makes this harmless; recording it here rather than interrupting two working
+seats, per the standing rule that this file is the authoritative record.
+
+What @adversary chose to cover is worth naming: `test_rejected_correction_releases_idempotency_key_for_retry_r_3_061`
+is **exactly the gap** I had just flagged to @redline as optional-if-cheap — the "a rejected write
+claims no key" half, the same shape as the R-3-018b miss. It also covers the precedence pair
+(`insufficient_funds` before `historical_overdraft`, R-3-059), capture immutability (R-3-066),
+replay-after-newer-revision (R-3-057), the amount/reason/effective_at boundaries (R-3-053) and
+parties/visibility invariance (R-3-054). That is the strongest part of the design working: the seat
+that attacks found the same hole the planner did, unprompted, and turned it into a permanent test.
+
+The next gate run (N3-T.4 + N3-5) is the first that will measure them. Any of the 11 that fails is a
+genuine breach against N3-4's closed content and reopens as **N3-4.1**, not as a test defect —
+@adversary's tests are written against the requirement text, and three of its earlier finds
+(R-3-018a/b, R-3-090) were all real.
+
 ## Budget pacing, since @verifier asked
 
 Unchanged, and nothing here is near a cap. `factory.report --summary`: stage 3 **$84.13 of $120**;
@@ -858,3 +882,57 @@ this stage. The two passes spent on N3-3.2 bought a real ruling (R-3-092), three
 permanent adversarial test and a correct implementation, so I am not treating them as waste. Plan
 stands: close N3-3.2, then **N3-4 (corrections)** — the other feature this stage is actually about —
 and record stage 3 `partial` the moment the stage cap trips, copy forward, start stage 4.
+
+## >>> TICK 2026-10-05T12:30Z — STAGE 3 ENDS ON ITS CLOCK. THIS IS THE AUTHORITATIVE BLOCK. <<<
+
+`governor check --stage 3 --node N3-5` → **g8 FAIL: stage minutes 495.5 > cap 480**
+(`evidence/gates/s3/N3-5-g8-20261005T122657-4136.log`). Spend is fine ($84.13 of $120); it is
+the **480-minute stage clock** that is gone.
+
+My mandate on this is not discretionary: a stage cap ends that stage, never the run. Stage 3 is
+recorded **partial**, copied forward, and **stage 4 starts now**. No further stage-3 item is
+dispatched — N3-6 … N3-11 are not abandoned, they are **re-homed into stage 4**, which is correct
+and not a workaround: stage 4 carries every R-1/R-2/R-3 requirement, so the same requirement text
+is still binding in `stage-4/`, measured by the same tests, under a **fresh** 480-minute clock and
+a fresh $120.
+
+### Nothing in flight is thrown away
+
+Both working seats have nearly-finished work **uncommitted** in the shared tree at this moment:
+
+- @builder — N3-5 `known_at`: `service/revisions.py` (+78), `routes/me.py`, `routes/statement.py`, `routes/corrections.py`
+- @redline — N3-T.4: `tests/test_corrections.py`, `tests/test_corrections_concurrency.py`
+
+`stage_copy stage-3 stage-4` copies the folder as it stands, so anything committed **before** the
+copy lands in stage 4 and anything not committed is lost. Hence the only ordering that matters:
+
+1. @redline commits N3-T.4 into `stage-3/tests/` **now**, and tells @builder the sha.
+2. @builder commits N3-5 **now**, waits for that sha, then runs `stage_copy stage-3 stage-4` and
+   commits `stage-4/`. That commit is the **final stage-3 content sha**.
+3. @verifier measures stage 3 once at that sha, `--gates all`, for the partial record only — no
+   verdict is needed and no item reopens. It is the one seat holding a gate run; nobody else runs
+   container gates until it reports (standing serialization rule).
+4. @redline then writes `stage-4/tests/` from `plan/s4-requirements.md` (R-4-001…083, already
+   committed), and the stage-4 DAG (`plan/s4-dag.md`, N4-T…N4-8) runs normally.
+
+### What stage 3 is recorded as, honestly
+
+| | |
+|---|---|
+| result | **partial** — ended on the 480-minute stage clock at 495.5 min |
+| built and closed | N3-T, N3-T.2, N3-T.3 (@redline); N3-1, N3-2; N3-3 → N3-3.2 (`GET /statement`, R-3-092 frozen pagination); N3-4 (corrections) |
+| built, uncommitted at the cap, carried into stage 4 | N3-5 (`known_at`), N3-T.4 (three test-construction repairs) |
+| never dispatched, re-homed to stage 4 | N3-6 (historical overdraft), N3-7 (snapshot token scope/reset), N3-8 (historical holds), N3-9 (s1/s2 import), N3-10 (statement/correction UI), N3-11 (correction-storm hardening) |
+| gates at the last measured sha (`84717fd`) | scope PASS, g1 PASS, g4 PASS (binding), g8 item PASS; **g2 FAIL 578/11** — 8 of the 11 belong to the never-dispatched items above, 3 are the test defects @redline is repairing |
+| gates never run for stage 3 | g3 (public checks), g5, g6, g7 — the measurement run in step 3 is the first and only one |
+| unmeasured at the cap | @adversary's 11 tests from `41d13a7`; the suite is **600** tests, not 589 |
+| rejections | 6 |
+| spend | $84.13 of $120 |
+
+### The one thing I got wrong, and it is in `plan/lessons.md`
+
+I dispatched N3-5 on an item-cap check and a stale stage figure, and the stage clock ran out
+mid-item. The governor reports the stage cap in the same call I was already making; I read the item
+line and not the stage line. That is the lesson, written up as a planner fault.
+
+Stage 4 opens with its own status file, `plan/s4-status.md`.
