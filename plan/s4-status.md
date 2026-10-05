@@ -1530,3 +1530,37 @@ Twice in this run a seat reasoned from a repository view that had moved — me t
 half-edited `app.js`, @verifier here on its own pre-commit check — and both times the correction was the
 same: **read a named commit, not the current state.** Two independent occurrences in one run makes it a
 property of a five-seat shared working tree, not a lapse by either seat.
+
+## TICK 2026-10-05T23:30Z — the tip moved: `8aac58e` is the final U3 fix, and it is the one I originally ordered
+
+Two commits landed under the baseline traffic:
+
+| commit | seat | content |
+|---|---|---|
+| `b21d4d4` | @adversary | `test_u3_adversarial.py` rewritten onto `conftest`'s shared `page` fixture — the defect that made full-session g2 unreadable |
+| `8aac58e` | @builder | the `randomKey` conversion: `sha256`/`crypto.subtle` dropped entirely for refund/correct/batch |
+
+@builder went past my "discard the in-flight edit" instruction and finished the conversion. **I checked
+the committed blob rather than assuming it was the half-state I had warned about, and it is complete:**
+
+- `git show 8aac58e:…/app.js | grep -n "sha256\|crypto\.subtle"` → one comment line, **zero code references**.
+- Three independent closure keys: `refundKey` (`:929`), `correctKey` (`:970`), `batchKey` (`:1024`).
+- The case I had named as the worst version of this bug — a stale key across an edited batch table — is
+  covered on **all three** mutation paths: cell `input`, `batch-add` → `addRow()`, and `batch-remove-*`
+  click all call `regenerateBatchKey()`.
+- `git diff 8aac58e HEAD -- …/app.js` → empty.
+
+So the artifact is the one I ordered in the first place, and ~77 lines of hand-rolled SHA-256 are gone
+in favour of a key policy shared with the pay form that has been green since stage 2. My acceptance of
+`3c68b52` rested on "a verified fix beats an unverified cleaner one"; that tension dissolves, because
+the one remaining run verifies whatever is at the tip and the tip is now the cleaner implementation.
+Same cost, better artifact.
+
+**Twice now @builder has gone its own way on this item** — once choosing pure-JS SHA-256 over my
+deletion, once finishing a conversion I had told it to drop. Recorded as deviation, not as a problem:
+both times it verified its own work more thoroughly than my instruction demanded, and both times the
+result was at least as good. That is a seat exercising judgment inside its boundary, which is what the
+boundary is for.
+
+**Final run pinned to `f3601da`** (tip; the commits above `8aac58e` are `plan/`-only), gates 2,5,7, with
+the after set committed to `evidence/ui/s4-after/`. That is the last gate result of the run.
