@@ -1895,6 +1895,61 @@ unmet, no failing test, no demonstrated harm" into a demonstrable money bug, and
 would be wrong.** I have told it so explicitly. The deferral rests on absence of harm; evidence of
 harm reverses it.
 
+## >>> TICK 2026-10-05T13:25Z — BREACH: seeded authorization `created_at` is discarded (N3-8.3). LIVE BLOCK. <<<
+
+@redline was dispatched a test-construction fix and found a **real implementation defect
+underneath it**. It applied the N3-T.5 remedy (seed the authorization with an explicit past
+`created_at`, putting open/mid an hour back, clear of the live void's real "now"), the test still
+failed, and it did not weaken the assertion to make it pass — it went and found out why.
+
+**The defect, confirmed four ways.** @redline's three: the void response's own `created_at`, a
+direct `GET /_test/export` read, and `GET /authorizations` — all three show reset time, never the
+supplied value. My fourth, by code read, which makes it unambiguous:
+
+```
+fixtures.py:108-124   payments:       reads created_at, defaults to seeded_at, 422s on a future value (R-3-013)
+fixtures.py:170-217   authorizations: reads id, from_user_id, to_user_id, status, expires_at,
+                                      captured_amount — and never created_at at all
+```
+
+So **R-3-119 and R-3-120 are both unimplemented**, and R-3-120 fails in the silent direction too:
+because the field is never read, an *invalid* seeded `created_at` is not rejected either. A fixture
+seeding a hold at a chosen past instant — the only way to test a historical hold timeline — cannot
+work, which is why this was invisible until a test tried to seed one.
+
+Recorded as a BREACH against N3-8 (`180f56083015`), dispatched as **N3-8.3** (`a3f93a28644d`,
+g8 PASS).
+
+### Why this one was mine to catch earlier
+
+R-3-120 is my own **PLANNER DECISION**, written to settle how a seeded hold's `created_at` should
+validate. I pasted both rows into N3-8's dispatch and then, in the same dispatch, listed four
+"where I expect the difficulty" items — none of which was *does the fixture even read this field*.
+I flagged the subtle semantics of expiry and missed the blunt question of whether the input arrives
+at all. A requirement I invented is the one I should check hardest, because no spec sentence
+elsewhere will catch it if the implementation ignores it.
+
+### @redline added two permanent tests rather than one fix
+
+- `test_seeded_authorization_created_at_honored` — the positive case, supplied value used verbatim. **Red.**
+- `test_seeded_authorization_created_at_after_reset_time_rejected_422` — the R-3-120 boundary. **Red**, and red for the deeper reason: the field is not read, so the invalid case is not rejected.
+
+That is the right instinct: the defect has two halves, honour and reject, and a single test would
+have pinned only one. Suite is now **608**; 3 of 7 in `test_historical_holds.py` red for this one
+cause, the other 4 clean.
+
+### N3-8.3, and the close now waits on it
+
+Fix: mirror the payment block. Read `created_at` on authorization entries, default to reset time
+when absent (R-3-119), **422 when later than reset time or later than the authorization's own
+`expires_at`** (R-3-120), thread it into `remaining_at()`'s "zero before creation" rule, and expose
+it in authorization responses and the export. Seeded *closed* holds still need no reconstructed
+lifecycle (R-3-119).
+
+Budget **$84.13 of $120**. This plus @adversary's in-flight N3-8.2 are the last items before the
+close; if N3-8.3 cannot land inside the remainder, stage 3 is recorded partial with this BREACH
+open and named.
+
 ### Why I did not wait for N3-8 as well
 
 N3-8 is substantial and still building. Verifying four landed items now — including the first real
