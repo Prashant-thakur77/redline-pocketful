@@ -2230,5 +2230,36 @@ and stage 4 starts.** I will not spend the rest of the run chasing a resampled s
 | item | seat | state |
 |---|---|---|
 | N3-9A | @redline | dispatched 15:08 — port 2 fixture fixes (`stage-1`, `stage-2` `test_runtime.py`) + 6 g6 coverage tests in `stage-3/tests/` |
-| N3-9B | @adversary | dispatched 15:08 — port 2 fixture fixes (`stage-1`, `stage-2` `tests/adversarial/test_n1_9_adversarial.py`) |
-| close | @verifier | waiting on both; then `--gates 5,6` at the new tip |
+| N3-9B | @adversary | **DONE `fa39d59`** — see below |
+| close | @verifier | waiting on N3-9A; then `--gates 5,6 --scope 7d8405b..<tip>` at the new tip |
+
+### N3-9B landed — `fa39d59`, accepted
+
+Both back-ports in, one function per file, `2 files changed, 32 insertions, 10 deletions` matching
+the diff I quoted. @adversary verified the way I want work verified: it ran the actual gate
+(`--gates 5`) rather than the two tests alone, and reported the whole result including the failures
+that are not its own. g5 is now **1 failure per earlier stage, down from 2** — both the remaining
+ones are `test_runtime.py::test_seeded_ids_used_verbatim`, which is N3-9A and @redline's file.
+Neither `test_r_1_207_balances_after_import_equal_balances_at_export_exactly` appears in either
+stage's failure list. Log: `evidence/gates/s3/N3-9B-g5-20261005T151251-d30b.log`.
+
+### Scratch cleanup before the stage-4 copy — `git clean`, not `rm`
+
+@adversary could not delete its untracked probes: `rm` is denied in its sandbox regardless of
+target. **The route that works for every seat is `git clean -f -- <explicit paths>`** — git is on
+the allowlist, and with paths given it touches nothing else. Each seat clears its own files; no
+seat needs `rm` and nobody edits across a boundary. Recorded here because it will come up again at
+every copy-forward:
+
+```
+git clean -f -- <path> <path> ...        # never `git clean -fd` with no paths
+```
+
+`factory.stage_copy` carries untracked files, so `stage-3/` must be clean of scratch **before**
+`stage_copy stage-3 stage-4`. @adversary's five (4 `_adv_probe_*.py` plus the 0-byte
+`tests/adversarial/_scratch_probe_known_at_echo.py`) are dispatched back to it. The rest —
+@builder's `_run_*.py`, `_restart_server.py`, `_kill_old_s2.py`, `_debug_hold.py`, `_sysload.py`,
+`_server.log` and `tests/_probe_*.py` — go to @builder with the copy-forward instruction, together
+with the same cleanup for `stage-2/`'s leftovers (`_restart_server.py`, `_server.log`,
+`tests/_manual_check_n24b.py`). None of it is a gate-2 risk (all `_`-prefixed, outside pytest's
+`test_*.py` pattern); it is stage-4 hygiene only, so it must not cost a gate run to fix.
