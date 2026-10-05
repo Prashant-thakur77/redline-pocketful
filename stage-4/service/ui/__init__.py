@@ -17,6 +17,7 @@ per R-1-089.
 """
 from __future__ import annotations
 
+import re
 from urllib.parse import parse_qsl
 
 from ..store import STORE
@@ -27,11 +28,19 @@ SESSION_COOKIE = "pocketful_session"
 # R-2-090: the six required routes. "/signup"/"/login" need no session;
 # "/"/"/split" are UI-only and always require one; "/requests"/
 # "/authorizations" are shared with the JSON API and only divert here on
-# an explicit text/html Accept (R-2-091).
+# an explicit text/html Accept (R-2-091). "/statement" and
+# "/correction-batches" join that same negotiated set for U3 (R-U-041):
+# a non-HTML caller falls through to the unmodified JSON endpoint (or,
+# for "/correction-batches" with GET, the unmodified 405 -- there is no
+# GET handler registered for it in `ROUTER` either, before or after this
+# change). "/payments/{id}" has no JSON GET at all (R-U-001 forbids
+# inventing one), so it is matched separately, by pattern, never added to
+# the literal set above.
 _PUBLIC_PAGES = {"/signup", "/login"}
 _AUTHED_ONLY_PAGES = {"/", "/split"}
-_NEGOTIATED_PAGES = {"/requests", "/authorizations"}
+_NEGOTIATED_PAGES = {"/requests", "/authorizations", "/statement", "/correction-batches"}
 _POST_PAGES = {"/login", "/signup", "/logout"}
+_PAYMENT_DETAIL_RE = re.compile(r"^/payments/(?P<payment_id>[^/]+)$")
 
 
 def _parse_accept(accept: str) -> list[tuple[str, float]]:
@@ -138,6 +147,10 @@ def try_handle(method: str, path: str, headers: dict, raw_body: bytes, query: di
         if path in _AUTHED_ONLY_PAGES or (path in _NEGOTIATED_PAGES and _wants_html(headers)):
             user, token = resolve_session(headers)
             return pages.render_authed_page(path, user, token)
+        detail_match = _PAYMENT_DETAIL_RE.match(path)
+        if detail_match and _wants_html(headers):
+            user, token = resolve_session(headers)
+            return pages.render_payment_detail_page(detail_match.group("payment_id"), user, token)
         return None
 
     if method == "POST" and path in _POST_PAGES:

@@ -55,11 +55,27 @@
     el.hidden = true;
   }
 
+  // R-U-042: idempotency keys for the three new U3 writes are derived
+  // from the form's own content (sha256, hex, first 16 chars) via the
+  // browser's built-in WebCrypto -- no CDN, no second hashing library.
+  function sha256Hex16(text) {
+    var data = new TextEncoder().encode(text);
+    return crypto.subtle.digest("SHA-256", data).then(function (buf) {
+      var bytes = new Uint8Array(buf);
+      var hex = "";
+      for (var i = 0; i < 8; i++) {
+        hex += bytes[i].toString(16).padStart(2, "0");
+      }
+      return hex;
+    });
+  }
+
   window.Pocketful = {
     parseAmountToMinorUnits: parseAmountToMinorUnits,
     formatAmount: formatAmount,
     showError: showError,
-    hideError: hideError
+    hideError: hideError,
+    sha256Hex16: sha256Hex16
   };
 })();
 
@@ -722,4 +738,413 @@
   }
 
   bindSplitForm();
+
+  // ---- /statement (R-U-030..033): date-only inputs converted to the
+  // RFC 3339 instants the API requires (R-3-030) -- a bare date is
+  // 422_validation_failed, so every conversion happens here, once, before
+  // any fetch. as_of/known_at are independent axes (R-U-032): both are
+  // sent whenever present, neither derived from the other. ----
+  (function bindStatementScreen() {
+    var screen = document.getElementById("statement-screen");
+    if (!screen) {
+      return;
+    }
+    var fromEl = document.querySelector('[data-testid="statement-from"]');
+    var toEl = document.querySelector('[data-testid="statement-to"]');
+    var asOfEl = document.querySelector('[data-testid="statement-as-of"]');
+    var knownAtEl = document.querySelector('[data-testid="statement-known-at"]');
+    var applyBtn = document.querySelector('[data-testid="statement-apply"]');
+    var prevBtn = document.querySelector('[data-testid="statement-prev"]');
+    var nextBtn = document.querySelector('[data-testid="statement-next"]');
+    var errorEl = document.querySelector('[data-testid="statement-error"]');
+    var loadingEl = document.querySelector('[data-testid="statement-loading"]');
+    var listEl = document.querySelector('[data-testid="statement-list"]');
+    var noteEl = document.querySelector('[data-testid="statement-snapshot-note"]');
+    var openingEl = document.querySelector('[data-testid="statement-opening-balance"]');
+    var closingEl = document.querySelector('[data-testid="statement-closing-balance"]');
+    var asOfBalanceEl = document.querySelector('[data-testid="as-of-balance"]');
+
+    function dayStart(dateStr) { return dateStr + "T00:00:00+00:00"; }
+    function dayEnd(dateStr) { return dateStr + "T23:59:59+00:00"; }
+    function nextDayStart(dateStr) {
+      var d = new Date(dateStr + "T00:00:00Z");
+      d.setUTCDate(d.getUTCDate() + 1);
+      return dayStart(d.toISOString().slice(0, 10));
+    }
+
+    function currency() { return screen.getAttribute("data-currency"); }
+    function minorUnits() { return parseInt(screen.getAttribute("data-minor-units"), 10); }
+
+    function showError(message) {
+      errorEl.hidden = false;
+      errorEl.textContent = message;
+    }
+    function clearError() {
+      errorEl.hidden = true;
+      errorEl.textContent = "";
+    }
+    function setLoading(on) {
+      loadingEl.hidden = !on;
+    }
+
+    function renderEntry(entry) {
+      var amt = Pocketful.formatAmount(entry.amount, currency(), minorUnits());
+      var bal = Pocketful.formatAmount(entry.balance_after, currency(), minorUnits());
+      return '<article data-testid="statement-entry-' + escHtml(entry.payment_id) + '" class="list-item">' +
+        '<p class="list-item-parties">' + escHtml(entry.effective_at) + '</p>' +
+        '<p data-testid="statement-entry-amount-' + escHtml(entry.payment_id) + '" class="list-item-amount">' +
+        escHtml(amt) + '</p>' +
+        '<p data-testid="statement-entry-balance-' + escHtml(entry.payment_id) + '" class="list-item-amount">' +
+        escHtml(bal) + '</p>' +
+        '<p data-testid="statement-entry-revision-' + escHtml(entry.payment_id) + '" class="list-item-note">rev ' +
+        entry.revision + '</p></article>';
+    }
+
+    function renderStatement(data, fromSnapshot) {
+      screen.setAttribute("data-snapshot", data.snapshot);
+      if (data.entries.length) {
+        listEl.innerHTML = data.entries.map(renderEntry).join("");
+      } else {
+        listEl.innerHTML = '<p data-testid="empty-statement" class="empty-state">No entries in this window.</p>';
+      }
+      openingEl.textContent = Pocketful.formatAmount(data.opening_balance, currency(), minorUnits());
+      closingEl.textContent = Pocketful.formatAmount(data.closing_balance, currency(), minorUnits());
+      if (fromSnapshot) {
+        noteEl.hidden = false;
+        noteEl.textContent = "Viewing a frozen snapshot (" + data.snapshot + ") taken earlier in this session.";
+      } else {
+        noteEl.hidden = true;
+      }
+    }
+
+    function fetchStatement(params, fromSnapshot) {
+      setLoading(true);
+      clearError();
+      var qs = Object.keys(params).map(function (k) {
+        return encodeURIComponent(k) + "=" + encodeURIComponent(params[k]);
+      }).join("&");
+      return fetch("/statement?" + qs, {headers: authHeaders()})
+        .then(function (r) { return r.json().then(function (body) { return {status: r.status, body: body}; }); })
+        .then(function (result) {
+          setLoading(false);
+          if (result.status >= 200 && result.status < 300) {
+            renderStatement(result.body, fromSnapshot);
+          } else {
+            var message = (result.body.error && result.body.error.message) || "Something went wrong.";
+            showError(message);
+          }
+        })
+        .catch(function () {
+          setLoading(false);
+          showError("Something went wrong. Please try again.");
+        });
+    }
+
+    function applyWindow() {
+      var params = {limit: 50, offset: 0};
+      if (fromEl.value) { params.from = dayStart(fromEl.value); }
+      if (toEl.value) { params.to = nextDayStart(toEl.value); }
+      if (knownAtEl.value) { params.known_at = dayEnd(knownAtEl.value); }
+      screen.setAttribute("data-offset", "0");
+      fetchStatement(params, false);
+
+      if (asOfEl.value) {
+        var meParams = {as_of: dayEnd(asOfEl.value)};
+        if (knownAtEl.value) { meParams.known_at = dayEnd(knownAtEl.value); }
+        var qs = Object.keys(meParams).map(function (k) {
+          return encodeURIComponent(k) + "=" + encodeURIComponent(meParams[k]);
+        }).join("&");
+        fetch("/me?" + qs, {headers: authHeaders()})
+          .then(function (r) { return r.json(); })
+          .then(function (data) {
+            asOfBalanceEl.textContent = Pocketful.formatAmount(data.total, data.currency, data.minor_units);
+          });
+      } else {
+        asOfBalanceEl.textContent = "";
+      }
+    }
+
+    function page(delta) {
+      var offset = Math.max(0, parseInt(screen.getAttribute("data-offset"), 10) + delta);
+      screen.setAttribute("data-offset", String(offset));
+      fetchStatement({snapshot: screen.getAttribute("data-snapshot"), limit: 50, offset: offset}, true);
+    }
+
+    applyBtn.addEventListener("click", applyWindow);
+    prevBtn.addEventListener("click", function () { page(-50); });
+    nextBtn.addEventListener("click", function () { page(50); });
+  })();
+
+  // ---- payment detail: refund + correct (R-U-036..038). Both reuse the
+  // SAME three-outcome pattern as the pay form (success / refused /
+  // uncertain, R-2-157) -- a lost response is retried with the identical
+  // key and body, never shown as a refusal. ----
+  (function bindPaymentDetailActions() {
+    var detailSection = document.querySelector('[data-payment-id]');
+    if (!detailSection) {
+      return;
+    }
+    var paymentId = detailSection.getAttribute("data-payment-id");
+    var currency = detailSection.getAttribute("data-currency");
+    var minorUnits = parseInt(detailSection.getAttribute("data-minor-units"), 10);
+
+    function showActionSlot(prefix, kind, message) {
+      ["error", "uncertain"].forEach(function (k) {
+        var el = document.querySelector('[data-testid="' + prefix + '-' + k + '"]');
+        if (el) { el.hidden = true; el.textContent = ""; }
+      });
+      var target = document.querySelector('[data-testid="' + prefix + '-' + kind + '"]');
+      if (target) { target.hidden = false; target.textContent = message; }
+    }
+
+    function clearActionSlots(prefix) {
+      ["error", "uncertain"].forEach(function (k) {
+        var el = document.querySelector('[data-testid="' + prefix + '-' + k + '"]');
+        if (el) { el.hidden = true; el.textContent = ""; }
+      });
+    }
+
+    function submitWrite(prefix, path, key, body) {
+      clearActionSlots(prefix);
+      return fetch(path, {
+        method: "POST",
+        headers: authHeaders({"Idempotency-Key": key, "Content-Type": "application/json"}),
+        body: JSON.stringify(body)
+      }).then(function (resp) {
+        return resp.json().then(function (data) { return {status: resp.status, body: data}; });
+      }).then(function (result) {
+        if (result.status >= 200 && result.status < 300) {
+          showActionSlot(prefix, "error", ""); // clears; success has no dedicated slot beyond a reload
+          clearActionSlots(prefix);
+          location.reload();
+        } else {
+          // R-U-038: the API's own error text, shown plainly, never
+          // relabelled -- refund_exceeds_payment, linked_payment_immutable,
+          // insufficient_funds, historical_overdraft, stale_revision all
+          // land here verbatim.
+          var message = (result.body.error && result.body.error.message) || "Something went wrong.";
+          showActionSlot(prefix, "error", message);
+        }
+      }).catch(function () {
+        // R-2-157/R-U-038: the response was lost, not refused -- never
+        // shown as `-error`. Retrying with the SAME key/body is safe.
+        showActionSlot(prefix, "uncertain",
+                        "We couldn't confirm this went through. It's safe to try again.");
+      });
+    }
+
+    var refundForm = document.querySelector('[data-testid="refund-form"]');
+    if (refundForm) {
+      var refundAmountEl = document.querySelector('[data-testid="refund-amount"]');
+      var refundReviewEl = document.querySelector('[data-testid="refund-review"]');
+      function updateRefundReview() {
+        var amt = Pocketful.parseAmountToMinorUnits(refundAmountEl.value, minorUnits);
+        if (amt === null) {
+          refundReviewEl.hidden = true;
+          return;
+        }
+        refundReviewEl.hidden = false;
+        refundReviewEl.textContent = "Refund " + Pocketful.formatAmount(amt, currency, minorUnits);
+      }
+      refundAmountEl.addEventListener("input", updateRefundReview);
+      updateRefundReview();
+      document.querySelector('[data-testid="refund-submit"]').addEventListener("click", function () {
+        var amt = Pocketful.parseAmountToMinorUnits(refundAmountEl.value, minorUnits);
+        if (amt === null) {
+          showActionSlot("refund", "error", "Enter a valid amount.");
+          return;
+        }
+        Pocketful.sha256Hex16(String(amt)).then(function (hash) {
+          var key = "ui-rf-" + paymentId + "-" + hash;
+          submitWrite("refund", "/payments/" + paymentId + "/refunds", key, {amount: amt});
+        });
+      });
+    }
+
+    var correctForm = document.querySelector('[data-testid="correct-form"]');
+    if (correctForm) {
+      var correctAmountEl = document.querySelector('[data-testid="correct-amount"]');
+      var correctReasonEl = document.querySelector('[data-testid="correct-reason"]');
+      var correctEffectiveEl = document.querySelector('[data-testid="correct-effective"]');
+      var correctExpectedEl = document.querySelector('[data-testid="correct-expected-revision"]');
+      var correctReviewEl = document.querySelector('[data-testid="correct-review"]');
+
+      function effectiveInstant() {
+        if (correctEffectiveEl.value) {
+          return new Date(correctEffectiveEl.value).toISOString();
+        }
+        return new Date().toISOString();
+      }
+
+      function updateCorrectReview() {
+        var amt = Pocketful.parseAmountToMinorUnits(correctAmountEl.value, minorUnits);
+        if (amt === null) {
+          correctReviewEl.hidden = true;
+          return;
+        }
+        correctReviewEl.hidden = false;
+        correctReviewEl.textContent = "Correct to " + Pocketful.formatAmount(amt, currency, minorUnits) +
+          (correctReasonEl.value ? " · " + correctReasonEl.value : "");
+      }
+      correctAmountEl.addEventListener("input", updateCorrectReview);
+      correctReasonEl.addEventListener("input", updateCorrectReview);
+      updateCorrectReview();
+
+      document.querySelector('[data-testid="correct-submit"]').addEventListener("click", function () {
+        var amt = Pocketful.parseAmountToMinorUnits(correctAmountEl.value, minorUnits);
+        if (amt === null) {
+          showActionSlot("correct", "error", "Enter a valid amount.");
+          return;
+        }
+        if (!correctReasonEl.value) {
+          showActionSlot("correct", "error", "Enter a reason.");
+          return;
+        }
+        var effectiveAt = effectiveInstant();
+        var expectedRevision = parseInt(correctExpectedEl.value, 10);
+        var reason = correctReasonEl.value;
+        Pocketful.sha256Hex16([expectedRevision, amt, effectiveAt, reason].join("|")).then(function (hash) {
+          var key = "ui-co-" + paymentId + "-" + hash;
+          submitWrite("correct", "/payments/" + paymentId + "/corrections", key,
+            {expected_revision: expectedRevision, amount: amt, effective_at: effectiveAt, reason: reason});
+        });
+      });
+    }
+  })();
+
+  // ---- operator batch corrections (R-U-039). The table is assembled
+  // entirely client-side (no "pending corrections" read endpoint exists
+  // to populate it from, R-U-001) and submitted as one
+  // POST /correction-batches call. ----
+  (function bindBatchScreen() {
+    var screen = document.getElementById("batch-screen");
+    if (!screen) {
+      return;
+    }
+    var tbody = document.querySelector('[data-testid="batch-tbody"]');
+    var emptyEl = document.querySelector('[data-testid="empty-batch"]');
+    var previewEl = document.querySelector('[data-testid="batch-preview"]');
+    var maxRows = parseInt(screen.getAttribute("data-max-rows"), 10);
+    var rowCount = 0;
+
+    function rowHtml(index) {
+      return '<tr data-testid="batch-row-' + index + '">' +
+        '<td><input type="text" data-testid="batch-payment-id-' + index + '"></td>' +
+        '<td><input type="text" data-testid="batch-amount-' + index + '"></td>' +
+        '<td><input type="text" data-testid="batch-reason-' + index + '"></td>' +
+        '<td><input type="text" data-testid="batch-expected-revision-' + index + '" value="1"></td>' +
+        '<td><input type="datetime-local" data-testid="batch-effective-' + index + '"></td>' +
+        '<td><button type="button" data-testid="batch-remove-' + index +
+        '" data-index="' + index + '" class="btn btn-ghost">Remove</button></td></tr>';
+    }
+
+    function updateEmptyState() {
+      emptyEl.hidden = tbody.children.length > 0;
+    }
+
+    function addRow() {
+      if (rowCount >= maxRows) {
+        return;
+      }
+      var index = rowCount++;
+      tbody.insertAdjacentHTML("beforeend", rowHtml(index));
+      updateEmptyState();
+      updatePreview();
+      tbody.querySelectorAll("input").forEach(function (el) {
+        el.addEventListener("input", updatePreview);
+      });
+    }
+
+    function collectRows() {
+      var rows = [];
+      tbody.querySelectorAll("tr").forEach(function (tr) {
+        var paymentIdEl = tr.querySelector('[data-testid^="batch-payment-id-"]');
+        var amountEl = tr.querySelector('[data-testid^="batch-amount-"]');
+        var reasonEl = tr.querySelector('[data-testid^="batch-reason-"]');
+        var expectedEl = tr.querySelector('[data-testid^="batch-expected-revision-"]');
+        var effectiveEl = tr.querySelector('[data-testid^="batch-effective-"]');
+        if (!paymentIdEl.value) {
+          return;
+        }
+        var amt = Pocketful.parseAmountToMinorUnits(amountEl.value, SESSION.minor_units);
+        rows.push({
+          payment_id: paymentIdEl.value,
+          amount: amt,
+          reason: reasonEl.value,
+          expected_revision: parseInt(expectedEl.value, 10),
+          effective_at: effectiveEl.value ? new Date(effectiveEl.value).toISOString() : new Date().toISOString()
+        });
+      });
+      return rows;
+    }
+
+    function updatePreview() {
+      var rows = collectRows();
+      if (!rows.length) {
+        previewEl.hidden = true;
+        return;
+      }
+      previewEl.hidden = false;
+      previewEl.textContent = rows.length + " correction(s) queued: " +
+        rows.map(function (r) { return r.payment_id; }).join(", ");
+    }
+
+    document.querySelector('[data-testid="batch-add"]').addEventListener("click", addRow);
+
+    tbody.addEventListener("click", function (e) {
+      var btn = e.target.closest('[data-testid^="batch-remove-"]');
+      if (!btn) {
+        return;
+      }
+      btn.closest("tr").remove();
+      updateEmptyState();
+      updatePreview();
+    });
+
+    function showBatchSlot(kind, message) {
+      ["result", "error", "uncertain"].forEach(function (k) {
+        var el = document.querySelector('[data-testid="batch-' + k + '"]');
+        if (el) { el.hidden = true; el.textContent = ""; }
+      });
+      var target = document.querySelector('[data-testid="batch-' + kind + '"]');
+      if (target) { target.hidden = false; target.textContent = message; }
+    }
+
+    document.querySelector('[data-testid="batch-submit"]').addEventListener("click", function () {
+      var rows = collectRows();
+      if (!rows.length) {
+        showBatchSlot("error", "Add at least one row.");
+        return;
+      }
+      if (rows.some(function (r) { return r.amount === null; })) {
+        showBatchSlot("error", "Every row needs a valid amount.");
+        return;
+      }
+      var canonical = JSON.stringify(rows.map(function (r) {
+        return [r.payment_id, r.expected_revision, r.amount, r.effective_at, r.reason];
+      }));
+      Pocketful.sha256Hex16(canonical).then(function (hash) {
+        var key = "ui-cb-" + hash;
+        return fetch("/correction-batches", {
+          method: "POST",
+          headers: authHeaders({"Idempotency-Key": key, "Content-Type": "application/json"}),
+          body: JSON.stringify({corrections: rows})
+        });
+      }).then(function (resp) {
+        return resp.json().then(function (data) { return {status: resp.status, body: data}; });
+      }).then(function (result) {
+        // R-U-039: all-or-nothing -- POST /correction-batches never
+        // partially applies, so a single result/error covers the whole
+        // batch, never a per-row verdict.
+        if (result.status >= 200 && result.status < 300) {
+          showBatchSlot("result", "Batch committed: " + result.body.revisions.length + " correction(s).");
+        } else {
+          var message = (result.body.error && result.body.error.message) || "Something went wrong.";
+          showBatchSlot("error", message);
+        }
+      }).catch(function () {
+        showBatchSlot("uncertain", "We couldn't confirm this went through. It's safe to try again.");
+      });
+    });
+  })();
 })();

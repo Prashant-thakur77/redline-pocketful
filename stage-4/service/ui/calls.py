@@ -8,7 +8,8 @@ from __future__ import annotations
 from ..pipeline import RequestCtx
 
 
-def call_authed(endpoint, method: str, path: str, token: str, query: dict | None = None):
+def call_authed(endpoint, method: str, path: str, token: str, query: dict | None = None,
+                 path_params: dict | None = None):
     ctx = RequestCtx(method=method, path=path, raw_body=b"", headers={"authorization": f"Bearer {token}"},
-                      query=query or {}, path_params={})
+                      query=query or {}, path_params=path_params or {})
     return endpoint.handle(ctx)

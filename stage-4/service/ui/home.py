@@ -18,6 +18,7 @@ from datetime import datetime, timezone
 
 from ..routes.activity import ActivityEndpoint
 from ..routes.me import MeEndpoint
+from ..store import STORE
 from .calls import call_authed as _call_authed
 from .layout import empty_state_html, esc, format_amount
 
@@ -213,6 +214,7 @@ def _activity_item_html(p: dict, minor_units: int, me_user_id: str) -> str:
     <span class="activity-direction {direction_cls}" aria-hidden="true">{direction_sign}</span>
     <span data-testid="activity-amount-{esc(pid)}" class="activity-amount">{amount_fmt}</span>
   </p>
+  <a data-testid="payment-detail-link-{esc(pid)}" class="activity-detail-link" href="/payments/{esc(pid)}">Details</a>
 </article>"""
 
 
@@ -246,9 +248,16 @@ def _activity_html(payments: list[dict], minor_units: int, me_user_id: str) -> s
 def render_home_body(token: str) -> str:
     _, me = _call_authed(_ME_ENDPOINT, "GET", "/me", token)
     _, activity = _call_authed(_ACTIVITY_ENDPOINT, "GET", "/activity", token, query={"limit": "50"})
+    # R-U-039: the entry point to the operator-only batch screen is simply
+    # absent for anyone else -- read straight from STORE, never a GET /me
+    # field (R-U-001 forbids adding one).
+    operator_link = ""
+    if me["user_id"] in STORE.settlement_operator_ids:
+        operator_link = '<a href="/correction-batches" class="btn btn-ghost">Correction batches</a>'
     return "".join([
         _wallet_html(me),
         '<div class="forms-grid">', _primary_action_html(), _authorize_form_html(), "</div>",
+        operator_link,
         _activity_html(activity["payments"], me["minor_units"], me["user_id"]),
     ])
 

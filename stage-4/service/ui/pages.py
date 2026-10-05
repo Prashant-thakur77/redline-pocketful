@@ -12,7 +12,8 @@ from ..json_utils import dumps
 from ..pipeline import RequestCtx
 from ..routes.auth import LoginEndpoint, SignupEndpoint
 from . import assets
-from . import authorizations_screen, home, requests_screen, split_screen
+from . import authorizations_screen, batch_screen, home, payment_detail_screen, requests_screen, split_screen
+from . import statement_screen
 from .layout import esc, render_shell
 
 _HTML_HEADERS = [("Content-Type", "text/html; charset=utf-8")]
@@ -127,6 +128,8 @@ _AUTHED_PAGE_BODY = {
     "/requests": lambda user, token: (requests_screen.render_requests_body(user, token), "Requests"),
     "/authorizations": lambda user, token: (authorizations_screen.render_authorizations_body(user, token),
                                              "Authorizations"),
+    "/statement": lambda user, token: (statement_screen.render_statement_body(user, token), "Statement"),
+    "/correction-batches": lambda user, token: (batch_screen.render_batch_body(user), "Correction batch"),
 }
 
 
@@ -139,6 +142,15 @@ def render_authed_page(path: str, user: dict | None, token: str | None = None):
     # through the same client-side fetch layer (R-2-185/186).
     session = home.session_payload(user, token)
     html_bytes = render_shell(title=title, user=user, active_path=path, body=body, session=session)
+    return 200, _HTML_HEADERS, html_bytes
+
+
+def render_payment_detail_page(payment_id: str, user: dict | None, token: str | None = None):
+    if user is None:
+        return _redirect("/login")
+    body = payment_detail_screen.render_payment_detail_body(payment_id, user, token)
+    session = home.session_payload(user, token)
+    html_bytes = render_shell(title="Payment", user=user, active_path="/", body=body, session=session)
     return 200, _HTML_HEADERS, html_bytes
 
 

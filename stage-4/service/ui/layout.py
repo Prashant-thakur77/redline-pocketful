@@ -13,6 +13,7 @@ NAV_LINKS = [
     ("/requests", "Requests"),
     ("/split", "Split"),
     ("/authorizations", "Authorizations"),
+    ("/statement", "Statement"),
 ]
 
 # One inline mark, bundled in the page itself (R-U-008: no icon/font CDN).
