@@ -53,7 +53,17 @@ def select_revision_as_of(revisions: list[dict], as_of_epoch: float) -> dict | N
     revision's amount for every `as_of` at or after its own
     `effective_at`, regardless of which revision's `effective_at` is
     chronologically later. None qualifying means the payment hasn't
-    happened yet in this view."""
+    happened yet in this view.
+
+    A correction (R-3-053) may set `effective_at` earlier than the
+    payment's own revision 1 — "historical" backdating, deliberately
+    exercised by the storm hook. That must never let the payment appear
+    to have happened before it was ever created: revision 1's own
+    `effective_at` is the payment's true existence boundary, so an
+    `as_of` before it disqualifies every revision, including a
+    correction that individually "qualifies" by its own effective_at."""
+    if not revisions or as_of_epoch < parse_rfc3339(revisions[0]["effective_at"]):
+        return None
     best = None
     for rev in revisions:
         if parse_rfc3339(rev["effective_at"]) <= as_of_epoch:
