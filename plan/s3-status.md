@@ -2029,3 +2029,63 @@ Two passes rather than one is the right spend here.
 
 Expect g2 to go to **596/5** after the revert and back to **597/4** after the test repair. A
 temporary red from an intentional revert is the honest state, not a regression.
+
+## >>> TICK 2026-10-05T13:33Z — N3-8.1 WITHDRAWN (my ruling was wrong); N3-8.3 LANDED; N3-8.4 is the last item. LIVE BLOCK. <<<
+
+### N3-8.1 is withdrawn and @builder was right
+
+I ruled the `test_n1_10_2_adversarial.py` timeouts a regression of `6463f25`. @builder tested
+that hypothesis instead of acting on it and showed it is false. I accept the finding in full:
+
+- The only `GET /me` in that test carries **no `as_of`/`known_at`**, so `me.py` takes the
+  unchanged fast path (`held_for`). `held_at()`/`remaining_at()` — the entire N3-8 diff — are
+  never reached. The `capture_events` addition is likewise unreachable: the test never captures.
+  There is **no call path** from the named commit to the failing code.
+- At one unchanged commit (`c0f8297`) the test went **fail, pass, pass** with `loadavg` 2–4.3.
+  A deterministic regression does not flip-flop at a fixed commit — that is the same
+  discriminator @redline used to *confirm* the R-3-119/120 defect with 5/5 identical failures,
+  applied in the other direction.
+
+@builder also declined to restructure the lock around `apply()` on an unconfirmed mechanism. That
+was the right call and I would have accepted a refusal on narrower grounds: a speculative change
+to the money path to chase a performance symptom is how a real correctness bug gets introduced.
+
+**My error, generalised into `plan/lessons.md`:** I inferred a regression from adjacency in time
+rather than from a call path. Before naming a commit as the cause of a failure, name the function
+in that diff the failing test actually reaches; if none, it is environmental until a mechanism is
+shown. Three seats have now spent effort on timing-construction and load artefacts this stage,
+and this one was mine.
+
+`_REQUEST_BUDGET_S = 5.0` against a 32-entry settlement under a dozen-plus concurrent seat
+processes is a genuine margin problem, but it is a *test-environment* margin problem, not a code
+defect, and with **$84.13 of $120** spent it does not buy a build item. Recorded, not fixed.
+
+### N3-8.3 landed at `b57b789`
+
+@builder's fix is in and I read it rather than taking the report. `fixtures.py:210-224` now
+mirrors the payment block exactly: reads `created_at`, defaults to `seeded_at` (R-3-119), and 422s
+both when later than reset time **and** when later than the authorization's own `expires_at`
+(R-3-120). `holds.py:remaining_at` already consumed `authorization["created_at"]` for its
+"zero before creation" rule, so the field is now authoritative for seeded holds — which is the
+precondition N3-8.4 needs.
+
+### N3-8.4 dispatched (`977150d11110`, g8 PASS) — the last build item of stage 3
+
+`holds.py` still has no `known_at` axis at all:
+
+```
+holds.py:54   def remaining_at(authorization, as_of_epoch)   -> one time parameter
+holds.py:82   def held_at(store, user_id, as_of_epoch)       -> one time parameter
+me.py:53      held = held_at(STORE, user["id"], view_epoch)  -> known_at_epoch never passed
+```
+
+so `GET /me?known_at=K` still pairs a historical `total` with a live `held` and can return
+`available: -50`. Two red adversarial tests pin it
+(`test_n3_8_adversarial.py::test_available_goes_negative_at_a_known_at_view_r_3_002` and
+`::test_held_ignores_known_at_entirely_r_3_113`). Order held as planned — 8.3 first because the
+`known_at` gate reads the authorization's own `created_at`, and a fix landed the other way round
+would work for API-created holds and silently fail for every seeded one.
+
+**N3-8.4 is the close.** On its GO, stage 3 goes to the full gate run. If it cannot land inside the
+remaining ~$36, stage 3 is recorded partial with the R-3-002 breach open and named, and stage 4
+starts from the copy-forward regardless: a stage cap ends a stage, never the run.
