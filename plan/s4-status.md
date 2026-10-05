@@ -1071,10 +1071,28 @@ Complete; the live 500 is closed. @builder also widened the door usefully on its
 (R-1-204a: import now enforces the same stated invariants reset does, so a negative balance cannot be
 illegal through one door and legal through the other).
 
-**Recorded as a fragility, not chased:** the three accesses are still bare, so the guarantee rests on the
-validator staying in sync with the read path. Add a `frozen["new_field"]` later without updating the
-validator and the 500 returns. Same treatment as the `store=None` fragility — named in the final report
-with its one-line fix, not fixed at this point in the stage.
+**~~Recorded as a fragility, not chased~~ — RESOLVED at `64919dc`, correcting this record.** I wrote
+that the three accesses were still bare and that the guarantee rested on the validator staying in sync
+with the read path, and queued it for the final report as an unfixed fragility. @builder then landed
+**N4-6.1 part 2**, the second half I had originally asked for, and it is placed better than I specified:
+
+```python
+if candidate is None or candidate.get("user_id") != ctx.user["id"]:
+    raise not_found("no such snapshot")
+# R-1-005: defensive, in addition to import-side validation — a stored
+# snapshot this read path cannot safely serve (… from a future field this
+# check wasn't updated for …) must never crash a plain read
+if (not isinstance(candidate.get("entries"), list) or …):
+```
+
+The guard sits at the **lookup**, so a malformed stored snapshot is unresolvable exactly as an unknown
+token is (`404`, R-3-084), rather than patching each dereference site. It also closed one more bare
+access (`candidate["user_id"]` → `.get("user_id")`). The comment names the future-field scenario I had
+flagged as the residual risk, which means the fragility is addressed at its cause and not just at the
+one shape @adversary found.
+
+**So this does NOT go in the final report as a known gap.** The `store=None` fragility is separate and
+still stands.
 
 ### Reversing my own hold: the close runs now, with the attack in parallel
 
