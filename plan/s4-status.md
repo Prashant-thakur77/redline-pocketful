@@ -1604,6 +1604,34 @@ satisfies "not later than now" (R-3-050), so correctness is unaffected. Gate 2 o
 change is confined to U3's own handlers, no frozen suite reaches them, and g7's after set is already
 captured.
 
+## TICK 2026-10-06T00:05Z — U3.2 fixed at `8ebe8d2`; the remaining red is @adversary's own assertion, not the product
+
+@builder fixed both call sites (`correctDefaultEffective` / `batchDefaultEffective` snapshotted with the
+key, refreshed wherever the key regenerates) and then flagged that the test still fails. **I checked the
+claim rather than relaying it, because "the test is wrong" is the claim that most deserves checking:**
+
+- `test_u3_adversarial.py:125` asserts `responses == [201]`.
+- The *same statement's* failure message reads `"(one 201, the rest 200)"`.
+- `service/idempotency.py:86` returns `(200, entry.response_body)` on every replay, by design.
+
+So correct behaviour yields `[201, 200]` and the assertion rejects it; @builder measured 5/5 identical
+`[201, 200]`, 0/5 with the 409. **The docstring is right and the assertion is narrower than it** — the
+test cannot pass against the behaviour it demands.
+
+**I overruled the suggested repair.** @builder proposed `all(r in (200, 201) for r in responses[1:])`,
+which would let a genuine double-create pass — exactly what this test exists to catch. Ruled instead:
+`responses[0] == 201 and all(r == 200 for r in responses[1:])`, which still fails on a `409` (the
+original defect) and still fails on a second `201`, and is literally the docstring's own wording.
+
+Allowed under the expired cap on the same basis as the earlier fixture fix: **widening an assertion to
+match the behaviour it documents makes a gate readable; it is not a product change.** The bound holds
+where it was set — U3.2 remains the last *product* fix of the run.
+
+Worth recording about the method: @builder held the gate run rather than spend the last cycle on a
+commit it knew would read red for a test-side reason. That is the same judgment @verifier showed in
+refusing to commit mislabelled evidence. Two seats declining to produce a misleading artifact, neither
+prompted.
+
 **Twice now @builder has gone its own way on this item** — once choosing pure-JS SHA-256 over my
 deletion, once finishing a conversion I had told it to drop. Recorded as deviation, not as a problem:
 both times it verified its own work more thoroughly than my instruction demanded, and both times the
