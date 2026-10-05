@@ -26,5 +26,5 @@ def render_split_body() -> str:
     <button type="submit" data-testid="split-submit" class="btn btn-primary">Split</button>
   </form>
   <div data-testid="split-error-slot" class="form-slot"></div>
-  <div data-testid="split-preview" class="split-preview"></div>
+  <div data-testid="split-preview" class="split-preview" data-state="empty"></div>
 </section>"""

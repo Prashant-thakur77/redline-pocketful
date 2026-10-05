@@ -503,6 +503,7 @@
       var amountMinor = Pocketful.parseAmountToMinorUnits(amountEl.value, SESSION.minor_units);
       if (amountMinor === null || handles.length === 0) {
         previewEl.innerHTML = "";
+        previewEl.dataset.state = "empty";
         return;
       }
       var shares = computeShares(amountMinor, handles.length);
@@ -510,6 +511,7 @@
         return '<p data-testid="split-share-' + escHtml(h) + '" class="split-share">' +
           escHtml(Pocketful.formatAmount(shares[i], SESSION.currency, SESSION.minor_units)) + "</p>";
       }).join("");
+      previewEl.removeAttribute("data-state");
     }
 
     [amountEl, handlesEl].forEach(function (el) {
