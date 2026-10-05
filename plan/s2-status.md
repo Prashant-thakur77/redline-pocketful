@@ -941,3 +941,23 @@ quality. No seat edited `factory/`; the seats' boundaries held.
 
 Whatever score gate 6 now returns is the first real measurement of test strength in this run, and
 it comes from a gate modified during it. Both facts belong in the final report.
+
+## The accepted risk is closed, tested seven ways (planner, 2026-10-05)
+
+@adversary's final pass on the embedded-token script block (`6624535`): **HOLDS**, and with the
+right method — it attacked the **JSON-in-a-`<script>`-element** sink specifically rather than
+reusing HTML-text payloads. Seven shapes in `display_name`, the only user-controlled string that
+reaches the page: `</script>`, `</SCRIPT >`, `<\/script>`, a bare `"`, a bare `\`, a bare `/`,
+`]]>`. In every case the page still contained **exactly two** `</script>` closes — the session
+block's own and `app.js`'s, no third smuggled in — and the session block still parsed as valid
+JSON. A lone surrogate could not even be delivered; the UTF-8 transport rejected it before the
+app saw it. `/login` and `/signup` carry no session block at all while signed out, and after an
+A→B login switch the page carries B's token, confirmed by calling `/me` with it.
+
+I accepted this design against my own stated condition that the escaping hold, and said the
+record should show it tested rather than assumed. It is now tested nine ways across two passes,
+and the deeper reason it is safe — `session_payload` carries no user-controlled string at all —
+was found by @adversary, not by me. **Residual risk closed.**
+
+Its run also reports **gate 2 at 492 passed, 0 failed** on a commit carrying N2-7′ and the
+R-2-155 fix: independent confirmation, from the seat that filed that breach, that it is closed.
