@@ -2167,3 +2167,68 @@ service. @verifier's `--commit b453a49` worktree run is the anchored one; if its
 adversarial test for this item because nothing broke — correct, since its two earlier breach tests
 are permanent and now pass. Its untracked `stage-3/_adv_probe_*.py` scratch must not reach
 `stage-4/`; @builder already has the clean-before-copy instruction.
+
+---
+
+## TICK 2026-10-05 15:08 — stage-3 close NEEDS_WORK at `b453a49`; one bounded fix pass, then I close
+
+This is now the authoritative block. @verifier's close run (ledger `9677c499c1f5`, evidence
+`a70cc0e`) returned **NEEDS_WORK**: `g1 g2 g3 g4 g7 g8` PASS, `g2 610/0`, `g3` confirms stage 3
+claims 3 and does **not** overshoot into 4. Two reds, both ruled below.
+
+### scope — clean, the dispatch's base was stale (my error, not content)
+
+I named `8dfcc60`, which reaches back past the resume and picks up the operator's post-run-record
+commit `10e6a51`. @verifier re-ran at the correct post-resume base: `7d8405b..b453a49` →
+**"every commit is inside its seat's scope."** Correct parameter from here on: **`7d8405b`**.
+
+### g5 — real, four line-level fixture bugs in the frozen suites, not a regression
+
+The upgrade-state comparison in the same run shows `before == after` identically. The FAIL is four
+pre-existing fixture bugs: `test_seeded_ids_used_verbatim` (`test_runtime.py`) and
+`test_r_1_207_balances_after_import_equal_balances_at_export_exactly`
+(`tests/adversarial/test_n1_9_adversarial.py`) in **both** `stage-1/` and `stage-2/`. All four seed
+a receiver whose ending balance is below what they are seeded as having received, which implies a
+negative opening instant — the state R-3-018a correctly 422s. **Stage 3's own copies of all four
+were already fixed under N3-T.2 (`6435664`); nobody ported that fix back into the two frozen
+folders.** So the fix is a verbatim back-port, already proven green by stage 3's 610/0:
+`balance=0` → `balance=50`, and `balance=500` → `balance=500 + 9999`, plus the docstring.
+Two files are @redline's, two are @adversary's. Dispatched as **N3-9A** and **N3-9B**.
+
+### g6 — real, and the gate's own summary undercounts it
+
+40% (4/10, need 80%), down from stage 2's 70%. @verifier read the three survivors the `RESULT:`
+line names. **The per-mutant lines in the same log name six**, and the `survivors:` field lists
+only three of them — a reporting defect in `factory/gates/g6_mutation.py` I am recording and not
+touching (`factory/` is nobody's boundary). Killed: #2 `settlements.py:73`, #3 `statement.py:110`,
+#6 `splits.py:85`, #10 `invariants.py:20`. Survived, all six:
+
+| # | site | what the mutant does | kill |
+|---|---|---|---|
+| 1 | `routes/requests_read.py:63` `ne→eq` | the `GET /requests?status=` filter keeps exactly the **non**-matching requests | assert exact set equality per status with all four statuses present |
+| 4 | `idempotency.py:44` `eq→ne` | `json_equal`'s numeric branch inverts: `1500` vs `1500.0` becomes reuse, `1500` vs `1600` becomes a replay — a money bug | both directions, on a nested numeric field |
+| 5 | `idempotency.py:140` `drop lock` | `clear()` (reset) iterates `_entries` unlocked while claims mutate it | reset racing in-flight same-key duplicates: no 5xx, no hang |
+| 7 | `routes/statement.py:123` `cmp < to <=` | the half-open window `[from, to)` becomes closed at `to` | `to` exactly equal to a payment's `effective_at`: that payment absent, `closing_balance` excludes it |
+| 8 | `revisions.py:158` `add-assign to sub` | historical balance subtracts the net instead of adding it | `GET /me?as_of=T` with nonzero opening **and** a sent **and** a received payment, exact assertion |
+| 9 | `idempotency.py:159` `ne→eq` | `restore()` (import) wakes the **completed** waiters and abandons the in-flight ones | import racing in-flight same-key duplicates: every call returns inside the 5 s budget |
+
+Four of the six (#1, #4, #7, #8) are deterministic and cheap. #5 and #9 are one test design —
+a test-control call racing in-flight duplicate keys — and are the only probabilistic ones; a flaky
+test is worse than a surviving mutant, so @redline drops either rather than ship one that flickers.
+These tests carry forward into `stage-4/`, where the same modules will be sampled again, so this
+pass is paid for twice.
+
+### The plan, and the honest ceiling
+
+$84.13 of the $120 stage cap is spent; **$35.87 left**. One fix pass (N3-9A, N3-9B, in parallel —
+different files, no shared edit) then **one** re-run of `g5` and `g6` only, at the correct base
+`7d8405b`. g6 resamples 10 of ~400 candidates each run, so even a perfect pass does not guarantee
+80% on the next draw; what it does guarantee is that these six sites are covered. **If that one
+re-run is still short of 80%, stage 3 is recorded `partial` with g6 named and its survivors listed,
+and stage 4 starts.** I will not spend the rest of the run chasing a resampled score.
+
+| item | seat | state |
+|---|---|---|
+| N3-9A | @redline | dispatched 15:08 — port 2 fixture fixes (`stage-1`, `stage-2` `test_runtime.py`) + 6 g6 coverage tests in `stage-3/tests/` |
+| N3-9B | @adversary | dispatched 15:08 — port 2 fixture fixes (`stage-1`, `stage-2` `tests/adversarial/test_n1_9_adversarial.py`) |
+| close | @verifier | waiting on both; then `--gates 5,6` at the new tip |
