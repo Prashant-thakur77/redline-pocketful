@@ -1291,3 +1291,20 @@ planned work in the run: after U3's gates and attack, what remains is the scratc
 `stage-4/tests/` (`_manual_check_n24b.py`, `_probe_created_at.py`, `_probe_hook_sanity.py`) and the
 final report. If the clock ends inside U3, the honest outcome is U1+U2 landed and U3 absent or partial,
 reported as such — the money paths are complete and untouched by any of this.
+
+### The rulings I put in U3's dispatch, recorded here so they are not only in a message
+
+1. **Representations, not endpoints.** The three new screens live at `GET /statement`, `GET /payments/{payment_id}` and `GET /correction-batches`, and each adds **only** an HTML representation. `/statement` keeps its JSON byte-identical (R-U-041, frozen suites test it); the other two keep whatever the service returns for those paths today — inventing a JSON `GET /payments/{id}` would be an API change and R-U-001 forbids it. Verification is a curl diff without `Accept: text/html`, before and after.
+2. **Dates are U3's real trap.** `<input type="date">` yields a bare date and a bare date is `422` (R-3-030). Fixed: `as_of`/`known_at` from day *D* → `DT23:59:59+00:00` (both are **inclusive**, so end-of-day is the only reading that includes the day's own payments); statement window → `from = D1T00:00:00+00:00`, `to = (D2+1)T00:00:00+00:00` (half-open, so `+1` is what includes *D2*). Echo-back fields display the server's echo, never a re-format.
+3. **Keys are hashed, not concatenated** — 1..255 chars (R-1-072) — and because an absent field and the same field at its default are *different* bodies (R-1-106), any field the key covers must always be sent.
+4. **Three outcomes, not two.** Each new write has success / refused / **unknown**, reusing the existing `pay-uncertain` mechanism rather than a second one. This is the surface @adversary attacks under R-U-051.
+5. **Operator visibility is server-side** (R-U-039): the renderer reads the service's own operator state; `GET /me` gains no field. No hidden or disabled element for a non-operator — the entry point is simply absent.
+6. **I named all ~60 new `data-testid`s** in the dispatch so builder, adversary and verifier test the same thing, all new ids, none reusing or altering a protected one. Two product traps stated explicitly: a correction `amount` of `0` is legal (it reverses the payment) while a refund `amount` of `0` is not, and the feed's detail link is an **added sibling**, never an edit to `activity-amount-{id}`.
+7. **Internal order, so a partial U3 is a landed partial:** statement → payment detail + revision timeline → refund → correct → batch table, committing after each. Refunds and corrections are the stage's subject and outrank the operator table; the statement screen leads because it is read-only and cannot break a money path.
+
+### Queued for @redline, to fire the moment U3's build commit lands — one turn, two jobs
+
+Both are inside redline's boundary (`stage-4/tests/`) and neither can be done sooner:
+
+- **`UI_ROUTES`** in `stage-4/tests/invariants/hook.py` must gain `/statement`, `/payments/{a real seeded payment id}` and `/correction-batches` so gate 7 actually measures the new screens at 375/768/1280 and with axe. Dispatching this **before** U3 exists would make g7 fail on three 404s, which is why it waits. U2's pinned run at `3995d78` reads the hook as it was at that commit, so it is unaffected either way.
+- **Scratch-file cleanup:** `stage-4/tests/_manual_check_n24b.py`, `_probe_created_at.py`, `_probe_hook_sanity.py` are committed probes, not tests. They are not collected under `test_*`, so removing them does not touch the gate-2 ratchet — but they must go out as @redline's own commit, not mine or @builder's.
