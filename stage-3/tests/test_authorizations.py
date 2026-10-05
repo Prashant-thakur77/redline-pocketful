@@ -111,6 +111,26 @@ def test_authorization_field_errors():
     assert_error(unknown, 404, "not_found")
 
 
+def test_authorization_required_fields_missing_one_at_a_time():
+    """R-2-040, R-2-045: gate-6 gap — every existing field-error test supplies
+    both required fields with a bad VALUE; none omits exactly one field while
+    leaving the other valid, which is what actually exercises a flipped
+    `or`/`and` on the presence check in routes/authorizations.py."""
+    fixture, token_a, _ = two_user_fixture()
+    b_handle = fixture["users"][1]["handle"]
+
+    missing_to_handle = api_post("/authorizations", json={"amount": 100},
+                                 headers={**auth(token_a), **idem(unique("k"))})
+    assert_error(missing_to_handle, 422, "validation_failed")
+
+    missing_amount = api_post("/authorizations", json={"to_handle": b_handle},
+                              headers={**auth(token_a), **idem(unique("k"))})
+    assert_error(missing_amount, 422, "validation_failed")
+
+    missing_both = api_post("/authorizations", json={}, headers={**auth(token_a), **idem(unique("k"))})
+    assert_error(missing_both, 422, "validation_failed")
+
+
 def test_open_authorization_not_in_activity_feed():
     """R-2-046"""
     fixture, token_a, _ = two_user_fixture()

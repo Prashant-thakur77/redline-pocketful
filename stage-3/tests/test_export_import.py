@@ -1,7 +1,10 @@
 """Export/import: R-1-111, R-1-200..210, R-1-235."""
 from __future__ import annotations
 
+import copy
+
 import httpx
+import pytest
 
 from conftest import (api_get, api_post, assert_error, auth, idem, login, login_token,
                        make_fixture, reset_ok, unique, unique_handle, url, user)
@@ -259,3 +262,60 @@ def test_export_import_preserves_settlement_operator_and_membership():
     token_a_after = login_token(fixture["users"][0]["email"])
     feed = api_get("/activity", headers=auth(token_a_after)).json()["payments"]
     assert any(p["settlement_id"] == settlement_id for p in feed)
+
+
+_BAD_SEQ_VALUES = [True, "3", 3.5, None]
+
+
+def _make_export_fixture_with_payment_and_request():
+    a_id, b_id = unique("u"), unique("u")
+    a_handle, b_handle = unique_handle("a"), unique_handle("b")
+    fixture = make_fixture([user(a_id, a_handle, balance=1000), user(b_id, b_handle, balance=0)])
+    reset_ok(fixture)
+    token_a = login_token(fixture["users"][0]["email"])
+    pay = api_post("/payments", json={"to_handle": b_handle, "amount": 10},
+                   headers={**auth(token_a), **idem(unique("k"))})
+    assert pay.status_code == 201, pay.text
+    token_b = login_token(fixture["users"][1]["email"])
+    req = api_post("/requests", json={"payer_handle": a_handle, "amount": 5},
+                   headers={**auth(token_b), **idem(unique("k"))})
+    assert req.status_code == 201, req.text
+    document = api_get("/_test/export").json()
+    return document
+
+
+@pytest.mark.parametrize("bad_value", _BAD_SEQ_VALUES, ids=["bool", "str", "float", "null"])
+@pytest.mark.parametrize("field_path", [
+    ("payments", 0, "seq"),
+    ("requests", 0, "seq"),
+    ("next_seq",),
+], ids=["payment-seq", "request-seq", "next-seq"])
+def test_import_rejects_non_integer_seq_fields(field_path, bad_value):
+    """R-1-204: gate-6 gap — snapshot.py's _require_int bool-vs-int check guards
+    payment.seq, request.seq and state.next_seq during import; a non-integer
+    value there (including a bool, which is an int subclass in Python but must
+    still be rejected) must be refused with 422 validation_failed, and the
+    destination must be left exactly as it was, not partially or silently
+    imported."""
+    document = _make_export_fixture_with_payment_and_request()
+
+    other_handle = unique_handle("z")
+    other = make_fixture([user(unique("u"), other_handle, balance=4242)])
+    reset_ok(other)
+    other_token = login_token(other["users"][0]["email"])
+
+    mutated = copy.deepcopy(document)
+    target = mutated["state"]
+    for key in field_path[:-1]:
+        target = target[key]
+    target[field_path[-1]] = bad_value
+
+    r = api_post("/_test/import", json=mutated)
+    assert_error(r, 422, "validation_failed")
+
+    # the destination fixture (still in place) must be completely unchanged
+    still = api_get("/me", headers=auth(other_token))
+    assert still.status_code == 200
+    assert still.json()["balance"] == 4242
+    still_login = login(other["users"][0]["email"], other["users"][0]["password"])
+    assert still_login.status_code == 200

@@ -370,6 +370,69 @@ def test_seeded_paid_request_exposes_null_payment_id_and_no_synthesized_payment(
     assert feed_b == []
 
 
+def test_user_id_length_boundary_max_64_chars():
+    """R-1-024, R-1-047: gate-6 gap — the id-length boundary check uses a
+    strict `>` against MAX_ID_LEN; a flip to `>=` would reject a valid
+    64-char id. An id of exactly 64 chars must be accepted; one of 65 must
+    be rejected with 422 validation_failed."""
+    ok_id = "u-" + ("a" * 62)
+    assert len(ok_id) == 64
+    fixture = make_fixture([user(ok_id, unique_handle("a"), balance=10)])
+    r = reset(fixture)
+    assert r.status_code == 204, r.text
+    token = login_token(fixture["users"][0]["email"])
+    assert api_get("/me", headers=auth(token)).status_code == 200
+
+    too_long_id = "u-" + ("a" * 63)
+    assert len(too_long_id) == 65
+    bad_fixture = make_fixture([user(too_long_id, unique_handle("b"), balance=10)])
+    r2 = reset(bad_fixture)
+    assert_error(r2, 422, "validation_failed")
+
+
+def test_payment_and_request_id_length_boundary_max_64_chars():
+    """R-1-024, R-1-047: the same id-length boundary applies to seeded
+    payment and request ids, not only user ids."""
+    a_id, b_id = unique("u"), unique("u")
+    a_handle, b_handle = unique_handle("a"), unique_handle("b")
+
+    ok_pay_id = "p-" + ("a" * 62)
+    assert len(ok_pay_id) == 64
+    fixture = make_fixture(
+        [user(a_id, a_handle, balance=100), user(b_id, b_handle, balance=0)],
+        payments=[{"id": ok_pay_id, "from_user_id": a_id, "to_user_id": b_id, "amount": 10,
+                   "note": "", "visibility": "public"}],
+    )
+    assert reset(fixture).status_code == 204
+
+    too_long_pay_id = "p-" + ("a" * 63)
+    assert len(too_long_pay_id) == 65
+    bad_payment_fixture = make_fixture(
+        [user(a_id, a_handle, balance=100), user(b_id, b_handle, balance=0)],
+        payments=[{"id": too_long_pay_id, "from_user_id": a_id, "to_user_id": b_id, "amount": 10,
+                   "note": "", "visibility": "public"}],
+    )
+    assert_error(reset(bad_payment_fixture), 422, "validation_failed")
+
+    ok_req_id = "r-" + ("a" * 62)
+    assert len(ok_req_id) == 64
+    good_request_fixture = make_fixture(
+        [user(a_id, a_handle, balance=100), user(b_id, b_handle, balance=0)],
+        requests=[{"id": ok_req_id, "requester_id": a_id, "payer_id": b_id, "amount": 10,
+                   "note": "", "status": "pending"}],
+    )
+    assert reset(good_request_fixture).status_code == 204
+
+    too_long_req_id = "r-" + ("a" * 63)
+    assert len(too_long_req_id) == 65
+    bad_request_fixture = make_fixture(
+        [user(a_id, a_handle, balance=100), user(b_id, b_handle, balance=0)],
+        requests=[{"id": too_long_req_id, "requester_id": a_id, "payer_id": b_id, "amount": 10,
+                   "note": "", "status": "pending"}],
+    )
+    assert_error(reset(bad_request_fixture), 422, "validation_failed")
+
+
 def test_no_admin_balance_endpoint():
     """R-1-050"""
     a_id = unique("u")
