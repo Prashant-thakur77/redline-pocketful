@@ -1,0 +1,91 @@
+$ /home/prashant/projects/band-work/result/.venv/bin/python -m pytest /tmp/redline-wt-_c7vi_dm/stage-3/tests -q -p no:cacheprovider --junitxml=/home/prashant/projects/band-work/result/evidence/gates/s3/N3-6-g2-20261005T125116-1629.junit.xml  (exit 1)
+ntries': [{'payment_id': 'gjVjF_nIWhzgtM-nBREQTg', 'payment': 'gjVjF_nIWhzgtM-nBREQTg', 'amount': -500, 'delta': -500, 'balance_after': 4500, 'revision': 1, 'effective_at': '2026-10-05T12:54:35.848453+00:00', 'recorded_at': '2026-10-05T12:54:35.848453+00:00', 'authorization_id': None}], 'opening_balance': 5000, 'closing_balance': 4500, 'has_more': False, 'snapshot': 'DY4dWejctQ6Y0A91Jy0MxA'}
+E       assert None == '2026-10-05T12:54:40.848881+00:00'
+E        +  where None = <built-in method get of dict object at 0x71f57c2ea480>('known_at')
+E        +    where <built-in method get of dict object at 0x71f57c2ea480> = {'entries': [{'payment_id': 'gjVjF_nIWhzgtM-nBREQTg', 'payment': 'gjVjF_nIWhzgtM-nBREQTg', 'amount': -500, 'delta': -500, ...}], 'opening_balance': 5000, 'closing_balance': 4500, 'has_more': False, ...}.get
+
+/tmp/redline-wt-_c7vi_dm/stage-3/tests/adversarial/test_n3_5_adversarial.py:37: AssertionError
+________________ test_as_of_before_hold_opened_shows_zero_held _________________
+
+    def test_as_of_before_hold_opened_shows_zero_held():
+        """R-3-110"""
+        fixture, token_a, token_b = two_user_fixture(balance_a=5000, balance_b=0)
+        b_handle = fixture["users"][1]["handle"]
+        before = datetime.now(timezone.utc)
+        open_authorization(token_a, b_handle, amount=1000)
+    
+        view = _me_as_of(token_a, before)
+>       assert view.get("held", 0) == 0
+E       AssertionError: assert 1000 == 0
+E        +  where 1000 = <built-in method get of dict object at 0x71f57a164400>('held', 0)
+E        +    where <built-in method get of dict object at 0x71f57a164400> = {'user_id': 'u7777904922460', 'display_name': 'A7777904922462', 'handle': 'a7777904922462', 'balance': 5000, ...}.get
+
+/tmp/redline-wt-_c7vi_dm/stage-3/tests/test_historical_holds.py:35: AssertionError
+______________ test_as_of_between_open_and_void_still_shows_held _______________
+
+    def test_as_of_between_open_and_void_still_shows_held():
+        """R-3-112: a hold that was voided LATER must still show as held for an
+        as_of instant taken before the void."""
+        fixture, token_a, _ = two_user_fixture(balance_a=5000, balance_b=0)
+        b_handle = fixture["users"][1]["handle"]
+        hold = open_authorization(token_a, b_handle, amount=1000)
+        mid = datetime.now(timezone.utc) + timedelta(milliseconds=50)
+    
+        voided = api_post(f"/authorizations/{hold['authorization_id']}/void", json={}, headers=auth(token_a))
+        assert voided.status_code == 200, voided.text
+    
+        view = _me_as_of(token_a, mid)
+>       assert view["held"] == 1000, "an as_of before the void must still count the hold"
+E       AssertionError: an as_of before the void must still count the hold
+E       assert 0 == 1000
+
+/tmp/redline-wt-_c7vi_dm/stage-3/tests/test_historical_holds.py:63: AssertionError
+________________ test_export_import_preserves_revision_history _________________
+
+    def test_export_import_preserves_revision_history():
+        """R-3-100: a payment's corrections, applied before export, must still
+        be visible (same revision numbers, amounts, reasons) after an
+        import — the revision history is part of the state, not derived
+        fresh from the payment's current fields."""
+        a_id, b_id = unique("u"), unique("u")
+        a_handle, b_handle = unique_handle("a"), unique_handle("b")
+        fixture = make_fixture([user(a_id, a_handle, balance=5000), user(b_id, b_handle, balance=0)])
+        reset_ok(fixture)
+        token_a = login_token(fixture["users"][0]["email"])
+    
+        pay = api_post("/payments", json={"to_handle": b_handle, "amount": 100},
+                       headers={**auth(token_a), **idem(unique("k"))})
+        assert pay.status_code == 201, pay.text
+        pay_id = pay.json()["payment_id"]
+        corr = api_post(f"/payments/{pay_id}/corrections",
+                        json={"expected_revision": 1, "amount": 250,
+                              "effective_at": "2026-01-01T00:00:00+00:00", "reason": "pre-export-correction"},
+                        headers={**auth(token_a), **idem(unique("k"))})
+        assert corr.status_code == 201, corr.text
+    
+        before_revisions = api_get(f"/payments/{pay_id}/revisions", headers=auth(token_a)).json()
+    
+        document = api_get("/_test/export").json()
+        imported = api_post("/_test/import", json=document)
+        assert imported.status_code == 204, imported.text
+    
+        token_a_after = login_token(fixture["users"][0]["email"])
+        after_revisions = api_get(f"/payments/{pay_id}/revisions", headers=auth(token_a_after)).json()
+>       assert after_revisions == before_revisions
+E       AssertionError: assert {'revisions':...00:00', ...}]} == {'revisions':...00:00', ...}]}
+E         
+E         Differing items:
+E         {'revisions': [{'revision': 1, 'amount': 100, 'effective_at': '2026-10-05T12:55:59.777637+00:00', 'recorded_at': '2026-10-05T12:55:59.777637+00:00', ...}]} != {'revisions': [{'revision': 1, 'amount': 100, 'effective_at': '2026-10-05T12:55:59.777637+00:00', 'recorded_at': '2026..., 'amount': 250, 'effective_at': '2026-01-01T00:00:00+00:00', 'recorded_at': '2026-10-05T12:55:59.781573+00:00', ...}]}
+E         Use -v to get more diff
+
+/tmp/redline-wt-_c7vi_dm/stage-3/tests/test_upgrade_stage1_stage2.py:55: AssertionError
+=========================== short test summary info ============================
+FAILED ../../../../../tmp/redline-wt-_c7vi_dm/stage-3/tests/adversarial/test_n3_5_adversarial.py::test_statement_does_not_echo_known_at_r_3_076
+FAILED ../../../../../tmp/redline-wt-_c7vi_dm/stage-3/tests/test_historical_holds.py::test_as_of_before_hold_opened_shows_zero_held
+FAILED ../../../../../tmp/redline-wt-_c7vi_dm/stage-3/tests/test_historical_holds.py::test_as_of_between_open_and_void_still_shows_held
+FAILED ../../../../../tmp/redline-wt-_c7vi_dm/stage-3/tests/test_upgrade_stage1_stage2.py::test_export_import_preserves_revision_history
+4 failed, 599 passed in 285.30s (0:04:45)
+
+
+
+RESULT: FAIL — 599 passed, 4 failed, 0 errors, 0 skipped
