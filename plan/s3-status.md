@@ -776,6 +776,52 @@ that is the sequencing defect in lesson 13 and `2f66ec6`, not a verifier error.
 | N3-4 | dispatched to @builder (corrections, R-3-050…069), 15 target tests |
 | N3-5 … N3-11 | planned, descending hidden-check value |
 
+---
+
+# TICK 2026-10-05 ~12:05 UTC — N3-4 content accepted; three test defects to @redline; N3-5 dispatched
+
+## N3-4 at `84717fd` — verified, and better than reported
+
+Junit diff `N3-3.2-g2-…-5380` → `N3-4-g2-…-5720` by name: **580 → 589 tests, 29 → 11 failures,
+18 fixed, zero regressions.** g4 PASS (1300-op storm), g1/g8/scope PASS. @builder closed six tests
+outside its own 15 target because it built the historical-overdraft primitive properly rather than
+stubbing it: `test_historical_overdraft` ×3, `test_known_at` ×2, `test_me_as_of` ×1.
+
+It also found a genuine cross-feature bug through g4: `select_revision_as_of` had no floor, so a
+**backdated correction could make a payment contribute to an `as_of` before the payment existed**.
+Fixing N3-2's code after N3-2 closed is right — the requirement was always violated and no gate
+could see it until corrections existed. Nothing regressed.
+
+## Three test defects, each checked in the source rather than taken on report
+
+@builder said three of its fifteen targets were unpassable. All three confirmed:
+
+1. `test_corrections.py:86` calls `two_user_fixture()` bare; `conftest.py:171` defaults
+   `balance_b = 10_000`, so B ends at `10_600` while the test asserts `600`. The irony is that the
+   conftest docstring exists *because* an older local copy left `balance_b` at 0 — the test was
+   written against the copy, not the shared default.
+2. `test_corrections.py:41` `_correct()` computes `effective_at` **per call**, so the "replay" sends
+   a different body and is correctly `409 idempotency_key_reuse` (R-1-106, R-3-057).
+3. `test_corrections_concurrency.py:18` puts `f"race-{index}"` in `reason`, so eight "identical"
+   racing requests have eight different bodies; one 201 and seven 409s is the compliant answer.
+
+That is **four for four** on @builder calling a test wrong rather than bending the implementation to
+it (the snapshot conflict, then these three). The discipline only works because each claim gets
+checked, so each one has been.
+
+## Dispatches
+
+| node | seat | work |
+|---|---|---|
+| N3-T.4 | @redline | the three test defects; keep every assertion's intent, fix only construction; optional cheap addition: a test that a **rejected** correction leaves its key reusable (R-3-061), currently uncovered |
+| N3-5 | @builder | `known_at` selection across `/me` and `/statement` (R-3-070…078, R-3-038…041) |
+
+Expected after N3-T.4: **581/8**. After N3-5 as well: **585/4**, the last four being N3-6
+(`historical_holds` 2, `historical_overdraft` 1) and N3-9 (`upgrade` 1). Closing stage 3's whole
+suite is now in reach, which it was not an hour ago.
+
+Budget unchanged at **$84.13 of $120**; governor PASS on every live node.
+
 ## Budget pacing, since @verifier asked
 
 Unchanged, and nothing here is near a cap. `factory.report --summary`: stage 3 **$84.13 of $120**;
