@@ -1059,3 +1059,63 @@ stage 4 if the $35.87 runs out.
 | @builder | N3-6 (`df7999ccf668`, g8 PASS) |
 | @adversary | attack **N3-5** `known_at` (R-3-070…077) — built, never gated, never attacked. Write now, run only after @verifier reports. |
 | @redline | stand by |
+
+## >>> TICK 2026-10-05T12:45Z — N3-T.4 CLOSED at `cfe7329`, g2 593/8. LIVE BLOCK. <<<
+
+@verifier's GO-in-substance, recorded HOLDS (ledger `23ed96cf622b`, evidence `6f5ae2c`):
+**scope PASS, g1 PASS, g4 PASS (binding), g8 PASS, g2 593/8**, up from 578/11. It resolved the tip
+itself. **N3-T.4 is closed; @redline's corrections work is done.**
+
+All three test-construction defects pass, plus @redline's new R-3-061 test
+(`test_rejected_correction_leaves_idempotency_key_reusable`) and the sibling it flagged as
+verified-unaffected (`test_two_concurrent_corrections_from_the_same_base_revision_exactly_one_wins`).
+
+### The total moved to 601 and that is correct, not drift
+
+| commit | total | passing | failing |
+|---|---|---|---|
+| `84717fd` | 589 | 578 | 11 |
+| `438723b` (@adversary's own R-3-057 repair) | 600 | 589 | 11 |
+| `cfe7329` (@redline N3-T.4) | **601** | **593** | **8** |
+
+589 → 600 is @adversary's 11 new tests at `41d13a7`; 600 → 601 is @redline's new R-3-061 test.
+593 = 589 + the 3 repaired + the 1 new. The arithmetic closes, every delta is named, and no count
+is unexplained — which is the standard this stage has been held to since the junit-by-name rule.
+
+### Ruling: the remaining `me_as_of` failure belongs to N3-6, not N3-5
+
+@verifier grouped the 8 as "never-dispatched N3-5/N3-6/N3-9 gaps" and filed `me_as_of ×1` under
+N3-5. It is **N3-6**. `stage-3/tests/test_me_as_of.py` has six tests and the only one that can
+still be red is `test_as_of_never_negative_across_two_corrections_at_different_instants` — the
+other five are plain `as_of` behaviour that N3-2 closed. "Never negative across two corrections at
+different instants" is historical-overdraft boundary checking: R-3-002, R-3-060, R-3-118. The file
+it lives in is not its scope. @adversary read this correctly first; this is the second seat to
+group it by filename, so it is now written down.
+
+**This matters operationally:** when the N3-5 run comes back with that test still red, it is not an
+N3-5 defect and must not reopen N3-5. It goes green when @builder lands N3-6.
+
+### Expected failing set at `938b569` — 5, by name
+
+N3-5's own 3 `known_at` tests should go green on `938b569`, leaving:
+
+| failing test | item |
+|---|---|
+| `test_as_of_never_negative_across_two_corrections_at_different_instants` | N3-6 |
+| `test_historical_overdraft_*` | N3-6 |
+| `test_historical_holds_*` ×2 | N3-8 |
+| `test_export_import_preserves_revision_history` | N3-9 |
+
+Anything outside that set of 5 is a regression and reopens the item that caused it. **Gate 2 still
+reaches 601/0 on exactly three items: N3-6, N3-8, N3-9.**
+
+### Live assignments
+
+| seat | action |
+|---|---|
+| @verifier | **N3-5 at `938b569`** — `--gates 1,2,4,8 --commit 938b569 --scope 7d8405b..938b569`. Third time asked; it has not run yet. Expect the 5 above. |
+| @builder | N3-6 (`df7999ccf668`, g8 PASS) — in progress, nothing committed yet |
+| @adversary | writing N3-5 `known_at` attacks; runs after @verifier reports |
+| @redline | **N3-T.4 closed.** Stand by. |
+
+Spend $84.13 of $120; clock 495.5 of 900.
