@@ -30,12 +30,17 @@ USERS = [
      "display_name": "Frank Ricci", "handle": "frank", "balance": 1_500},
 ]
 
-PAYMENTS = [
-    {"id": "p-seed-1", "from_user_id": "u-alice", "to_user_id": "u-bob",
-     "amount": 500, "note": "lunch", "visibility": "public"},
-    {"id": "p-seed-2", "from_user_id": "u-carol", "to_user_id": "u-dave",
-     "amount": 200, "note": "secret gift", "visibility": "private"},
-]
+def _payments(now: datetime) -> list[dict]:
+    """p-seed-1 and p-seed-2 share the exact same `created_at` instant so a
+    test can exercise R-3-019's ascending-id tiebreak when two revisions (or
+    two payments) tie on timestamp ordering."""
+    shared_instant = (now - timedelta(days=2)).isoformat()
+    return [
+        {"id": "p-seed-1", "from_user_id": "u-alice", "to_user_id": "u-bob",
+         "amount": 500, "note": "lunch", "visibility": "public", "created_at": shared_instant},
+        {"id": "p-seed-2", "from_user_id": "u-carol", "to_user_id": "u-dave",
+         "amount": 200, "note": "secret gift", "visibility": "private", "created_at": shared_instant},
+    ]
 
 REQUESTS = [
     {"id": "r-seed-1", "requester_id": "u-alice", "payer_id": "u-bob",
@@ -64,19 +69,24 @@ def _authorizations(now: datetime) -> list[dict]:
     return [
         {"id": "a-seed-open-out", "from_user_id": "u-alice", "to_user_id": "u-bob",
          "amount": 1000, "note": "hotel hold", "visibility": "public",
-         "status": "open", "expires_at": far_future},
+         "status": "open", "expires_at": far_future,
+         "created_at": (now - timedelta(hours=3)).isoformat()},
         {"id": "a-seed-open-in", "from_user_id": "u-dave", "to_user_id": "u-alice",
          "amount": 800, "note": "deposit", "visibility": "public",
-         "status": "open", "expires_at": far_future},
+         "status": "open", "expires_at": far_future,
+         "created_at": (now - timedelta(hours=4)).isoformat()},
         {"id": "a-seed-captured", "from_user_id": "u-alice", "to_user_id": "u-erin",
          "amount": 500, "note": "settled hold", "visibility": "public",
-         "status": "captured", "expires_at": far_future},
+         "status": "captured", "expires_at": far_future,
+         "created_at": (now - timedelta(days=1)).isoformat()},
         {"id": "a-seed-voided", "from_user_id": "u-bob", "to_user_id": "u-alice",
          "amount": 300, "note": "cancelled hold", "visibility": "public",
-         "status": "voided", "expires_at": far_future},
+         "status": "voided", "expires_at": far_future,
+         "created_at": (now - timedelta(days=1, hours=1)).isoformat()},
         {"id": "a-seed-expired", "from_user_id": "u-alice", "to_user_id": "u-frank",
          "amount": 600, "note": "lapsed hold", "visibility": "public",
-         "status": "open", "expires_at": long_past},
+         "status": "open", "expires_at": long_past,
+         "created_at": (now - timedelta(days=3)).isoformat()},
     ]
 
 
@@ -86,7 +96,7 @@ def build_demo_fixture() -> dict:
         "currency": CURRENCY,
         "minor_units": MINOR_UNITS,
         "users": copy.deepcopy(USERS),
-        "payments": copy.deepcopy(PAYMENTS),
+        "payments": _payments(now),
         "requests": copy.deepcopy(REQUESTS),
         "settlement_operator_ids": list(SETTLEMENT_OPERATOR_IDS),
         "authorization_ttl_seconds": AUTHORIZATION_TTL_SECONDS,
@@ -96,6 +106,18 @@ def build_demo_fixture() -> dict:
 
 def seeded_total() -> int:
     return sum(u["balance"] for u in USERS)
+
+
+def opening_balances() -> dict[str, int]:
+    """Each user's balance before any seeded payment's effect — the seeded
+    `balance` field is already the post-payment ending balance (R-1-043), so
+    this reverses each seeded payment to get the opening figure a bitemporal
+    `as_of` read before the earliest seeded payment must show (R-3-016)."""
+    balances = {u["id"]: u["balance"] for u in USERS}
+    for p in _payments(datetime.now(timezone.utc)):
+        balances[p["from_user_id"]] += p["amount"]
+        balances[p["to_user_id"]] -= p["amount"]
+    return balances
 
 
 # alice's expected `held` right after reset: only a-seed-open-out (1000) counts —
