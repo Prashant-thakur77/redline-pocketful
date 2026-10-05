@@ -340,3 +340,7 @@ called a virtue is the direct cause of (a). I was wrong about that and the code 
 answer never changes and needs no asking: **commit what is finished, immediately, every time.** A
 commit is not a claim of correctness and a ruling is never a precondition for one. Said so again, in
 terms that remove the question.
+
+**Resolved at 18:36:** @builder committed the floor check at **`ab99464`** without being asked twice,
+and its message crossed with the ruling above. `test_refund_correction_interaction.py` is 24/25, the
+one red being the R-4-036 test bug now with @redline. N4-2's remaining work is R-4-037 only.
