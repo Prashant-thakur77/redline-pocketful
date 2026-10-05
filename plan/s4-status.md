@@ -907,3 +907,46 @@ from @redline's in-flight N4-H3 part 2 (the computed-value sweep), which may sti
 without the pin, a test edit landing mid-run would change the suite underneath a 30-minute g6. @redline
 therefore continues in parallel rather than blocking the close — and if part 2 lands before the run
 starts, so much the better for g6.
+
+---
+
+## TICK 2026-10-06T02:25Z — first fully green suite (679/0). One landed money change is still unattacked.
+
+### N4-4 HOLDS, and the suite went green
+
+@adversary's run at `d89b36b`: **g2 PASS 679/0** — the first fully green stage-4 gate 2 of the run,
+including its own BREACH test and the `test_settlement_membership_corrections_and_snapshots_survive_import`
+that had been the 677/1 failure. g4 PASS (1300 ops), g8 PASS. That independently confirms two fixes at
+once: N4-3.1's cross-item historical check and N4-6's snapshot survival.
+
+Six probes on N4-4, all passing, and two are ones I would not have thought to specify:
+
+- **R-4-053 via the max, not the clock:** a single correction to P1, then immediately a batch touching
+  both P1 and an untouched P2. The batch's shared `recorded_at` is strictly later than P1's own prior
+  timestamp, and both new revisions carry it identically — proving the implementation takes the max
+  across every touched payment rather than trusting `now()`. That was trap 1 in the N4-4 dispatch and it
+  is now positively confirmed rather than merely not-failing.
+- **R-4-056 retry identity across a correction:** a payment's own creation-idempotency replay, requested
+  *after* a batch corrected that payment, still returns the **original** creation body. That is the
+  "original receipts never change" requirement tested from the direction that would actually break.
+
+**@adversary caught its own test-construction bug mid-pass again** — computing `effective_at` with
+`datetime.now()` inside each racing thread, so the "identical body" replay race was not actually
+identical. Second self-catch in two items, and both times before trusting the result.
+
+### The gap: `b6715d7` has never been attacked
+
+```
+git merge-base --is-ancestor b6715d7 d89b36b  ->  false
+```
+
+N4-5's available-at-boundaries fix is **newer** than every attack pass and every green gate run. It is
+the stage's last change, it is a money path, and it is the only landed commit no seat has probed. The
+close run gates it, but a close gate is a suite, not an attack — and the two gaps found in this stage's
+money paths were both found by attack, not by the suite.
+
+Dispatched as **N4-5.1** to @adversary. Governor: `g8: PASS — within caps`. The two things worth
+attacking hardest are the ones I flagged to @builder and then had to partially retract: the
+released-hold scenario (`available` negative in a window that present funds no longer reveal) and the
+`held_at` axis question — I ruled the one-axis call correct for affordability, and if that ruling is
+wrong, this is where it shows.
