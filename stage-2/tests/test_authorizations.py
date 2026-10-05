@@ -234,7 +234,7 @@ def test_capture_moves_money_and_reduces_hold_atomically():
 
 def test_final_capture_releases_remainder_and_closes():
     """R-2-056"""
-    fixture, ids, handles, tokens = n_user_fixture(2, balance=1000)
+    fixture, ids, handles, tokens = n_user_fixture(2, balance=3000)
     auth_obj = open_authorization(tokens[0], handles[1], amount=2000)
     aid = auth_obj["authorization_id"]
 
@@ -243,7 +243,7 @@ def test_final_capture_releases_remainder_and_closes():
     assert r.status_code == 201, r.text
 
     payer = api_get("/me", headers=auth(tokens[0])).json()
-    assert payer["total"] == 1000 - 1500
+    assert payer["total"] == 3000 - 1500
     assert payer["held"] == 0
     assert payer["available"] == payer["total"]
 
