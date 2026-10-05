@@ -47,16 +47,22 @@ def render_requests_body(user: dict, token: str) -> str:
     _, outgoing_data = call_authed(_REQUESTS_LIST, "GET", "/requests", token,
                                     query={"direction": "outgoing", "limit": "200"})
     incoming, outgoing = incoming_data["requests"], outgoing_data["requests"]
-    if not incoming and not outgoing:
-        return """<section class="placeholder-card" data-state="empty">
-  <h1>Requests</h1>
-  <p data-testid="empty-requests" class="empty-state">No requests yet.</p>
-</section>"""
     minor_units = STORE.minor_units
+    # R-2-133: incoming-list/outgoing-list are always in the DOM — a user
+    # with zero requests in both directions is an empty *state* of this
+    # screen, not a different screen. Collapsing the whole page to a
+    # placeholder when both are empty (the gate-3 finding) made the list
+    # containers vanish along with the content, so any test navigating
+    # straight to a route that happens to have no data for that user
+    # timed out waiting for an element that genuinely never existed.
+    empty_marker = ""
+    if not incoming and not outgoing:
+        empty_marker = '<p data-testid="empty-requests" class="empty-state">No requests yet.</p>'
     incoming_html = "".join(_request_item_html(r, user["id"], minor_units) for r in incoming)
     outgoing_html = "".join(_request_item_html(r, user["id"], minor_units) for r in outgoing)
     return f"""<section class="placeholder-card">
   <h1>Requests</h1>
+  {empty_marker}
   <div data-testid="request-error-slot" class="form-slot"></div>
   <h2>Incoming</h2>
   <div data-testid="incoming-list" class="list">{incoming_html}</div>

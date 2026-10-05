@@ -53,15 +53,19 @@ def _authorization_item_html(a: dict, user_id: str, minor_units: int) -> str:
 def render_authorizations_body(user: dict, token: str) -> str:
     _, data = call_authed(_AUTHORIZATIONS_LIST, "GET", "/authorizations", token, query={"limit": "200"})
     authorizations = data["authorizations"]
-    if not authorizations:
-        return """<section class="placeholder-card" data-state="empty">
-  <h1>Authorizations</h1>
-  <p data-testid="empty-authorizations" class="empty-state">No authorizations yet.</p>
-</section>"""
     minor_units = STORE.minor_units
+    # R-2-137: authorization-list stays in the DOM even when empty — same
+    # fix as /requests (gate-3 finding): collapsing the whole page to a
+    # placeholder when empty makes the list container vanish along with
+    # the content, so a direct navigation to this route for a user with
+    # no holds times out waiting for an element that never existed.
+    empty_marker = ""
+    if not authorizations:
+        empty_marker = '<p data-testid="empty-authorizations" class="empty-state">No authorizations yet.</p>'
     items_html = "".join(_authorization_item_html(a, user["id"], minor_units) for a in authorizations)
     return f"""<section class="placeholder-card">
   <h1>Authorizations</h1>
+  {empty_marker}
   <div data-testid="authorization-error-slot" class="form-slot"></div>
   <div data-testid="authorization-list" class="list">{items_html}</div>
 </section>"""
