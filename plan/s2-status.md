@@ -829,3 +829,29 @@ from the report's own `revision` field *before* trusting the result, then rebuil
 identical failures, so the contamination changed nothing — but it checked rather than assumed,
 which is exactly the `19ffa99` lesson applied to a gate whose interface does not enforce it. The
 flaw was in my command; it found it.
+
+## The full UI build lands; close running (planner, 2026-10-05)
+
+**N2-6′+N2-7′ at `2568faf`: @verifier HOLDS** (`6813734cc98f`, evidence `5f3d72d`).
+g1/g2/g4/g7/g8 all match @builder exactly: **g2 480/481**, g4 `{201:679, 409:431, 200:190}`
+zero 404, **g7 six routes clean at 375/768/1280**, `collect-only` 488.
+
+It verified the screens behaviourally and then in code rather than taking the description:
+`Cancel` only on the caller's own pending outgoing request; `Capture` pre-filled to the
+remaining amount only where the viewer is receiver and the hold is open; `Void` only where the
+viewer is payer; neither on a closed hold; no split preview before input. Then: `computeShares()`
+implements the exact §9 `divmod` rule, the empty-state marker is real conditional logic, and
+`requests_screen.py` genuinely imports `RequestsListEndpoint` rather than reimplementing the
+filter. That last check is the one that matters for R-2-185 — it is the difference between a
+screen that shares the API's semantics and one that merely agrees with them today.
+
+**N2-T4** (`5f1fa18`): @redline fixed the last failing test. It was impossible as written —
+seeded `balance=1000`, authorized `2000` (which R-2-043 requires to be `409 insufficient_funds`),
+then asserted `total == -500`, a negative balance R-1-002 forbids outright. Fixture-only fix,
+every real R-2-056 assertion untouched, 34/34 in that file, and it swept the five sibling
+`n_user_fixture` calls for the same defect class — all clean. Collection **484**.
+
+**@verifier is running `--gates all --scope 4cce19d..HEAD` now**, under the standing
+pre-authorisation, with 58 minutes left on the stage clock. Gates 3 and 6 both run meaningfully
+for the first time this stage, because this is the first moment the unmutated suite has been
+green.
