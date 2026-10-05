@@ -1070,6 +1070,23 @@ def populate(base_url: str) -> dict:
             "supports_holds": supports_holds, "supports_corrections": supports_corrections}
 
 
+def _export_carries_snapshot_token(base_url: str, token: str) -> bool:
+    """Does `base_url`'s OWN current export contain `token` in
+    `state.statement_snapshots`? An independent fact about the document,
+    not about whether a live GET happens to 404 -- the distinction N4-T5
+    exists for. A stage-1/2/3 source never writes this key at all (or
+    writes it as {}), so its export carries no token for ANY service to
+    retain; R-4-070 requires retaining what the document carries, never
+    what was never exported (R-2-170's precedent: no `authorizations` key
+    yields zero holds). Checked fresh each call, never cached, so it is
+    correct whether called before or after a carry()."""
+    doc = _get(base_url, "/_test/export")
+    if doc.status_code != 200:
+        return False
+    snapshots = doc.json().get("state", {}).get("statement_snapshots") or {}
+    return token in snapshots
+
+
 def snapshot(base_url: str) -> dict:
     """A semantic fingerprint re-derived from the service at `base_url`,
     containing only facts that must be identical before and after ANY correct
@@ -1209,16 +1226,35 @@ def snapshot(base_url: str) -> dict:
     # rather than re-checking truthiness of the token — a probe that
     # concludes "no token, nothing to check" is exactly the silent-skip
     # hazard planner flagged; by the time we get here it must be present.
+    #
+    # N4-T5: whether the ASSERTION runs is gated on an independent fact --
+    # does THIS base_url's own export currently carry the token in
+    # statement_snapshots -- never on whether the live GET happens to
+    # 404. A stage-3-or-earlier old side never exported this key at all,
+    # so gate 5's stage-3 -> stage-4 upgrade has nothing for carry() to
+    # retain; R-4-070 cannot require retaining what was never exported.
+    # The "not applicable" branch is never silent: it is a distinct,
+    # explicit value in the returned fingerprint, so a real regression
+    # (export carries it on one side, genuinely lost on the other) still
+    # shows up as before != after, while "never exported on either side"
+    # shows up as an equal, visible "not applicable" on both.
     statement_snapshot_page = None
+    statement_snapshot_status = None
     if _UPGRADE["supports_corrections"]:
         assert _UPGRADE.get("statement_snapshot"), \
             "populate() captured no statement snapshot token even though corrections/statement are supported (R-3-079/080)"
-        snap_token = tokens[_UPGRADE["statement_snapshot_handle"]]
-        snap = _get(base_url, "/statement", headers=_auth(snap_token),
-                    params={"limit": 5, "snapshot": _UPGRADE["statement_snapshot"]})
-        assert snap.status_code == 200, f"remembered statement snapshot stopped resolving: " \
-                                         f"{snap.status_code} {snap.text}"
-        statement_snapshot_page = snap.json()
+        if _export_carries_snapshot_token(base_url, _UPGRADE["statement_snapshot"]):
+            snap_token = tokens[_UPGRADE["statement_snapshot_handle"]]
+            snap = _get(base_url, "/statement", headers=_auth(snap_token),
+                        params={"limit": 5, "snapshot": _UPGRADE["statement_snapshot"]})
+            assert snap.status_code == 200, f"remembered statement snapshot stopped resolving: " \
+                                             f"{snap.status_code} {snap.text}"
+            statement_snapshot_page = snap.json()
+            statement_snapshot_status = "verified"
+        else:
+            statement_snapshot_status = "not_applicable: this side's export carries no statement_snapshots " \
+                                         "entry for the remembered token (R-4-070 retains only what the " \
+                                         "document carries)"
 
     # Same anti-silent-downgrade discipline as holds/corrections above, for
     # stage 4's own refunds/batches surface.
@@ -1286,16 +1322,26 @@ def snapshot(base_url: str) -> dict:
     # exact frozen entries after the batch (and after any upgrade) --
     # the largest single mutation in the product is the one most likely to
     # leak into a token R-3-005 already froze.
+    # Same N4-T5 treatment as the general statement-snapshot check above:
+    # gated on whether THIS base_url's own export carries the token, not
+    # on whether the live GET 404s.
     pre_batch_snapshot_page = None
+    pre_batch_snapshot_status = None
     if _UPGRADE.get("pre_batch_snapshot_token"):
-        pre_batch_token = tokens[_UPGRADE["pre_batch_snapshot_handle"]]
-        r = _get(base_url, "/statement", headers=_auth(pre_batch_token),
-                 params={"limit": 5, "snapshot": _UPGRADE["pre_batch_snapshot_token"]})
-        assert r.status_code == 200, f"pre-batch snapshot token stopped resolving: {r.status_code} {r.text}"
-        assert r.json() == _UPGRADE["pre_batch_snapshot_page"], (
-            f"pre-batch snapshot page changed after the batch/upgrade: "
-            f"before={_UPGRADE['pre_batch_snapshot_page']} after={r.json()}")
-        pre_batch_snapshot_page = r.json()
+        if _export_carries_snapshot_token(base_url, _UPGRADE["pre_batch_snapshot_token"]):
+            pre_batch_token = tokens[_UPGRADE["pre_batch_snapshot_handle"]]
+            r = _get(base_url, "/statement", headers=_auth(pre_batch_token),
+                     params={"limit": 5, "snapshot": _UPGRADE["pre_batch_snapshot_token"]})
+            assert r.status_code == 200, f"pre-batch snapshot token stopped resolving: {r.status_code} {r.text}"
+            assert r.json() == _UPGRADE["pre_batch_snapshot_page"], (
+                f"pre-batch snapshot page changed after the batch/upgrade: "
+                f"before={_UPGRADE['pre_batch_snapshot_page']} after={r.json()}")
+            pre_batch_snapshot_page = r.json()
+            pre_batch_snapshot_status = "verified"
+        else:
+            pre_batch_snapshot_status = "not_applicable: this side's export carries no statement_snapshots " \
+                                         "entry for the remembered pre-batch token (R-4-070 retains only what " \
+                                         "the document carries)"
 
     return {
         "balances": balances,
@@ -1310,11 +1356,13 @@ def snapshot(base_url: str) -> dict:
         "revision_state": revision_state,
         "correction_retry_identity": correction_retry_identity,
         "statement_snapshot_page": statement_snapshot_page,
+        "statement_snapshot_status": statement_snapshot_status,
         "refund_retry_identity": refund_retry_identity,
         "refund_state": refund_state,
         "batch_revision_state": batch_revision_state,
         "batch_retry_identity": batch_retry_identity,
         "pre_batch_snapshot_page": pre_batch_snapshot_page,
+        "pre_batch_snapshot_status": pre_batch_snapshot_status,
     }
 
 
