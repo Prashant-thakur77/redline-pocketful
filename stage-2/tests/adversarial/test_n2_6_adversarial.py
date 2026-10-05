@@ -42,7 +42,7 @@ import time
 
 import httpx
 
-from conftest import auth, make_fixture, reset_ok, tid, unique, unique_handle, url, user
+from conftest import auth, make_fixture, reset_ok, tid, ui_login, unique, unique_handle, url, user
 
 
 def _two_user_fixture(balance_a=100_000, balance_b=0):
@@ -181,3 +181,36 @@ def test_latest_refresh_wins_against_a_real_out_of_order_network_response(page):
 
     final = page.locator(tid("wallet-balance")).get_attribute("data-amount")
     assert final == "98766", f"a stale/earlier refresh response must never overwrite a later one: got {final!r}"
+
+
+def test_cookie_alone_never_authenticates_any_json_endpoint(page):
+    """R-1-089, checked across five endpoints, not just /me: the session
+    cookie the UI issues must never authenticate a plain JSON request on
+    its own."""
+    fixture, a_id, b_id, a_handle, b_handle = _two_user_fixture()
+    r = httpx.post(url("/signup"), data={"email": f"{unique('cookiechk')}@example.com", "password": "password123", "display_name": "X"},
+                    headers={"Accept": "text/html"}, follow_redirects=False, timeout=10.0)
+    assert r.status_code == 302, r.text
+    cookie_val = r.headers.get("set-cookie", "").split(";")[0]
+
+    for method, path, body in [("GET", "/me", None), ("GET", "/activity", None),
+                                ("POST", "/payments", {"to_handle": "nobody", "amount": 1}),
+                                ("GET", "/requests", None), ("GET", "/authorizations", None)]:
+        rr = httpx.request(method, url(path), headers={"Cookie": cookie_val}, json=body, timeout=10.0)
+        assert rr.status_code == 401, f"{method} {path} must reject a cookie-only request: {rr.status_code}"
+
+
+def test_embedded_session_token_belongs_to_the_currently_logged_in_user(page):
+    """Log in as A, then as B in the same browser context (overwriting
+    the session cookie): the embedded `pocketful-session` token must
+    belong to B, never a leftover reference to A."""
+    fixture_a = make_fixture([user(unique("u"), unique_handle("usera"), balance=0, display_name="UserA")])
+    fixture_b = make_fixture([user(unique("u"), unique_handle("userb"), balance=0, display_name="UserB")])
+    reset_ok(fixture_a)
+    ui_login(page, fixture_a["users"][0]["email"], fixture_a["users"][0]["password"])
+    reset_ok(fixture_b)
+    ui_login(page, fixture_b["users"][0]["email"], fixture_b["users"][0]["password"])
+
+    embedded_token = page.evaluate("JSON.parse(document.getElementById('pocketful-session').textContent).token")
+    whoami = httpx.get(url("/me"), headers={"Authorization": f"Bearer {embedded_token}"}, timeout=10.0).json()
+    assert whoami["display_name"] == "UserB", f"the embedded token must belong to the currently logged-in user: {whoami}"
