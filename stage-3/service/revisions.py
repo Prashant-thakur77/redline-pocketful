@@ -46,6 +46,42 @@ def ordered_by_time_then_id(payments: dict) -> list[dict]:
     return sorted(payments.values(), key=lambda p: (parse_rfc3339(p["created_at"]), p["id"]))
 
 
+def select_revision_as_of(revisions: list[dict], as_of_epoch: float) -> dict | None:
+    """R-3-022/023: the revision in effect at `as_of` is whichever has the
+    HIGHEST revision number among those whose `effective_at <= as_of` —
+    a later-recorded, backdated correction overrides an earlier
+    revision's amount for every `as_of` at or after its own
+    `effective_at`, regardless of which revision's `effective_at` is
+    chronologically later. None qualifying means the payment hasn't
+    happened yet in this view."""
+    best = None
+    for rev in revisions:
+        if parse_rfc3339(rev["effective_at"]) <= as_of_epoch:
+            if best is None or rev["revision"] > best["revision"]:
+                best = rev
+    return best
+
+
+def balance_as_of(opening_balances: dict, payments: dict, payment_revisions: dict,
+                   user_id: str, as_of_epoch: float) -> int:
+    """R-3-016/021..024: the opening balance plus the net effect of every
+    payment this user is party to, each contributing through whichever
+    of its own revisions is selected at `as_of` (or nothing, if none
+    qualify yet) — never the payment's current, fully-corrected amount
+    directly."""
+    total = opening_balances.get(user_id, 0)
+    for p in payments.values():
+        is_from = p["from_user_id"] == user_id
+        is_to = p["to_user_id"] == user_id
+        if not (is_from or is_to):
+            continue
+        rev = select_revision_as_of(payment_revisions.get(p["id"], []), as_of_epoch)
+        if rev is None:
+            continue
+        total += -rev["amount"] if is_from else rev["amount"]
+    return total
+
+
 def validate_payment_history_nonnegative(wallets: dict, payments: dict) -> None:
     """R-3-018: replaying the seeded payments in R-3-019 order from the
     opening balance must never drive a wallet negative at any point."""

@@ -41,8 +41,16 @@ def dumps(obj) -> bytes:
 
 
 def now_rfc3339() -> str:
-    """Current instant as RFC 3339 with an explicit numeric offset (R-1-021)."""
-    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+    """Current instant as RFC 3339 with an explicit numeric offset
+    (R-1-021). Microsecond precision, not seconds: stage 3's `as_of`
+    effective-time boundary (R-3-022/023) compares a server-recorded
+    `created_at`/`effective_at` against a caller-supplied instant that
+    routinely carries full microsecond precision (`datetime.now(...)
+    .isoformat()`) — truncating our own side to whole seconds can make a
+    payment's own effective_at round DOWN past an as_of instant that
+    was captured a fraction of a second before it in real time, wrongly
+    including a payment an as_of query was meant to exclude."""
+    return datetime.now(timezone.utc).isoformat(timespec="microseconds")
 
 
 def parse_rfc3339(value: str) -> float:
