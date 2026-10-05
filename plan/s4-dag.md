@@ -22,6 +22,21 @@ something already built rather than a new subsystem.
 
 Dispatch order: N4-T → N4-1 → N4-2 → N4-3 → N4-4 → N4-5 → (N4-6, N4-7) → N4-8.
 
+## Amendments made when stage 4 actually opened (2026-10-05T17:10Z)
+
+- **`N4-T` is dispatched as `N4-T.2`**, and the copy-forward as `N4-copy.2`. The original ids were
+  dispatched at 12:30 and withdrawn when stage 3 reopened; their ledger events survive, so the
+  governor still counts their clock from 12:30 and gate 8 fails them on arrival. See
+  `plan/s4-status.md`.
+- **The two re-homed stage-3 items fold into existing rows rather than adding new ones:**
+  N4-C5 (stage 3's never-dispatched statement and correction UI) widens **N4-7**; N4-C6 (stage 3's
+  never-dispatched correction-storm item) widens **N4-8**. The other four items re-homed at 12:30
+  (N4-C1…C4) all landed inside stage 3 and arrive with the copy.
+- **N4-7 is last by priority, not by dependency.** Gate 7 is already green on the carried stage-2
+  screens, so the UI is the only item whose absence costs nothing a gate measures, while every item
+  above it is a hidden check. If the clock runs out, stage 4 is partial with refunds and batch
+  corrections in and the statement/refund screens absent — never the reverse.
+
 ## The four traps I expect to cost the most
 
 1. **The refund ceiling is the *current corrected* amount, not the original** (R-4-015), and the
