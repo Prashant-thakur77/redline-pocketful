@@ -76,3 +76,53 @@ def test_refund_correct_batch_are_dead_on_any_non_localhost_origin_r_u_036_037_0
         f"correction (or at minimum show a visible error to the user) -- it must never fail silently "
         f"with an uncaught exception and zero effect. Page errors: {errors!r}; revisions: {revisions!r}"
     )
+
+
+def test_correct_double_click_on_unchanged_form_hits_idempotency_key_reuse_r_u_042(page):
+    """R-U-042: 'a key derived from form content so an unchanged resubmit
+    replays.' A genuinely rapid double-click (both dispatched inside a
+    single `page.evaluate`, no Python/IPC round trip between them -- two
+    sequential `page.click()` calls are too slow to reproduce this) on an
+    UNCHANGED correct-form -- same amount, same reason, no field edited
+    between clicks, the effective-instant field left at its default
+    (blank) -- does NOT replay. `app.js`'s `effectiveInstant()` calls
+    `new Date().toISOString()` fresh whenever the datetime-local field is
+    empty, and that call happens inside the click handler itself, so the
+    two clicks' request BODIES differ by a millisecond-scale timestamp
+    even though the Idempotency-Key (now a stable `randomKey()`,
+    regenerated only on an `input` event -- commit 8aac58e) is identical
+    across both. The server correctly answers a same-key-different-body
+    pair with `409 idempotency_key_reuse`, not a replay. Net effect:
+    no double-spend (confirmed safe -- exactly one revision lands), but
+    the second click surfaces a same-key-different-body CONFLICT for
+    what the user did as a single unchanged double-click, contradicting
+    R-U-042's stated guarantee. `correction_batches.py`'s UI binding has
+    the identical `effectiveEl.value ? ... : new Date().toISOString()`
+    pattern per row and shares this root cause (not re-tested here;
+    same fix needed in both places)."""
+    uid_a, h_a = unique("u"), unique_handle("dca")
+    uid_b, h_b = unique("u"), unique_handle("dcb")
+    emails = [f"{h}@x.com" for h in (h_a, h_b)]
+    reset_ok(make_fixture([user(uid_a, h_a, balance=1000, email=emails[0]),
+                            user(uid_b, h_b, balance=0, email=emails[1])]))
+    token_a = httpx.post(url("/auth/login"), json={"email": emails[0], "password": "password123"},
+                          timeout=5).json()["token"]
+    pay = httpx.post(url("/payments"), json={"to_handle": h_b, "amount": 100},
+                      headers={**auth(token_a), "Idempotency-Key": unique("dc")}, timeout=5)
+    assert pay.status_code == 201, pay.text
+    pid = pay.json()["payment_id"]
+
+    responses = []
+    page.on("response", lambda r: responses.append(r.status) if "corrections" in r.url else None)
+    ui_login(page, emails[0], "password123")
+    page.goto(url(f"/payments/{pid}"), wait_until="load")
+    page.fill(tid("correct-reason"), "typo fix")
+    page.evaluate(
+        "() => { var b = document.querySelector('[data-testid=\"correct-submit\"]'); b.click(); b.click(); }"
+    )
+    page.wait_for_timeout(2000)
+
+    assert responses == [201], (
+        f"R-U-042: a genuinely unchanged double-click must replay cleanly (one 201, the rest 200), "
+        f"never a same-key-different-body conflict -- got {responses!r}"
+    )
