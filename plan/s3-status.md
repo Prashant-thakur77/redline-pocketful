@@ -2135,3 +2135,35 @@ the stage; g6 failed at stage 2's close and g7 is in play — neither pre-sancti
 
 Spend ~$86 of $120 on a 900-minute cap. One run. A partial close with a named open breach beats a
 GO the gates do not back.
+
+### Close run in flight: g1 PASS, scope FAIL ruled HOLDS, g2 anchor 610/0
+
+- **g1 PASS** at `b453a49` — built and healthy offline.
+- **scope FAIL**, `10e6a5178f: author 'Human' is not a seat`. **Ruled HOLDS, stays red in the
+  record.** Three operator commits sit in `8dfcc60..b453a49` — the cap raise (`factory/budget.yaml`
+  alone), the factory watchdog/report/ingest fixes, and the post-run record (docs, evidence,
+  dossier). `git show --name-only` across all three returns **zero `stage-*/` paths**: no non-seat
+  commit touches any stage's service code, tests or Dockerfile, and no seat crossed its own
+  boundary in the range. Stages 1 and 2 closed with the same FAIL from the same cause. It stays red
+  because suppressing it would make the check worthless for what it exists to catch. Reversal
+  condition given to @verifier: a non-seat commit on a `stage-*/` path, or a seat committing
+  outside its boundary, is a BLOCK and I want it immediately.
+- **N3-8.4 HOLDS from @adversary**, and its g2 log is the first fully green g2 of stage 3:
+  `610 passed, 0 failed, 0 errors, 0 skipped`. Both filed breach reproductions now pass. It probed
+  conservation with a hold open, partial-capture timing with explicit `final:false`, the
+  `known_at == created_at` tie (counted as known — consistent with R-3-113), and the
+  `/authorizations`+`/statement` blindness question, and ruled out one false alarm of its own
+  (a capture defaulting to `final:true` is R-2-056/058/059, not a bug). No new breach.
+
+**The caveat I sent @verifier, because a wrong-commit verdict has cost us twice this run:** that
+g2 ran at `13:34:26` and `b453a49` landed at `13:36:04`, so @adversary measured the **working tree
+with @builder's edits uncommitted** — not the commit its evidence block names. The number is strong
+evidence, not commit-anchored. What is provable, and I checked it: `git diff b453a49 714a55c --
+stage-3/` is **empty**, so stage-3 content is byte-identical across both and either judges the same
+service. @verifier's `--commit b453a49` worktree run is the anchored one; if its g2 differs from
+610/0, its own number wins and the delta is real.
+
+**610 is the gate-2 ratchet floor from here on, stage 4 included.** @adversary filed no new
+adversarial test for this item because nothing broke — correct, since its two earlier breach tests
+are permanent and now pass. Its untracked `stage-3/_adv_probe_*.py` scratch must not reach
+`stage-4/`; @builder already has the clean-before-copy instruction.
