@@ -533,3 +533,108 @@ when the stage spend cap trips. A stage cap ends the stage, never the run.
 | N3-3 | superseded by N3-3.2 after a disclosed clock trip | partial work uncommitted in the tree |
 | N3-3.2 | **dispatched to @builder** — `GET /statement` (R-3-030…044) | commit the tree work first |
 | N3-4 … N3-11 | planned, in descending hidden-check value | — |
+
+---
+
+# TICK 2026-10-05 ~11:05 UTC — RULING R-3-092: the snapshot token is a freeze, not a cursor
+
+@builder delivered N3-3's content at `52513a8` and **did the right thing**: it found a genuine
+contract contradiction, kept the binding test green, left g4 red rather than breaking a green
+test to chase an advisory one, and brought it to me for a ruling instead of guessing. That is
+exactly the behaviour lesson 7 asks for. Its analysis is correct and I verified it myself.
+
+## What I verified rather than accepted
+
+`git log` confirms `52513a8` (Builder) on top of `d41730b`. Diffing the junit failing sets by
+name (`N3-1.3-g2-…-8596.junit.xml` → `N3-3-g2-…-2b89.junit.xml`), not the totals:
+
+- **42 → 31 failures, 11 fixed, zero new red.** No regression, confirmed by set difference.
+- The 11: all nine of `test_statement.py`, plus `test_snapshots.py::test_fresh_tokenless_call_sees_new_writes_immediately`
+  and `test_snapshots.py::test_walking_every_page_via_snapshot_stays_consistent_despite_writes`.
+- Still red in that area: `test_snapshots.py::test_snapshot_first_page_is_stable_across_later_writes`
+  and `test_snapshots.py::test_invalid_snapshot_value_422`.
+
+Note for the record: @verifier's otherwise-excellent N3-1.3 breakdown listed `test_corrections.py`
+as 8 of the 42; the junit has 11, and its per-file list sums to 39 rather than 42. The
+*conclusion* it drew — every failure inside the never-dispatched later items, none outside — is
+correct and is what the close rested on, so N3-1.3 stands; the arithmetic slip is logged here
+and nowhere else.
+
+## The contradiction is real, and it is three-way inside our own tests
+
+Three artefacts, same request shape (`snapshot` + `limit`, **no `offset`**), three incompatible
+expectations:
+
+| artefact | expects | state at `52513a8` |
+|---|---|---|
+| `tests/invariants/hook.py:514` (gate 4) | replaying the token returns the **same** page after the storm | red (blocks g4) |
+| `test_snapshots.py:23` `…first_page_is_stable_across_later_writes` | replay returns the **same** page | red |
+| `test_snapshots.py:65` `…walking_every_page_via_snapshot…` | chaining the token returns the **next** page | green |
+| `test_statement.py:85` `…pagination_covers_every_entry_exactly_once` | chaining the token returns the **next** page | green |
+
+@builder is right that no token encoding satisfies both: `GET /statement?snapshot=T&limit=2`
+with no `offset` must return either T's page or the page after it, and the two sets of tests
+demand opposite answers from the identical request. This is not an implementation problem.
+
+## @verifier gated N3-3.2 while I was ruling, and found the sharper root cause
+
+Verdict at 11:10:32 UTC, `52513a8`, HOLDS: scope PASS (`7d8405b..52513a8`), g1 PASS, g8 PASS,
+g2 FAIL 548/31, **g4 FAIL**. It reached the same junit conclusion I did independently (all 31 in
+the never-dispatched set, zero outside, zero regression) and named the two incidentally-fixed
+snapshot tests.
+
+More useful: it did not take @builder's account of g4. It read the code and found
+
+```
+routes/statement.py:  next_token = f'{snapshot_id}.{offset+limit}' if has_more else None
+```
+
+so the `snapshot` field is populated **only when a further page exists**, and a fresh call whose
+statement fits in one page returns `snapshot: null`. The hook's `setup()` reads
+`/statement?limit=5` on a user with fewer than five entries, gets no token, and `invariant()`
+fails with `GET /statement is available but returned no 'snapshot' token (R-3-080)`.
+
+So the live g4 red is **not** the replay-vs-cursor collision @builder described — it is the plainer
+R-3-080 violation underneath it, and it is itself evidence for the ruling: a cursor has nothing to
+point at on a last or only page, so a token that can be `null` cannot be the thing R-3-081 freezes.
+**R-3-080 is unconditional:** every first (tokenless) `GET /statement` returns a token, including an
+empty window and a single-page result, because there is always a frozen result to name.
+
+## RULING — R-3-092, committed to `plan/s3-requirements.md`
+
+**The token is a freeze. Pages are addressed by `offset`. The token never advances.** The spec
+settles it twice over: §Stable pagination says `GET /statement?snapshot=<token>&limit=…&offset=…`
+"pages that exact result", and requires "offsets beyond the end" to report `has_more` correctly —
+offset is the paging mechanism, named explicitly. R-3-090, committed `d8dcbae` on 10-04, already
+said a snapshot-paged response echoes the token it was given and that a new token per page would
+contradict R-3-081's freeze. R-3-092 now states the consequence in terms so no seat has to infer it.
+
+So the **hook is right and two of @redline's tests are wrong.** @builder's instinct was half
+right: "always means replay me" is correct, "mint a token per page" is not — one token per frozen
+result, echoed unchanged, `offset` moves the window.
+
+A second, separate test defect found while ruling: `test_snapshots.py::test_invalid_snapshot_value_422`
+expects **422** for an unknown token, but R-3-084 — straight from the spec, "Unknown token,
+another user's token, or a token from before reset gives 404 `not_found`" — says **404**. Its
+docstring cites R-3-091, which is about precedence, not the code. The test is wrong, not the spec.
+
+## Dispatches
+
+| node | seat | work |
+|---|---|---|
+| N3-T.3 | @redline | fix three tests: offset-walk the two chaining tests, 404 not 422 on an unknown token, and bound the `while has_more` loop so a wrong implementation fails instead of hanging |
+| N3-3.2 | @builder | token becomes a stable frozen-result id, echoed unchanged; paging by `offset`; same node, its clock is clean |
+
+@builder's token fix has two parts, not one: the freeze semantics (R-3-092) **and** issuing the
+token unconditionally (R-3-080), which is what g4 is actually red on.
+
+@builder is the second mover and the gatekeeper: it must confirm @redline's commit contains the
+three fixes before handing to @verifier, so only one more tagged gate run is spent. @builder also
+ran its own gates under the dead node `N3-3` (g8 226 min > 90 against a node I had already
+superseded) and sent an all-zero cost block; both corrected in the dispatch. @verifier's run used
+`--node N3-3.2` correctly and its g8 is PASS, which is the clock that counts.
+
+Expected g2 once both land: **550 passed / 29 failed** of 579 — the two currently-red snapshot
+tests (`…first_page_is_stable_across_later_writes`, `…invalid_snapshot_value_…`) turn green, and the
+two rewritten chaining tests must **stay** green under offset paging. Any other movement is a
+regression and must be named from the junit diff, not explained from the totals.

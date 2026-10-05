@@ -130,6 +130,7 @@ This stage's checks are mostly hidden. Where the spec is silent, the rows marked
 | R-3-089 | Old snapshots remain unchanged after **any** hold lifecycle action or correction. | s3 §Historical holds | invariant |
 | R-3-090 | **PLANNER DECISION.** A snapshot-paged response echoes the same `snapshot` token it was given, so a caller can page without retaining the first response. Returning a *new* token per page would contradict R-3-081's freeze. | s3 §Stable pagination | behaviour |
 | R-3-091 | **PLANNER DECISION.** A token is bound to the user who requested it; `404 not_found` for anyone else (R-3-084) takes precedence over any validation of the accompanying `limit`/`offset`, so a token is never confirmed to exist by a differing error. | s3 §Stable pagination, §5 | error |
+| R-3-092 | **PLANNER RULING, 2026-10-05, N3-3.2.** The `snapshot` token is a **freeze, never a cursor**. Pages within a frozen result are addressed by `offset` (R-3-082, and R-3-086's "offsets beyond the end"); the token value never changes between pages and never encodes a position. So `GET /statement?snapshot=T&limit=L` with no `offset` returns the **first** page of `T`'s frozen result every time it is called, however many times it is called, and a response's `snapshot` field always identifies the same frozen result rather than "the next page". A token that advances is forbidden: it would contradict R-3-081 and R-3-090 and make R-3-088/089 untestable. | s3 §Stable pagination | behaviour |
 
 ## H. Settlement and capture history
 
