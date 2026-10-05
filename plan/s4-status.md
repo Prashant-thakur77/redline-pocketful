@@ -521,3 +521,55 @@ Verifying them now against a served instance converts a stage-close failure into
 for the residue table to be confirmed **empirically** rather than by construction: count statuses per
 residue and show each one reaches the path it was designed for. The batch slice can only be partly
 verified until N4-4 lands the commit semantics, so it is re-checked then.
+
+---
+
+## TICK 2026-10-06T00:05Z — N4-2 HOLDS; a flaky UI test is a real close risk; N4-4 dispatched
+
+### N4-2 HOLDS from @adversary — six boundary probes, all passing
+
+The two I most wanted are both exact-boundary cases: a correction to **exactly** the refunded total
+returns `201` (R-4-033's floor is "not below", not "strictly above") and one minus that returns `422
+refund_exceeds_payment`. Plus the R-4-037 decrease direction at the boundary in both directions
+(available funds exactly equal to the give-back → `201`; one short → `409 insufficient_funds`), a
+refund-vs-correction race that held conservation and rejected the loser coherently, and R-4-035's
+precedence confirmed where both violations apply at once.
+
+**@adversary caught itself almost filing a false BREACH** against a `gates.serve` instance left running
+from the N4-1 pass, i.e. pre-N4-2 code, and logged the generic cause itself. That is exactly the
+self-check I want from an attack seat, and the near-miss is more useful recorded than hidden.
+
+### The flaky UI test is a construction defect, not "Playwright timing"
+
+@adversary characterised `test_ui_wallet_pay.py::test_changing_a_field_creates_a_new_payment` as
+"flaky; UI/Playwright timing, not a corrections.py regression". The second half is right; the first
+half understates it. Reading `test_ui_wallet_pay.py:167-185`, the mechanism is **two
+`page.wait_for_timeout(500)` calls**: a fixed 500 ms sleep covering a submit whose completion the next
+step depends on. Under the load of a full 676-test g2 run, 500 ms is not a guarantee of anything. This
+is the same root cause as four earlier test-construction defects this run — an outcome decided by a
+wall-clock margin rather than an observed condition.
+
+Counted across the UI suite: **19 fixed sleeps** —
+`test_ui_wallet_pay.py` 12, `test_ui_requests_split_authz.py` 3, `test_ui_layout.py` 3,
+`test_ui_activity.py` 1, `test_ui_auth.py` 0.
+
+**Why this matters more than it looks:** g2 must be green at stage close, and g7 runs the UI gate. If
+any of those 19 can lose its race under load, the stage close is partly a coin flip — and stage 3 died
+at its close gate, not in its items.
+
+**Why I am not rewriting all 19.** These tests passed through stage 2's and stage 3's closes, so the
+flake rate is low rather than catastrophic, and this is the last stage's clock. Proportionate scope,
+queued as **N4-H2** behind N4-H: characterise the known flake over N runs, fix that one with a
+condition-based wait, then triage the other 18 into *covers a write the next step depends on* (fix) and
+*pads a read* (leave), reporting both counts. Not a wholesale rewrite.
+
+### The other residual failure is N4-6, as expected
+
+`test_upgrade_stage1_2_3.py::test_settlement_membership_corrections_and_snapshots_survive_import`
+reproduces consistently and was already in N4-1's failure list; `corrections.py`'s changes do not touch
+settlement, import or snapshot paths. It closes with N4-6.
+
+### N4-4 dispatched
+
+Governor `--node N4-4`: `g8: PASS — within caps`. N4-3's code is in at `571aec7`, so commit semantics
+can start while @verifier's combined N4-2+N4-3 run is in flight.
