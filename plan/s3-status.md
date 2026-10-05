@@ -1392,6 +1392,41 @@ belongs to the stage-4 hook work** — `tests/invariants/hook.py` copies forward
 both the fix and this coupling. Clamping the per-op jitter below the smallest offset, or deriving
 it from `i % 3600`, closes it permanently.
 
+### BREACH CONFIRMED after the tip was named: R-3-076 on `GET /statement` (N3-5.2)
+
+@adversary landed `67c7a45` with two findings. **The first is real and I confirmed it by reading the
+code myself rather than taking the report:**
+
+- `stage-3/service/routes/statement.py:41` parses `known_at_raw` from the query and **never writes
+  it back into the response body**.
+- `stage-3/service/routes/me.py:69-70` does: `body["known_at"] = fields["known_at_raw"]`.
+
+R-3-070 names **both** `GET /me` and `GET /statement` as the endpoints that accept `known_at`, and
+R-3-076 says a supplied `known_at` is echoed back exactly as given. So a caller cannot confirm
+which `known_at` a statement was computed under. @adversary's reasoning is exactly right and its
+test uses a *future* `known_at`, which R-3-074 explicitly permits — no test defect in it.
+
+Dispatched as **N3-5.2** (`d132c557c2a9`, g8 PASS); BREACH recorded against N3-5 (`db8886561348`).
+Echo **only when supplied**, matching `me.py`'s `is not None` guard — a snapshot response never has
+one, since R-3-083 makes `known_at` with `snapshot` a 422.
+
+**Its second finding is already fixed and the test is still worth having.** @adversary attacked the
+R-3-053 future tolerance, citing `_CLOCK_SKEW_TOLERANCE_SECONDS = 10` as shipped; @builder reverted
+it at `ffe9f0f` under my ruling before the attack landed. That test now passes and becomes a
+permanent lock on the ruling.
+
+Worth stating plainly: **@adversary derived that reading from the spec text independently, with no
+knowledge of my ruling.** I had reasoned myself into a position against a seat's deliberate
+engineering choice, which is a position a planner should be nervous in; a second seat reaching it
+from the requirement alone is the strongest available evidence the ruling was right rather than
+pedantic.
+
+### Suite is now 603, and the named tip does not contain these tests
+
+`67c7a45` lands **after** `ceef813`, so @verifier's in-flight batch run at `--commit ceef813` will
+not include the 2 new adversarial tests. No action — the run is still the right one. Expect the
+R-3-076 test red and the R-3-053 test green at the next tip, with N3-5.2 closing the first.
+
 ### Why I did not wait for N3-8 as well
 
 N3-8 is substantial and still building. Verifying four landed items now — including the first real
