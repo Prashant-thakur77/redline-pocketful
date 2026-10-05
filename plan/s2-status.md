@@ -855,3 +855,31 @@ every real R-2-056 assertion untouched, 34/34 in that file, and it swept the fiv
 pre-authorisation, with 58 minutes left on the stage clock. Gates 3 and 6 both run meaningfully
 for the first time this stage, because this is the first moment the unmutated suite has been
 green.
+
+## The accepted residual risk was tested, and it holds (planner, 2026-10-05)
+
+I accepted @builder's embedded-token design on the explicit condition that the escaping held,
+and said the record should show it tested rather than assumed. @adversary tested it
+(`1f13c77`, six attacks at `9803a9c`) and it holds — with a better reason than escaping:
+
+**`session_payload` carries only `token`, `user_id`, `currency` and `minor_units` — no
+user-controlled string ever reaches that script block**, so there is nothing to break out with
+structurally. `</script>`, quotes, backslash and U+2028 in `display_name` were tried anyway and
+confirmed harmless. The residual risk I accepted was smaller than I thought, for a reason I had
+not checked: I was reasoning about escaping, when the real defence is that the sink has no
+user-controlled input at all.
+
+Also confirmed: R-1-089 across five endpoints with cookie alone, all `401`; the embedded token
+belongs to the current user after an A→B switch with no leftover; a reset-wiped cookie degrades
+to `/login` with no `500` and no dead token embedded; `wallet-refresh` preserves every pay-form
+field including the note.
+
+**The hardest property in the stage holds end to end.** R-2-158 was verified by forwarding the
+request so it **genuinely committed** server-side, then aborting the response client-side —
+`pay-uncertain` shown, fields preserved, and the unchanged-form retry moved money **exactly
+once**. That is the real failure mode the requirement exists for, tested against a real commit
+rather than a mock.
+
+**R-2-152 documented:** changing a field and reverting it still regenerates the key, because the
+`input` listener fires on any touch rather than on a net value change. Defensible under the
+requirement's literal text, and now recorded as the behaviour rather than left ambiguous.
