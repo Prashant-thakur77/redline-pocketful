@@ -179,3 +179,59 @@ not on the product. Stated in N4-1's dispatch: the message text is now load-bear
 `factory.report --summary` prints `stage 4: blocked` from the stale `N4-T` gate-8 artefact described
 above. Stage 4 is **open**, not blocked; `--node N4-1` reports `g8: PASS — within caps`. Stage-4
 spend is $0.00 so far.
+
+---
+
+## TICK 2026-10-05T17:55Z — N4-1 built, 2 test bugs ruled, N4-2 scope narrowed
+
+@builder reported N4-1 at 27/31 with two test bugs rather than guessing around them. **I verified
+both independently and @builder is right on both.** Dispatched to @redline as one-line fixes.
+
+### Test bug 1 — `test_refunds.py:104 test_refund_target_may_be_a_capture` (R-4-012)
+
+`open_authorization(tokens[0], handles[1], …)` makes `tokens[0]` the payer and `tokens[1]` the
+receiver, so the capture-produced payment flows `tokens[0] → tokens[1]` and its receiver is
+`tokens[1]`. Line 113 refunds as `tokens[0]`, the **payer**. R-4-011 permits only the original
+receiver, so `403` is correct and the implementation is right. Fix: `_refund(tokens[1], …)`.
+The sibling `test_refund_target_may_be_a_request_payment` gets this right and passes.
+
+### Test bug 2 — `test_refund_correction_interaction.py:59 test_refund_cannot_itself_be_corrected` (R-4-032)
+
+**The test's own comment contains the error:** *"the refund flows b->a, so a (the refund's receiver)
+would be the one attempting to correct it."* Receiver is the **refund** rule; corrections require
+the **sender** (R-3-051: an authenticated non-sender is `403 forbidden`). The refund flows b→a, so
+its sender is `token_b`. As written, `token_a` is stopped by the ordinary sender-permission check
+and never reaches the immutability check — which incidentally confirms corrections' precedence
+(permission before target checks) still works. Fix: `_correct(token_b, …)`.
+
+Both are the shape the lessons file already warns about: an artefact that looks requirement-backed
+while asserting the opposite, caught only because the builder read the cited text instead of
+loosening the code. This is the behaviour I want and it is now three for three this run — redline on
+the mutant branches, builder here twice.
+
+### R-4-035 added: the floor outranks both funds checks
+
+@builder found that `test_correction_may_not_reduce_below_already_refunded_amount` currently fails
+with `historical_overdraft` because `would_cause_historical_overdraft` catches the same arithmetic
+before any R-4-033 check exists. That exposed a precedence gap I had not ruled, so I have:
+**`422 refund_exceeds_payment` → `409 insufficient_funds` → `409 historical_overdraft`** for single
+corrections, because R-4-049 fixes exactly that order for batches and a single correction is a
+one-item batch. Committed as R-4-035 in `plan/s4-requirements.md`.
+
+### N4-2's scope narrows: R-4-032 landed in N4-1
+
+@builder implemented R-4-032 (a refund is `linked_payment_immutable`) inside N4-1 as a one-line
+extension to `corrections.py`, disclosed it, and the reasoning is sound — a refund that *could* be
+corrected would break R-4-002 and R-4-004, so refunds are not well-formed without it. Accepted.
+**N4-2 is therefore R-4-002, R-4-030, R-4-031, R-4-033, R-4-034 and R-4-035** — the floor check and
+the available-funds debit, not R-4-032.
+
+It also stored `payment["refunded_total"]` as the cumulative quantity both directions consume, which
+is trap 1 from the N4-1 dispatch handled correctly on the first pass.
+
+### Protocol correction issued
+
+@builder ended its turn with **everything uncommitted**, waiting on my ruling. Work that exists only
+in the working tree is invisible to every other seat and is destroyed by any copy-forward. Told it to
+commit immediately and unconditionally — a ruling never needs to be waited for before committing,
+because a commit is not a claim of correctness.

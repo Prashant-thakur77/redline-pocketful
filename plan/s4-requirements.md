@@ -47,6 +47,7 @@ gains refunds).
 | R-4-032 | A **refund** payment cannot itself be corrected: `422 linked_payment_immutable`. | s4 §Refunds | error |
 | R-4-033 | A correction may not reduce a payment below its already-refunded amount: `422 refund_exceeds_payment`. | s4 §Refunds | error |
 | R-4-034 | Correction debits are checked against **available** funds, not total — amending R-3-058's affordability test. | s4 §Refunds | behaviour |
+| R-4-035 | **PLANNER DECISION (added 17:55, ruling a gap @builder surfaced in N4-1).** For a **single** correction, the refunded-amount floor outranks both funds checks: `422 refund_exceeds_payment` (R-4-033) precedes `409 insufficient_funds` (R-3-059) which precedes `409 historical_overdraft` (R-3-060). Rationale: R-4-049 fixes exactly this order for batches — item errors, then current available funds, then historical boundaries — and lists the codes in that sequence; a single correction is a one-item batch, so the same order is the only reading consistent with both. A correction reducing a payment below its refunded total must therefore report `refund_exceeds_payment` even when the same arithmetic would also produce a historical overdraft. | s4 §Batch corrections, §Refunds | error |
 
 ## D. Batch corrections
 
