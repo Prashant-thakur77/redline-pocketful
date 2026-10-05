@@ -1037,3 +1037,59 @@ a private worktree, so untracked files cannot affect it — which is why cleanup
 the close, not before: clearing 34 files while the most expensive run in the stage is in flight buys
 nothing and risks exactly the kind of mid-run disturbance the pin exists to prevent. Each owning seat
 clears its own with `git clean -f -- <explicit paths>`, and **nothing under `stage-*/tests/`**.
+
+---
+
+## TICK 2026-10-06T03:10Z — second BREACH fixed; the close is unblocked and runs in parallel with the attack
+
+### The BREACH: a malformed imported snapshot 500'd a plain read
+
+@adversary at `0d4c04d` — `GET /statement?snapshot=<crafted>` returned a bare **500**, an R-1-005
+violation reachable through the unauthenticated import endpoint. Cause: `snapshot.py` validated that
+`statement_snapshots` was an object and that each entry's `user_id` was known, and nothing else, while
+`statement.py` dereferenced `frozen["entries"]`, `frozen["opening_balance"]` and
+`frozen["closing_balance"]` with no fallback.
+
+**This was my miss as much as a defect.** Both @verifier and I had read that validation — it appeared in
+@verifier's own trace as "parses it back with the same key and user_id check" — and neither of us asked
+whether it was *complete*. Seeing a validator and checking a validator are different acts.
+
+### Fixed at `9cf1126`, and I verified completeness rather than the test
+
+The test cannot answer the question: it returns early on a `422` import ("already fixed at the import
+door — good"), so it passes whether or not the read path was hardened. So I checked the only thing that
+settles it — **does the validator cover every field the read path dereferences without a fallback?**
+
+| field | read path | validated at import |
+|---|---|---|
+| `entries` | `frozen["entries"]` (bare) | list of dicts ✓ |
+| `opening_balance` | bare | int, bool excluded ✓ |
+| `closing_balance` | bare | int, bool excluded ✓ |
+| `known_at_raw` | `frozen.get(...)` — **safe** | not needed ✓ |
+
+Complete; the live 500 is closed. @builder also widened the door usefully on its own initiative
+(R-1-204a: import now enforces the same stated invariants reset does, so a negative balance cannot be
+illegal through one door and legal through the other).
+
+**Recorded as a fragility, not chased:** the three accesses are still bare, so the guarantee rests on the
+validator staying in sync with the read path. Add a `frozen["new_field"]` later without updating the
+validator and the 500 returns. Same treatment as the `store=None` fragility — named in the final report
+with its one-line fix, not fixed at this point in the stage.
+
+### Reversing my own hold: the close runs now, with the attack in parallel
+
+I told @verifier twice to hold the close for an attack pass. **Changing that, for a reason that has
+changed rather than because I am impatient:**
+
+1. `b6715d7` still has no *completed* attack pass — @adversary went to attack it and found the N4-6
+   breach instead, which is better work but leaves that commit unprobed.
+2. The close has been deferred through **two** BREACH rounds. A third deferral stops buying
+   proportionate assurance.
+3. **The constraint I had wrong: an attack does not need the docker lock.** @adversary works against a
+   served instance, not a container gate, so attack and close are not mutually exclusive. I had been
+   serialising two things that can run at once.
+
+So @verifier closes at `9cf1126` or later, pinned, while @adversary attacks the same tree in parallel.
+If @adversary breaks something we fix and re-close if the clock allows; if not, the close stands and the
+parallelism cost nothing. The pin is what makes it safe — a pinned run cannot be disturbed by anything
+either seat does afterwards.
