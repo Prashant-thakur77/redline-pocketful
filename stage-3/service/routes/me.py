@@ -50,7 +50,7 @@ class MeEndpoint(Endpoint):
             total = balance_for_view(STORE.opening_balances, STORE.payments, STORE.payment_revisions,
                                       user["id"], as_of_epoch=fields["as_of_epoch"],
                                       known_at_epoch=fields["known_at_epoch"])
-            held = held_at(STORE, user["id"], view_epoch)
+            held = held_at(STORE, user["id"], view_epoch, known_at_epoch=fields["known_at_epoch"])
         body = {
             "user_id": user["id"],
             "display_name": user["display_name"],
