@@ -729,6 +729,23 @@ Next: @verifier re-gates **`9721028`** (resolved fresh from the repository, not 
 message). Target **550 passed / 30 failed of 580**, and g4 green — g4 is the gate this whole repair
 exists to clear.
 
+## N3-3.2 verified content-complete at `9721028`; N3-4 dispatched in parallel
+
+Verified from the artefacts, not the report: `N3-3.2-g2-20261005T112729-5380.junit.xml` is **580
+total, 551 passed, 29 failed**, and the 29 contain **zero** statement, snapshot or adversarial
+failures — corrections 11, corrections_concurrency 3, historical_overdraft 4, known_at 5,
+historical_holds 2, me_as_of 2, revisions 1, upgrade 1, all never dispatched. Ledger at that commit:
+scope PASS, g1 PASS, **g4 PASS** (1300 ops, 1.7 s), g8 PASS. One better than the 550/30 prediction.
+
+@verifier owns the closing verdict and is re-gating `9721028`. I dispatched **N3-4 (corrections,
+R-3-050…069)** to @builder in parallel rather than idling it through that run — 15 of the 29
+remaining reds are N3-4's, the largest block left, and with ~$36 of stage cap left serialising the
+two would cost more than it protects. Target after N3-4: **566 passed / 14 failed of 580**, the 14
+being N3-5 (7), N3-6 (6) and N3-9 (1).
+
+@builder tagged its own iteration run `--node N3-3.2`; noted to it, no harm (g8 passed), but
+iteration passes should stay untagged so they are not charged to the attempts cap.
+
 ## Budget pacing, since @verifier asked
 
 Unchanged, and nothing here is near a cap. `factory.report --summary`: stage 3 **$84.13 of $120**;
