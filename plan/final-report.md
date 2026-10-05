@@ -6,7 +6,21 @@
 @verifier's container gate-2 run at `61ccdaa`: **683 passed, 0 failed, 0 errors, 0 skipped**
 (ledger `0a42cfdf2a8e`). Every figure below is final.
 
-Ledger: **2,361 events, hash chain `ok`** (`python -m factory.ledger evidence/ledger.jsonl`).
+Ledger: **2,368 events, hash chain `ok`** (`python -m factory.ledger evidence/ledger.jsonl`).
+
+**Final gate result of the run:** @verifier's container run at `44628bc` (which contains `67b0edf`,
+@adversary's batch-row test) — **scope PASS, g2 PASS, 684 passed, 0 failed, 0 errors, 0 skipped**,
+ledger `9a423902a15f`. The delivered tip of `stage-4/` passes its own full suite, measured in a
+container by the seat that wrote neither the code nor the tests.
+
+**One correction to this document, raised by @verifier against the planner.** An earlier revision
+described the batch fix as "measured by a seat that did neither write nor read it" **before any
+`gate_result` for `67b0edf` existed in the ledger**. The statement was defensible — @adversary had
+measured it against a served instance, and @adversary wrote neither the fix nor the code under test —
+but this report's own standard is that a verdict is an exit code in the ledger, and at that moment no
+such entry existed. The claim was ahead of its evidence. It is backed now by the run above. Tenth
+planner lesson: *write a report claim only after the ledger entry that backs it exists; if a number is
+needed before its gate result lands, mark it pending rather than phrasing it in the past tense.*
 
 All monetary and gate figures come from
 `python -m factory.report --summary --repo <repo> --ledger <repo>/evidence/ledger.jsonl`,
