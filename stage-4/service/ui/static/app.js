@@ -959,16 +959,27 @@
       var correctExpectedEl = document.querySelector('[data-testid="correct-expected-revision"]');
       var correctReviewEl = document.querySelector('[data-testid="correct-review"]');
 
+      // R-U-042 (second violation, @adversary's de74c1e): the default
+      // effective instant must be snapshotted at the SAME moment as the
+      // key, not recomputed with `new Date()` inside the click handler --
+      // otherwise a rapid double-click on an unchanged form sends the
+      // same key with two bodies differing by a millisecond-scale
+      // `effective_at`, landing 201 then 409 idempotency_key_reuse where
+      // R-U-042 promises a clean replay. Refreshed together everywhere
+      // the key regenerates, so the two can never drift apart.
+      var correctKey = randomKey();
+      var correctDefaultEffective = new Date().toISOString();
+      function regenerateCorrectKey() {
+        correctKey = randomKey();
+        correctDefaultEffective = new Date().toISOString();
+      }
+
       function effectiveInstant() {
         if (correctEffectiveEl.value) {
           return new Date(correctEffectiveEl.value).toISOString();
         }
-        return new Date().toISOString();
+        return correctDefaultEffective;
       }
-
-      // Same stable-until-changed policy as the refund form above.
-      var correctKey = randomKey();
-      function regenerateCorrectKey() { correctKey = randomKey(); }
 
       function updateCorrectReview() {
         var amt = Pocketful.parseAmountToMinorUnits(correctAmountEl.value, minorUnits);
@@ -1021,8 +1032,19 @@
     // R-2-151/152: stable while the table is UNCHANGED, regenerated on
     // any row edit, add or remove -- a batch is one atomic write, so a
     // stale key across an edited table would replay the wrong body.
+    // R-U-042 (second violation, @adversary's de74c1e): the default
+    // effective instant for a row with no explicit one must be
+    // snapshotted alongside the key, not recomputed with `new Date()`
+    // at submit time -- otherwise a rapid double-click on an unchanged
+    // table sends the same key with two bodies differing by a
+    // millisecond-scale effective_at. One snapshot for the whole table,
+    // refreshed together with the key everywhere it regenerates.
     var batchKey = randomKey();
-    function regenerateBatchKey() { batchKey = randomKey(); }
+    var batchDefaultEffective = new Date().toISOString();
+    function regenerateBatchKey() {
+      batchKey = randomKey();
+      batchDefaultEffective = new Date().toISOString();
+    }
 
     function rowHtml(index) {
       return '<tr data-testid="batch-row-' + index + '">' +
@@ -1070,7 +1092,7 @@
           amount: amt,
           reason: reasonEl.value,
           expected_revision: parseInt(expectedEl.value, 10),
-          effective_at: effectiveEl.value ? new Date(effectiveEl.value).toISOString() : new Date().toISOString()
+          effective_at: effectiveEl.value ? new Date(effectiveEl.value).toISOString() : batchDefaultEffective
         });
       });
       return rows;
