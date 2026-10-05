@@ -235,3 +235,52 @@ is trap 1 from the N4-1 dispatch handled correctly on the first pass.
 in the working tree is invisible to every other seat and is destroyed by any copy-forward. Told it to
 commit immediately and unconditionally — a ruling never needs to be waited for before committing,
 because a commit is not a claim of correctness.
+
+---
+
+## TICK 2026-10-05T18:06Z — N4-1 content accepted, GO criterion fixed for @verifier; N4-2 dispatched
+
+N4-1 landed at `2909df5`; @redline's two party-confusion fixes at `e00677f`. **@adversary returned
+HOLDS with 14 probes, all passing**, including the two I most wanted: two concurrent refunds with
+different keys against one payment (exactly one `201`, one `422 refund_exceeds_payment`, balance
+correct — the check-then-set on `refunded_total` is properly serialized) and five concurrent
+same-key refunds (one `201`, four `200` replays, byte-identical bodies). Also confirmed
+available-funds debiting through an outgoing hold (R-4-018) and the corrected-ceiling case (R-4-015)
+that trap 1 was about.
+
+### Gate 2 is advisory per-item for the rest of this stage, and here is the mechanical criterion
+
+Gate 2 runs **every** stage-4 test, including ~26 for endpoints that items N4-2…N4-8 have not built
+yet, so g2 cannot pass on any item until the last one lands. Same situation as stage 1, where g2 was
+ruled advisory per item. Rather than leave "advisory" to judgement, the failure set is now named.
+
+I grouped the g2 log's failures by file myself:
+
+| file | count | owning item |
+|---|---|---|
+| `test_correction_batches.py` | 9 | N4-3 |
+| `test_batch_snapshots.py` | 7 | N4-4 |
+| `test_upgrade_stage1_2_3.py` | 4 | N4-6 |
+| `test_batch_precedence.py` | 4 | N4-5 |
+| `test_refund_correction_interaction.py` | 2 | N4-2 (the floor tests) |
+| `test_concurrency_s4.py` | 2 | N4-8 |
+
+**`test_refunds.py` has zero failures**, which is what makes @adversary's "no N4-1-scoped test
+failed" claim checkable rather than a judgement. `test_ten_idempotent_write_paths_all_require_a_key`
+fails only because write path 10 of 10 (`/correction-batches`) 404s — R-4-071 cannot close before
+N4-3.
+
+**N4-1's GO criterion, binding:** g1, g4, g8 PASS; `test_refunds.py` **fully green (23 tests)**; and
+every remaining failure inside the six files above. Any failure outside that set is a real finding.
+@adversary's run was at `2909df5`, *before* the test fixes, so the GO must be measured at `e00677f`.
+
+### N4-2 dispatched: R-4-002, R-4-030, R-4-031, R-4-033, R-4-034, R-4-035
+
+Governor `--node N4-2`: `g8: PASS — within caps`. Dispatched in parallel with the N4-1 gate run
+because N4-1's content is committed and N4-2 consumes `refunded_total`, which already exists. @builder
+is forbidden container gates while @verifier holds the docker lock, and required to run pytest
+against an already-served instance instead.
+
+@adversary's two scratch probes (`stage-4/_adv_probe_refunds*.py`) stay untracked until the item
+closes, then `git clean -f --` on those two paths only. Correct call; nothing at `stage-4/`'s root
+may ship.
