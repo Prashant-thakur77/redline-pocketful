@@ -1632,6 +1632,40 @@ with no evidence the behaviour ever worked.
 Also noted: `tests/adversarial/_scratch_probe_known_at_echo.py` is committed scratch. **Leave it** —
 the scope check flags any deleted file under `stage-*/tests/`, per the standing lesson.
 
+## >>> TICK 2026-10-05T13:10Z — N3-5.4 landed at `e229e25`, but the 3 new tests are UNRUN. LIVE BLOCK. <<<
+
+@adversary committed the three probes as permanent tests in
+`stage-3/tests/adversarial/test_n3_5_adversarial.py`, asserting the **sum** rather than the per-user
+numbers as asked. Static checks I ran myself: `py_compile` clean, and every imported conftest
+helper (`api_get`, `api_post`, `auth`, `idem`, `login_token`, `make_fixture`, `reset_ok`,
+`two_user_fixture`, `unique`, `unique_handle`, `user`) exists.
+
+**It corrected me, and it is right:** `_scratch_probe_known_at_echo.py` is **untracked** (`??`), not
+committed as I said. My housekeeping note was factually wrong; nothing needed leaving in place
+beyond not touching it. Recorded rather than quietly dropped.
+
+### My instruction had a hole and I am closing it
+
+I told it "no container gate", meaning *do not race @verifier's run*. It reasonably read that as
+"do not validate at all", and committed **three brand-new tests that have never executed**, resting
+on the claim that they mirror the manual flows byte-for-byte.
+
+That is the wrong risk to carry into the close. **This stage has produced five test-construction
+defects** — three in one file, one in @adversary's own suite, one in the gate hook — so "the logic
+mirrors a flow I ran by hand" is precisely the reasoning that has failed repeatedly here. And the
+cost lands on the single most expensive pass I have left: if one of these three fails for a
+construction reason, the `--gates all` close run fails on a test bug rather than on the product,
+and at **$35.87 of $120** I cannot buy that pass twice.
+
+The middle path I should have specified: run **just those three** with pytest against an already
+served instance (`factory.gates.serve`, exactly as it did in N3-5.3) — no docker build, no race with
+@verifier, no ratcheted metric written. Dispatched back under the same node N3-5.4, since it is the
+same pass and the node's clock is fresh.
+
+**Standing rule from this, for every seat:** a test that has never executed is not evidence, and
+"no container gate" never means "do not run it". Validate against a served instance; the
+serialization rule exists to stop concurrent *docker builds*, not to stop testing.
+
 ### Why I did not wait for N3-8 as well
 
 N3-8 is substantial and still building. Verifying four landed items now — including the first real
