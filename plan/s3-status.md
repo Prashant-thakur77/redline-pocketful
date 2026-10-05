@@ -671,11 +671,22 @@ verbatim. Two errors in the report, both named rather than inferred:
    existed) and concluded zero regression. The baseline for its own change is its own previous
    commit, `52513a8` at 548/31 — against which it is **3 worse**.
 
-Diffed by name, `52513a8` → `fc3bef1`: four went red — `test_statement::…pagination_covers_every_entry_exactly_once`,
-`test_snapshots::…walking_every_page_via_snapshot…`, `test_snapshots::test_unknown_or_foreign_or_stale_snapshot_token_404`,
-`test_n3_3_adversarial::…token_must_be_echoed_unchanged…` — and one **left the set**:
-`test_invalid_snapshot_value_422`, renamed by @redline, not fixed. A test that disappears is not a
-test that passes.
+Diffed by name, `52513a8` → `fc3bef1`, the red set grew by four — but **only two are regressions**,
+and @verifier's accounting is sharper than mine here, so its wording is the one that stands:
+
+- **Regressions** (green before, red now): `test_statement::…pagination_covers_every_entry_exactly_once`
+  and `test_snapshots::…walking_every_page_via_snapshot…` — both @redline's rewrites at `4f0d130`,
+  which the cursor code cannot satisfy.
+- **New tests, red for the right reason** (never green, nor should they have been):
+  `test_snapshots::test_unknown_or_foreign_or_stale_snapshot_token_404` and
+  `test_n3_3_adversarial::…token_must_be_echoed_unchanged…`.
+
+My first pass called all four "went red" and said three of them were new; it is two and two. The
+cause and the fix are unchanged, but attribution matters in this file, so the correction is here
+rather than buried.
+
+One test also **left the set**: `test_invalid_snapshot_value_422`, renamed by @redline, not fixed.
+A test that disappears is not a test that passes.
 
 All four share one cause: the `{id}.{offset}` cursor encoding is still in `routes/statement.py`.
 The 404 test being red also means R-3-084/091 were not done.
@@ -687,3 +698,42 @@ Remaining for @builder on N3-3.2: stable echoed token id, `offset` slicing the f
 Kept from its report and worth keeping: the interim pass ran **without** `--node`, so it was not
 charged to the attempts cap, and it recorded cost to the ledger (`0483b9fc3eec`) — both were
 corrections I asked for last tick and both landed.
+
+---
+
+# TICK 2026-10-05 ~11:30 UTC — the freeze landed at `9721028`; @verifier's NEEDS_WORK is already one commit behind
+
+Three commits inside two minutes, in this order:
+
+| time | commit | what |
+|---|---|---|
+| 16:53 | `73911a7` Planner | NEEDS_WORK on `fc3bef1`, freeze half named as unbuilt |
+| 16:57 | `9721028` Builder | **"statement snapshot is a freeze, not a cursor (R-3-092)"** |
+| 16:58 | `4ee5e7b` Verifier | NEEDS_WORK on `fc3bef1` — correct for that commit, superseded one minute earlier |
+
+So @verifier's verdict (ledger `2492ed6ae54d`) is right about `fc3bef1` and **not about the tip**.
+This is lesson 13 happening again — author-triggered verification in a tree with continuous
+commits judges a sha that a later commit has already superseded. @verifier reached my conclusion
+independently and by the right method (junit set diff plus reading `apply()` itself), and found the
+cursor line still present at `fc3bef1`; both of us were describing a commit @builder had already
+left behind.
+
+**Content proven in `9721028`, not taken on report** (lesson 16): `git log -S'next_token' -- stage-3/service/routes/statement.py`
+names exactly two commits — `52513a8`, which introduced the cursor encoding, and `9721028`, which
+removed it. The working tree I inspected before it was committed echoed the given token
+(`snapshot_id = fields["snapshot_param"]`), minted only when absent, sliced `all_entries[offset:offset+limit]`
+with `has_more` against the frozen length, returned 404 on an unknown token and 422 for
+`from`/`to`/`known_at` alongside one. That is R-3-092, R-3-080, R-3-084 and R-3-083 together.
+
+Next: @verifier re-gates **`9721028`** (resolved fresh from the repository, not from any sha in a
+message). Target **550 passed / 30 failed of 580**, and g4 green — g4 is the gate this whole repair
+exists to clear.
+
+## Budget pacing, since @verifier asked
+
+Unchanged, and nothing here is near a cap. `factory.report --summary`: stage 3 **$84.13 of $120**;
+`governor check --stage 3 --node N3-3.2` **PASS** on both the item and the stage caps; 6 rejections
+this stage. The two passes spent on N3-3.2 bought a real ruling (R-3-092), three repaired tests, one
+permanent adversarial test and a correct implementation, so I am not treating them as waste. Plan
+stands: close N3-3.2, then **N3-4 (corrections)** — the other feature this stage is actually about —
+and record stage 3 `partial` the moment the stage cap trips, copy forward, start stage 4.
