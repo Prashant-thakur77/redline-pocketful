@@ -20,7 +20,7 @@ import time
 from .. import auth
 from ..errors import forbidden, historical_overdraft, insufficient_funds, linked_payment_immutable, \
     not_found, refund_exceeds_payment, stale_revision, validation_failed
-from ..holds import held_for
+from ..holds import available_for
 from ..idempotency import IDEMPOTENCY
 from ..json_utils import now_rfc3339, parse_json_object, parse_rfc3339
 from ..pipeline import Endpoint, RequestCtx
@@ -133,26 +133,19 @@ class CorrectionEndpoint(Endpoint):
         if new_amount < payment.get("refunded_total", 0):
             raise refund_exceeds_payment()
 
-        # R-3-058/059/060: only an INCREASE can make the new amount
-        # unaffordable in the "currently unaffordable" sense R-3-059 means
-        # -- the corrected amount alone, considered in isolation (as if it
-        # were the payer's only payment ever, minus whatever of their
-        # balance is presently held by an open authorization), could never
-        # have been paid. That is a cheap, replay-free ceiling check and
-        # takes precedence (R-3-059) over the full historical-ledger
-        # replay below. A decrease can never fail this ceiling check --
-        # crediting the receiver more cannot make an isolated balance
-        # negative -- so a decrease always falls through to the replay;
-        # catching a decrease-driven overdraft requires knowing what the
-        # receiver already spent *downstream*, which only the full replay
-        # sees. Using this ceiling instead of the payer's raw CURRENT
-        # wallet is what keeps this check from double-counting the effect
-        # of OTHER payments, which is exactly what makes a violation
-        # "historical" rather than a plain funds shortfall (R-3-002:
-        # distinguishing the two is the whole point of this module).
+        # R-4-037 (planner decision, amending R-3-058/059/060): the
+        # insufficient_funds check is on the INCREMENTAL debit against
+        # the debited party's CURRENT available funds -- never an opening
+        # balance, and never new_amount itself. An increase debits the
+        # original sender; a decrease debits the original receiver,
+        # since it takes back money they may have already spent. Both
+        # directions are checked; only the historical-overdraft replay
+        # below is about boundaries other than "right now".
         if delta > 0:
-            ceiling = STORE.opening_balances.get(payer_id, 0) - held_for(STORE, payer_id)
-            if new_amount > ceiling:
+            if available_for(STORE, payer_id) < delta:
+                raise insufficient_funds()
+        elif delta < 0:
+            if available_for(STORE, payee_id) < -delta:
                 raise insufficient_funds()
 
         if would_cause_historical_overdraft(STORE.opening_balances, STORE.payments, STORE.payment_revisions,
