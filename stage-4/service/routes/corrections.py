@@ -150,7 +150,7 @@ class CorrectionEndpoint(Endpoint):
 
         if would_cause_historical_overdraft(STORE.opening_balances, STORE.payments, STORE.payment_revisions,
                                              payment_id, new_amount, fields["effective_at"],
-                                             (payer_id, payee_id)):
+                                             (payer_id, payee_id), store=STORE):
             raise historical_overdraft()
 
         STORE.wallets[payer_id] = STORE.wallets.get(payer_id, 0) - delta

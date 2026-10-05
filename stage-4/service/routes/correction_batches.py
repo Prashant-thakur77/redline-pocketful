@@ -234,7 +234,8 @@ class CorrectionBatchEndpoint(Endpoint):
             affected_user_ids.add(plan["payment"]["from_user_id"])
             affected_user_ids.add(plan["payment"]["to_user_id"])
         if would_candidates_cause_historical_overdraft(STORE.opening_balances, STORE.payments,
-                                                         STORE.payment_revisions, candidates, affected_user_ids):
+                                                         STORE.payment_revisions, candidates, affected_user_ids,
+                                                         store=STORE):
             raise historical_overdraft()
 
         # R-4-053: one shared recorded_at, strictly LATER than every

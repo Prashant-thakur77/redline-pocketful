@@ -11,6 +11,7 @@ the same shape.
 from __future__ import annotations
 
 from .errors import validation_failed
+from .holds import held_at
 from .json_utils import parse_rfc3339
 
 
@@ -197,7 +198,7 @@ def balance_before(opening_balances: dict, payments: dict, payment_revisions: di
 
 
 def would_candidates_cause_historical_overdraft(opening_balances: dict, payments: dict, payment_revisions: dict,
-                                                 candidates: dict, affected_user_ids) -> bool:
+                                                 candidates: dict, affected_user_ids, store=None) -> bool:
     """R-3-060/R-4-050: the general, multi-payment form -- a set of
     proposed revisions (one `(amount, effective_at)` candidate per
     payment id in `candidates`) is illegal if ANY affected user's
@@ -213,7 +214,17 @@ def would_candidates_cause_historical_overdraft(opening_balances: dict, payments
     (unchanged) revision instead of against the batch's OTHER
     candidates is exactly the gap that lets two individually-boundary-
     safe corrections combine into a real historical negative that
-    neither one alone would reveal."""
+    neither one alone would reveal.
+
+    R-3-118/R-4-049: a boundary violates not only when the running
+    TOTAL goes negative but when the running AVAILABLE (total minus
+    whatever was held at that instant) does -- a hold opened and later
+    released leaves present available healthy while a past window,
+    between opening and release, was not. Checked only when `store` is
+    supplied (it needs `store.authorizations` via `holds.held_at`);
+    every caller in this codebase passes it, but the parameter stays
+    optional so a test exercising the pure-payments primitive directly
+    need not construct one."""
     for user_id in affected_user_ids:
         events = []
         for p in payments.values():
@@ -232,30 +243,50 @@ def would_candidates_cause_historical_overdraft(opening_balances: dict, payments
             events.append((parse_rfc3339(effective_at), delta))
         events.sort(key=lambda e: e[0])
 
+        # R-3-118: event boundaries (a hold's own creation and close
+        # instants) can make AVAILABLE go negative with no payment
+        # moving at that instant at all -- a hold opened then later
+        # released leaves present available healthy while the window
+        # between those two instants was not. Merged into the same
+        # sorted walk as the payment boundaries, with zero payment delta
+        # of their own.
+        event_epochs = set()
+        if store is not None:
+            for authorization in store.authorizations.values():
+                if authorization["from_user_id"] != user_id:
+                    continue
+                event_epochs.add(parse_rfc3339(authorization["created_at"]))
+                closed_at = authorization.get("closed_at")
+                if closed_at is not None:
+                    event_epochs.add(parse_rfc3339(closed_at))
+                event_epochs.add(authorization["expires_at"])
+
+        boundary_epochs = sorted({e[0] for e in events} | event_epochs)
+
         running = opening_balances.get(user_id, 0)
-        i, n = 0, len(events)
-        while i < n:
-            batch_epoch = events[i][0]
-            batch_delta = 0
-            while i < n and events[i][0] == batch_epoch:
-                batch_delta += events[i][1]
-                i += 1
-            running += batch_delta
+        event_idx, n = 0, len(events)
+        for boundary_epoch in boundary_epochs:
+            while event_idx < n and events[event_idx][0] == boundary_epoch:
+                running += events[event_idx][1]
+                event_idx += 1
             if running < 0:
+                return True
+            if store is not None and running - held_at(store, user_id, boundary_epoch) < 0:
                 return True
     return False
 
 
 def would_cause_historical_overdraft(opening_balances: dict, payments: dict, payment_revisions: dict,
                                       payment_id: str, candidate_amount: int, candidate_effective_at: str,
-                                      affected_user_ids: tuple[str, str]) -> bool:
-    """R-3-060: the single-correction case of
+                                      affected_user_ids: tuple[str, str], store=None) -> bool:
+    """R-3-060/R-3-118: the single-correction case of
     `would_candidates_cause_historical_overdraft` -- one payment's
     proposed revision, checked against everyone else's current latest
-    revision."""
+    revision. `store` is optional and only needed for the `available`
+    (held-adjusted) half of the check; omit it to check `total` only."""
     return would_candidates_cause_historical_overdraft(
         opening_balances, payments, payment_revisions,
-        {payment_id: (candidate_amount, candidate_effective_at)}, affected_user_ids)
+        {payment_id: (candidate_amount, candidate_effective_at)}, affected_user_ids, store=store)
 
 
 def validate_payment_history_nonnegative(wallets: dict, payments: dict) -> None:
