@@ -8,7 +8,7 @@ Tests are written from the spec before the code, and nothing ships until a seat 
 | Band | five BAND SDK seats on Claude Code: Opus plans; Sonnet writes tests, builds, attacks and verifies; each with its own context and edit boundary |
 | Key design decision | the test writer never sees the code and the verifier never edits it; eight gates are scripts, so a verdict is an exit code, not an opinion |
 | Verified result | all four stages pass `harness run --all --mode isolated` (highest contiguous: 4, `evidence/harness/final/`); 684 spec tests pass, 0 fail, at the last gate run (`44628bc`); at `d6efb05` every one of the eight gates passed, mutation included (90%); mutation per stage 100%, 70%, 70%, 90% |
-| Cost | $1,187.55 at list price, measured per turn from the seat logs (Planner $390, Builder $276, Verifier $209, Redline $189, Adversary $123); 34.8 h from the dispatch to the last ledger event; 56 h of seat time |
+| Cost | paid: one Claude subscription ($200/month); the whole run used about 20% of one week's usage limit (the subscription's usage page). Token use measured per turn from the seat logs, priced at API list rates for comparison: $1,187.55 (Planner $390, Builder $276, Verifier $209, Redline $189, Adversary $123). 34.8 h from the dispatch to the last ledger event; 56 h of seat time |
 | Limitation | see [Limits](#limits) |
 
 ## Stand it up in 10 minutes

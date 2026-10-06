@@ -34,6 +34,6 @@ Our own harness run, isolated mode (no outbound network): `evidence/harness/fina
 | 913 gate runs, 279 failures stopped before merge | `evidence/report.md`, "What each gate caught" |
 | 91 rejections, 18 BREACH verdicts from the Adversary | `evidence/report.md`, "Catches and recovery"; `git log --grep=BREACH` |
 | Tests were written before the code | `git log --reverse --format='%h %an %ad' -- stage-1/tests` vs `-- stage-1/service`: Redline's tests (`6663728`) land before any service code |
-| $1,187.55 at list price, measured per turn | `evidence/report.md`, "Cost and time" (from the seat logs, `factory.ingest --logs`) |
+| Token use measured per turn ($1,187.55 at API list prices; paid via one $200/month subscription, about 20% of a week's limit) | `evidence/report.md`, "Cost and time" (from the seat logs, `factory.ingest --logs`) |
 | Generic mandates | `factory.genericity` (0 hits); the same mandates built the toy track, `proof/toy/` |
 | The human's role | `room.json` (five human messages), FACTORY.md, Limits |
